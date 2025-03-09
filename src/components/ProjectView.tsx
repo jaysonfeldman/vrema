@@ -13,7 +13,14 @@ import { formatTime } from '@/lib/mock-data';
 import ProjectCard from './ProjectCard';
 
 const ProjectView: React.FC = () => {
-  const { customProjects, addProjectFilter, removeProjectFilter, projectFilters } = useCalendarSync();
+  const { 
+    customProjects, 
+    addProjectFilter, 
+    removeProjectFilter, 
+    projectFilters,
+    events
+  } = useCalendarSync();
+  
   const [newProjectName, setNewProjectName] = useState('');
   const [newProjectFilter, setNewProjectFilter] = useState('');
   const [isAddingProject, setIsAddingProject] = useState(false);
@@ -31,10 +38,15 @@ const ProjectView: React.FC = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Projects from Calendar Events</h2>
-        <Button onClick={() => setIsAddingProject(!isAddingProject)}>
-          <PlusCircle className="mr-2 h-4 w-4" />
-          {isAddingProject ? 'Cancel' : 'Add Project View'}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className="mr-2">
+            {events.length} events available
+          </Badge>
+          <Button onClick={() => setIsAddingProject(!isAddingProject)}>
+            <PlusCircle className="mr-2 h-4 w-4" />
+            {isAddingProject ? 'Cancel' : 'Add Project View'}
+          </Button>
+        </div>
       </div>
 
       {isAddingProject && (

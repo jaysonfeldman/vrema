@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import Header from '@/components/Header';
 import Dashboard from '@/components/Dashboard';
@@ -28,12 +29,18 @@ const Index: React.FC = () => {
         <GoogleCalendarSync />
         
         {isAuthenticated && (
-          <Tabs defaultValue="projects" className="mt-6">
+          <Tabs defaultValue="dashboard" className="mt-6">
             <TabsList className="mb-4">
+              <TabsTrigger value="dashboard">Dashboard Overview</TabsTrigger>
               <TabsTrigger value="projects">Projects</TabsTrigger>
               <TabsTrigger value="events">Calendar Events</TabsTrigger>
-              <TabsTrigger value="dashboard">Dashboard Overview</TabsTrigger>
             </TabsList>
+            
+            <TabsContent value="dashboard">
+              <TotalHoursView />
+              <CalendarProjectsList />
+              {/* Remove mock dashboard as we're using real data now */}
+            </TabsContent>
             
             <TabsContent value="projects">
               <ProjectView />
@@ -41,13 +48,6 @@ const Index: React.FC = () => {
             
             <TabsContent value="events">
               <CalendarEventsTable />
-            </TabsContent>
-            
-            <TabsContent value="dashboard">
-              <TotalHoursView />
-              <CalendarProjectsList />
-              {/* Keep the mock dashboard for now, we'll replace it once the new components are working */}
-              <Dashboard /> 
             </TabsContent>
           </Tabs>
         )}

@@ -6,7 +6,7 @@ import { toast } from '@/components/ui/use-toast';
 import { GoogleCalendarEvent, FilterOptions, Project } from '@/lib/types';
 import { addDays, format, parseISO, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 
-export const useCalendarSync = () => {
+export function useCalendarSync() {
   const { authState } = useGoogleAuth();
   const [events, setEvents] = useState<GoogleCalendarEvent[]>([]);
   const [filteredEvents, setFilteredEvents] = useState<GoogleCalendarEvent[]>([]);
@@ -137,7 +137,7 @@ export const useCalendarSync = () => {
     setCustomProjects(newCustomProjects);
   }, [events, projectFilters]);
 
-  const syncCalendar = async (days = 30) => {
+  const syncCalendar = useCallback(async (days = 30) => {
     if (!authState.isAuthenticated || !authState.token) {
       toast({
         variant: "destructive",
@@ -175,11 +175,11 @@ export const useCalendarSync = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [authState.isAuthenticated, authState.token]);
 
-  const updateFilters = (newFilters: Partial<FilterOptions>) => {
+  const updateFilters = useCallback((newFilters: Partial<FilterOptions>) => {
     setFilters(prev => ({...prev, ...newFilters}));
-  };
+  }, []);
 
   const getProjectNameFromEvent = (event: GoogleCalendarEvent): string => {
     return event.summary.includes(':') 
@@ -295,4 +295,4 @@ export const useCalendarSync = () => {
     getTotalHours,
     getActivityHours
   };
-};
+}

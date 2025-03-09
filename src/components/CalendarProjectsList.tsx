@@ -8,7 +8,7 @@ import ActivityTag from './ActivityTag';
 import { ActivityType } from '@/lib/types';
 
 const CalendarProjectsList: React.FC = () => {
-  const { projectStats, isAuthenticated, events } = useCalendarSync();
+  const { projectStats, isAuthenticated, events, getTotalHours } = useCalendarSync();
   
   if (!isAuthenticated || Object.keys(projectStats.projectMap).length === 0) {
     return null;

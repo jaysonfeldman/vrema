@@ -3,11 +3,18 @@ import React, { useEffect, useState } from 'react';
 import ProjectCard from './ProjectCard';
 import Timeline from './Timeline';
 import ActivityTag from './ActivityTag';
-import { projects, teamMembers, getTotalHours, getActivityHours, formatTime } from '@/lib/mock-data';
 import { Calendar, FileDown, FileUp } from 'lucide-react';
+import { useCalendarSync } from '@/hooks/useCalendarSync';
+import { formatTime } from '@/lib/mock-data';
 
 const Dashboard: React.FC = () => {
   const [isVisible, setIsVisible] = useState(false);
+  const { 
+    customProjects, 
+    getTotalHours, 
+    getActivityHours,
+    getProjects
+  } = useCalendarSync();
   
   useEffect(() => {
     // Add animation delay for a staggered effect
@@ -50,7 +57,7 @@ const Dashboard: React.FC = () => {
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {projects.map((project, index) => (
+          {customProjects.map((project, index) => (
             <ProjectCard 
               key={project.id} 
               project={project} 
@@ -66,7 +73,7 @@ const Dashboard: React.FC = () => {
         <div className="flex flex-wrap gap-4 items-center mb-8">
           <button className="flex items-center space-x-2 bg-white text-gray-800 border border-gray-200 rounded-md px-4 py-2 hover:bg-gray-50 transition-colors">
             <Calendar className="w-4 h-4" />
-            <span>October 2023</span>
+            <span>{new Date().toLocaleString('default', { month: 'long', year: 'numeric' })}</span>
           </button>
           
           <button className="flex items-center space-x-2 bg-white text-gray-800 border border-gray-200 rounded-md px-4 py-2 hover:bg-gray-50 transition-colors">
@@ -75,17 +82,6 @@ const Dashboard: React.FC = () => {
           
           <button className="flex items-center space-x-2 bg-white text-gray-800 border border-gray-200 rounded-md px-4 py-2 hover:bg-gray-50 transition-colors">
             <span>All activities</span>
-          </button>
-          
-          <button className="flex items-center space-x-2 bg-white text-gray-800 border border-gray-200 rounded-md px-4 py-2 hover:bg-gray-50 transition-colors">
-            <div className="flex -space-x-1">
-              {teamMembers.map(member => (
-                <div key={member.id} className="w-6 h-6 rounded-full border-2 border-white overflow-hidden">
-                  <img src={member.avatar} alt={member.name} className="w-full h-full object-cover" />
-                </div>
-              ))}
-            </div>
-            <span>{teamMembers.length} members</span>
           </button>
           
           <div className="ml-auto flex space-x-3">
@@ -123,7 +119,8 @@ const Dashboard: React.FC = () => {
             <div className="space-y-6">
               {['design', 'strategy', 'dev', 'meetings', 'admin'].map((type, index) => {
                 const hours = getActivityHours(type as any);
-                const percentage = (hours / getTotalHours()) * 100;
+                const totalHours = getTotalHours();
+                const percentage = totalHours > 0 ? (hours / totalHours) * 100 : 0;
                 
                 return (
                   <div key={type} className="space-y-2">
@@ -152,11 +149,6 @@ const Dashboard: React.FC = () => {
             </div>
           </div>
         </div>
-      </section>
-      
-      {/* Team Timeline */}
-      <section className={`transition-opacity duration-500 ${isVisible ? 'opacity-100' : 'opacity-0'}`} style={{ transitionDelay: '500ms' }}>
-        <Timeline members={teamMembers} />
       </section>
     </div>
   );
