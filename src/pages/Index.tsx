@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import Header from '@/components/Header';
 import Dashboard from '@/components/Dashboard';
 import GoogleCalendarSync from '@/components/GoogleCalendarSync';

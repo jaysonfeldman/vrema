@@ -16,6 +16,7 @@ const TotalHoursView: React.FC = () => {
     filters, 
     updateFilters,
     events,
+    filteredEvents,
     lastSynced
   } = useCalendarSync();
   
@@ -81,7 +82,7 @@ const TotalHoursView: React.FC = () => {
             <div className="flex items-center gap-4">
               <div className="text-4xl font-bold">{formatTime(totalHours)}</div>
               <div className="text-muted-foreground">
-                from {events.length} events
+                from {filteredEvents.length} events
                 {lastSynced && (
                   <div className="text-xs mt-1">
                     Last synced: {format(lastSynced, 'MMM d, h:mm a')}

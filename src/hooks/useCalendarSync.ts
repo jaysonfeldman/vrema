@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useGoogleAuth } from '@/providers/GoogleAuthProvider';
 import { fetchCalendarEvents, convertEventsToActivities } from '@/services/googleCalendarService';
 import { toast } from '@/components/ui/use-toast';
@@ -89,7 +89,7 @@ export function useCalendarSync() {
 
   // Get total hours logged across all events
   const getTotalHours = useCallback(() => {
-    if (filteredEvents.length === 0) return 0;
+    if (!filteredEvents.length) return 0;
     
     let totalHours = 0;
     filteredEvents.forEach(event => {
@@ -97,9 +97,12 @@ export function useCalendarSync() {
       
       const startTime = new Date(event.start.dateTime);
       const endTime = new Date(event.end.dateTime);
+      
+      // Calculate duration in hours
       const durationHours = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
       
-      if (durationHours > 0) {
+      // Ensure we only count positive durations
+      if (!isNaN(durationHours) && durationHours > 0) {
         totalHours += durationHours;
       }
     });
@@ -109,7 +112,7 @@ export function useCalendarSync() {
 
   // Get hours by activity type
   const getActivityHours = useCallback((activityType: 'design' | 'strategy' | 'dev' | 'meetings' | 'admin') => {
-    if (filteredEvents.length === 0) return 0;
+    if (!filteredEvents.length) return 0;
     
     let activityHours = 0;
     filteredEvents.forEach(event => {
@@ -121,7 +124,7 @@ export function useCalendarSync() {
         const endTime = new Date(event.end.dateTime);
         const durationHours = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
         
-        if (durationHours > 0) {
+        if (!isNaN(durationHours) && durationHours > 0) {
           activityHours += durationHours;
         }
       }
@@ -146,11 +149,20 @@ export function useCalendarSync() {
 
     setIsLoading(true);
     try {
+      // Fetch events for the specified time range
       const fetchedEvents = await fetchCalendarEvents(authState.token, days);
-      setEvents(fetchedEvents);
-      setFilteredEvents(fetchedEvents);
       
-      const stats = convertEventsToActivities(fetchedEvents);
+      // Log for debugging
+      console.log(`Fetched ${fetchedEvents.length} calendar events`);
+      
+      // Filter out events without start/end dateTime
+      const validEvents = fetchedEvents.filter(event => event.start?.dateTime && event.end?.dateTime);
+      console.log(`${validEvents.length} events have valid start/end times`);
+      
+      setEvents(validEvents);
+      setFilteredEvents(validEvents);
+      
+      const stats = convertEventsToActivities(validEvents);
       setProjectStats(stats);
       
       setLastSynced(new Date());
@@ -158,10 +170,10 @@ export function useCalendarSync() {
       
       toast({
         title: "Calendar synced",
-        description: `Found ${fetchedEvents.length} events from your Google Calendar`,
+        description: `Found ${validEvents.length} events from your Google Calendar`,
       });
       
-      return { events: fetchedEvents, stats };
+      return { events: validEvents, stats };
     } catch (error) {
       console.error('Error syncing calendar:', error);
       toast({
@@ -178,6 +190,7 @@ export function useCalendarSync() {
   useEffect(() => {
     if (events.length === 0) return;
     
+    console.log('Applying filters to events:', filters);
     let filtered = [...events];
     
     // Apply search filter
@@ -208,6 +221,7 @@ export function useCalendarSync() {
       return eventDate >= startDate && eventDate <= today;
     });
     
+    console.log(`Filtered to ${filtered.length} events after applying filters`);
     setFilteredEvents(filtered);
   }, [events, filters, getProjectNameFromEvent]);
 
