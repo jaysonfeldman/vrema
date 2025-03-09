@@ -35,6 +35,8 @@ export interface WeekData {
 export interface GoogleCalendarEvent {
   id: string;
   summary: string;
+  description?: string;
+  location?: string;
   start: {
     dateTime: string;
     timeZone: string;
@@ -43,7 +45,19 @@ export interface GoogleCalendarEvent {
     dateTime: string;
     timeZone: string;
   };
-  description?: string;
+  attendees?: {
+    email: string;
+    displayName?: string;
+    responseStatus?: string;
+  }[];
+  organizer?: {
+    email: string;
+    displayName?: string;
+  };
+  created?: string;
+  updated?: string;
+  status?: string;
+  htmlLink?: string;
 }
 
 export interface GoogleAuthState {
@@ -54,4 +68,10 @@ export interface GoogleAuthState {
     email?: string;
     picture?: string;
   } | null;
+}
+
+export interface FilterOptions {
+  searchTerm: string;
+  project: string;
+  dateRange: number;
 }

@@ -1,17 +1,19 @@
 
 import { GoogleCalendarEvent } from '@/lib/types';
-import { addDays, format } from 'date-fns';
+import { addDays, format, parseISO } from 'date-fns';
 
 export const fetchCalendarEvents = async (token: string, days = 30): Promise<GoogleCalendarEvent[]> => {
   try {
     const today = new Date();
-    const endDate = addDays(today, days);
+    // Set the start date to 30 days ago by default for the initial fetch
+    const startDate = new Date(today);
+    startDate.setDate(startDate.getDate() - days);
     
-    const timeMin = encodeURIComponent(today.toISOString());
-    const timeMax = encodeURIComponent(endDate.toISOString());
+    const timeMin = encodeURIComponent(startDate.toISOString());
+    const timeMax = encodeURIComponent(today.toISOString());
     
     const response = await fetch(
-      `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${timeMin}&timeMax=${timeMax}&singleEvents=true&orderBy=startTime`,
+      `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${timeMin}&timeMax=${timeMax}&singleEvents=true&orderBy=startTime&maxResults=2500`,
       {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -24,7 +26,7 @@ export const fetchCalendarEvents = async (token: string, days = 30): Promise<Goo
     }
 
     const data = await response.json();
-    return data.items as GoogleCalendarEvent[];
+    return data.items.filter((event: any) => event.start?.dateTime && event.end?.dateTime) as GoogleCalendarEvent[];
   } catch (error) {
     console.error('Error fetching calendar events:', error);
     throw error;
@@ -51,7 +53,7 @@ export const convertEventsToActivities = (events: GoogleCalendarEvent[]): {
     // Extract project name from event summary (assuming format: "Project: Task")
     const projectName = event.summary.includes(':') 
       ? event.summary.split(':')[0].trim() 
-      : event.summary.trim();
+      : 'Other'; // Default project name if no colon is found
     
     // Default activity type
     let activityType: string = 'meetings';
@@ -87,4 +89,34 @@ export const convertEventsToActivities = (events: GoogleCalendarEvent[]): {
   });
   
   return { projectMap, activityMap };
+};
+
+// Format date for display
+export const formatEventDate = (dateString: string): string => {
+  const date = parseISO(dateString);
+  return format(date, 'MMM d, yyyy h:mm a');
+};
+
+// Get the day of the week
+export const getDayOfWeek = (dateString: string): string => {
+  const date = parseISO(dateString);
+  return format(date, 'EEEE');
+};
+
+// Calculate duration in hours and minutes
+export const calculateDuration = (startDateString: string, endDateString: string): string => {
+  const startTime = new Date(startDateString).getTime();
+  const endTime = new Date(endDateString).getTime();
+  const durationMs = endTime - startTime;
+  
+  const hours = Math.floor(durationMs / (1000 * 60 * 60));
+  const minutes = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60));
+  
+  if (hours === 0) {
+    return `${minutes}m`;
+  } else if (minutes === 0) {
+    return `${hours}h`;
+  } else {
+    return `${hours}h ${minutes}m`;
+  }
 };
