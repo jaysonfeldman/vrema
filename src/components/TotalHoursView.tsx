@@ -5,7 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import ActivityTag from './ActivityTag';
 import { Clock, Calendar } from 'lucide-react';
-import { formatTime } from '@/lib/mock-data';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 
@@ -21,6 +20,13 @@ const TotalHoursView: React.FC = () => {
   } = useCalendarSync();
   
   const totalHours = getTotalHours();
+  
+  // Format time to hours and minutes
+  const formatTime = (hours: number): string => {
+    const wholeHours = Math.floor(hours);
+    const minutes = Math.round((hours - wholeHours) * 60);
+    return `${wholeHours}h ${minutes}m`;
+  };
   
   // Calculate hours by activity type
   const activityTypes: { type: 'design' | 'strategy' | 'dev' | 'meetings' | 'admin', label: string }[] = [

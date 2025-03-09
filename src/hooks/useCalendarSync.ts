@@ -29,6 +29,151 @@ export function useCalendarSync() {
   const [projectFilters, setProjectFilters] = useState<{[key: string]: string}>({});
   const [customProjects, setCustomProjects] = useState<Project[]>([]);
 
+  // Define all callbacks first to maintain proper hook order
+  const getProjectNameFromEvent = useCallback((event: GoogleCalendarEvent): string => {
+    return event.summary.includes(':') 
+      ? event.summary.split(':')[0].trim() 
+      : 'Other';
+  }, []);
+
+  const determineActivityType = useCallback((event: GoogleCalendarEvent): 'design' | 'strategy' | 'dev' | 'meetings' | 'admin' => {
+    const lowerSummary = event.summary.toLowerCase();
+    const lowerDescription = (event.description || '').toLowerCase();
+    
+    if (lowerSummary.includes('design') || lowerDescription.includes('design')) {
+      return 'design';
+    } else if (lowerSummary.includes('dev') || lowerDescription.includes('dev') || 
+              lowerSummary.includes('code') || lowerDescription.includes('code')) {
+      return 'dev';
+    } else if (lowerSummary.includes('strategy') || lowerDescription.includes('strategy') ||
+              lowerSummary.includes('planning') || lowerDescription.includes('planning')) {
+      return 'strategy';
+    } else if (lowerSummary.includes('admin') || lowerDescription.includes('admin')) {
+      return 'admin';
+    } else {
+      return 'meetings';
+    }
+  }, []);
+
+  // Get all unique projects from events
+  const getProjects = useCallback((): string[] => {
+    if (!events.length) return [];
+    
+    const projectSet = new Set<string>();
+    projectSet.add('All');
+    
+    events.forEach(event => {
+      const projectName = getProjectNameFromEvent(event);
+      projectSet.add(projectName);
+    });
+    
+    return Array.from(projectSet);
+  }, [events, getProjectNameFromEvent]);
+
+  // Add a new project filter
+  const addProjectFilter = useCallback((projectId: string, filterTerm: string) => {
+    setProjectFilters(prev => ({
+      ...prev,
+      [projectId]: filterTerm
+    }));
+  }, []);
+
+  // Remove a project filter
+  const removeProjectFilter = useCallback((projectId: string) => {
+    setProjectFilters(prev => {
+      const newFilters = {...prev};
+      delete newFilters[projectId];
+      return newFilters;
+    });
+  }, []);
+
+  // Get total hours logged across all events
+  const getTotalHours = useCallback(() => {
+    if (filteredEvents.length === 0) return 0;
+    
+    let totalHours = 0;
+    filteredEvents.forEach(event => {
+      if (!event.start?.dateTime || !event.end?.dateTime) return;
+      
+      const startTime = new Date(event.start.dateTime);
+      const endTime = new Date(event.end.dateTime);
+      const durationHours = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
+      
+      if (durationHours > 0) {
+        totalHours += durationHours;
+      }
+    });
+    
+    return totalHours;
+  }, [filteredEvents]);
+
+  // Get hours by activity type
+  const getActivityHours = useCallback((activityType: 'design' | 'strategy' | 'dev' | 'meetings' | 'admin') => {
+    if (filteredEvents.length === 0) return 0;
+    
+    let activityHours = 0;
+    filteredEvents.forEach(event => {
+      if (!event.start?.dateTime || !event.end?.dateTime) return;
+      
+      const type = determineActivityType(event);
+      if (type === activityType) {
+        const startTime = new Date(event.start.dateTime);
+        const endTime = new Date(event.end.dateTime);
+        const durationHours = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
+        
+        if (durationHours > 0) {
+          activityHours += durationHours;
+        }
+      }
+    });
+    
+    return activityHours;
+  }, [filteredEvents, determineActivityType]);
+
+  const updateFilters = useCallback((newFilters: Partial<FilterOptions>) => {
+    setFilters(prev => ({...prev, ...newFilters}));
+  }, []);
+
+  const syncCalendar = useCallback(async (days = 30) => {
+    if (!authState.isAuthenticated || !authState.token) {
+      toast({
+        variant: "destructive",
+        title: "Not authenticated",
+        description: "Please connect to Google Calendar first",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const fetchedEvents = await fetchCalendarEvents(authState.token, days);
+      setEvents(fetchedEvents);
+      setFilteredEvents(fetchedEvents);
+      
+      const stats = convertEventsToActivities(fetchedEvents);
+      setProjectStats(stats);
+      
+      setLastSynced(new Date());
+      setFilters(prev => ({...prev, dateRange: days}));
+      
+      toast({
+        title: "Calendar synced",
+        description: `Found ${fetchedEvents.length} events from your Google Calendar`,
+      });
+      
+      return { events: fetchedEvents, stats };
+    } catch (error) {
+      console.error('Error syncing calendar:', error);
+      toast({
+        variant: "destructive",
+        title: "Sync failed",
+        description: "Could not sync with Google Calendar",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [authState.isAuthenticated, authState.token]);
+
   // Effect to apply filters whenever events or filters change
   useEffect(() => {
     if (events.length === 0) return;
@@ -58,20 +203,19 @@ export function useCalendarSync() {
     startDate.setDate(startDate.getDate() - filters.dateRange);
     
     filtered = filtered.filter(event => {
+      if (!event.start?.dateTime) return false;
       const eventDate = new Date(event.start.dateTime);
       return eventDate >= startDate && eventDate <= today;
     });
     
     setFilteredEvents(filtered);
-  }, [events, filters]);
+  }, [events, filters, getProjectNameFromEvent]);
 
   // Create custom projects when events or project filters change
   useEffect(() => {
     if (events.length === 0) return;
     
     const newCustomProjects: Project[] = [];
-    const projectHours: {[key: string]: number} = {};
-    const projectActivities: {[key: string]: any[]} = {};
     const today = new Date();
     const startOfCurrentMonth = startOfMonth(today);
     const endOfCurrentMonth = endOfMonth(today);
@@ -90,6 +234,8 @@ export function useCalendarSync() {
       const activities: any[] = [];
       
       filteredEvents.forEach(event => {
+        if (!event.start?.dateTime || !event.end?.dateTime) return;
+        
         const startTime = new Date(event.start.dateTime);
         const endTime = new Date(event.end.dateTime);
         const durationHours = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
@@ -135,147 +281,7 @@ export function useCalendarSync() {
     });
     
     setCustomProjects(newCustomProjects);
-  }, [events, projectFilters]);
-
-  const syncCalendar = useCallback(async (days = 30) => {
-    if (!authState.isAuthenticated || !authState.token) {
-      toast({
-        variant: "destructive",
-        title: "Not authenticated",
-        description: "Please connect to Google Calendar first",
-      });
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      const fetchedEvents = await fetchCalendarEvents(authState.token, days);
-      setEvents(fetchedEvents);
-      setFilteredEvents(fetchedEvents);
-      
-      const stats = convertEventsToActivities(fetchedEvents);
-      setProjectStats(stats);
-      
-      setLastSynced(new Date());
-      setFilters(prev => ({...prev, dateRange: days}));
-      
-      toast({
-        title: "Calendar synced",
-        description: `Found ${fetchedEvents.length} events from your Google Calendar`,
-      });
-      
-      return { events: fetchedEvents, stats };
-    } catch (error) {
-      console.error('Error syncing calendar:', error);
-      toast({
-        variant: "destructive",
-        title: "Sync failed",
-        description: "Could not sync with Google Calendar",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  }, [authState.isAuthenticated, authState.token]);
-
-  const updateFilters = useCallback((newFilters: Partial<FilterOptions>) => {
-    setFilters(prev => ({...prev, ...newFilters}));
-  }, []);
-
-  const getProjectNameFromEvent = (event: GoogleCalendarEvent): string => {
-    return event.summary.includes(':') 
-      ? event.summary.split(':')[0].trim() 
-      : 'Other';
-  };
-
-  const determineActivityType = (event: GoogleCalendarEvent): 'design' | 'strategy' | 'dev' | 'meetings' | 'admin' => {
-    const lowerSummary = event.summary.toLowerCase();
-    const lowerDescription = (event.description || '').toLowerCase();
-    
-    if (lowerSummary.includes('design') || lowerDescription.includes('design')) {
-      return 'design';
-    } else if (lowerSummary.includes('dev') || lowerDescription.includes('dev') || 
-              lowerSummary.includes('code') || lowerDescription.includes('code')) {
-      return 'dev';
-    } else if (lowerSummary.includes('strategy') || lowerDescription.includes('strategy') ||
-              lowerSummary.includes('planning') || lowerDescription.includes('planning')) {
-      return 'strategy';
-    } else if (lowerSummary.includes('admin') || lowerDescription.includes('admin')) {
-      return 'admin';
-    } else {
-      return 'meetings';
-    }
-  };
-
-  // Get all unique projects from events
-  const getProjects = useCallback((): string[] => {
-    if (!events.length) return [];
-    
-    const projectSet = new Set<string>();
-    projectSet.add('All');
-    
-    events.forEach(event => {
-      const projectName = getProjectNameFromEvent(event);
-      projectSet.add(projectName);
-    });
-    
-    return Array.from(projectSet);
-  }, [events]);
-
-  // Add a new project filter
-  const addProjectFilter = useCallback((projectId: string, filterTerm: string) => {
-    setProjectFilters(prev => ({
-      ...prev,
-      [projectId]: filterTerm
-    }));
-  }, []);
-
-  // Remove a project filter
-  const removeProjectFilter = useCallback((projectId: string) => {
-    setProjectFilters(prev => {
-      const newFilters = {...prev};
-      delete newFilters[projectId];
-      return newFilters;
-    });
-  }, []);
-
-  // Get total hours logged across all events
-  const getTotalHours = useCallback(() => {
-    if (events.length === 0) return 0;
-    
-    let totalHours = 0;
-    events.forEach(event => {
-      const startTime = new Date(event.start.dateTime);
-      const endTime = new Date(event.end.dateTime);
-      const durationHours = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
-      
-      if (durationHours > 0) {
-        totalHours += durationHours;
-      }
-    });
-    
-    return totalHours;
-  }, [events]);
-
-  // Get hours by activity type
-  const getActivityHours = useCallback((activityType: 'design' | 'strategy' | 'dev' | 'meetings' | 'admin') => {
-    if (events.length === 0) return 0;
-    
-    let activityHours = 0;
-    events.forEach(event => {
-      const type = determineActivityType(event);
-      if (type === activityType) {
-        const startTime = new Date(event.start.dateTime);
-        const endTime = new Date(event.end.dateTime);
-        const durationHours = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
-        
-        if (durationHours > 0) {
-          activityHours += durationHours;
-        }
-      }
-    });
-    
-    return activityHours;
-  }, [events]);
+  }, [events, projectFilters, determineActivityType]);
 
   return {
     syncCalendar,

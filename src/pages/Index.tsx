@@ -39,7 +39,6 @@ const Index: React.FC = () => {
             <TabsContent value="dashboard">
               <TotalHoursView />
               <CalendarProjectsList />
-              {/* Remove mock dashboard as we're using real data now */}
             </TabsContent>
             
             <TabsContent value="projects">
