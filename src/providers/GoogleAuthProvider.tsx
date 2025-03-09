@@ -1,0 +1,127 @@
+
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { GoogleOAuthProvider, useGoogleLogin } from '@react-oauth/google';
+import { GoogleAuthState } from '@/lib/types';
+import { toast } from '@/components/ui/use-toast';
+
+// Replace with your actual Google OAuth Client ID
+const GOOGLE_CLIENT_ID = '754636752665-p3e76q4c3o10b8v0c7u6kg3om0n3cuou.apps.googleusercontent.com';
+
+interface GoogleAuthContextType {
+  authState: GoogleAuthState;
+  login: () => void;
+  logout: () => void;
+  isLoading: boolean;
+}
+
+const defaultAuthState: GoogleAuthState = {
+  isAuthenticated: false,
+  token: null,
+  profile: null
+};
+
+const GoogleAuthContext = createContext<GoogleAuthContextType | undefined>(undefined);
+
+export const GoogleAuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [authState, setAuthState] = useState<GoogleAuthState>(() => {
+    const savedAuth = localStorage.getItem('googleAuth');
+    return savedAuth ? JSON.parse(savedAuth) : defaultAuthState;
+  });
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (authState.isAuthenticated) {
+      localStorage.setItem('googleAuth', JSON.stringify(authState));
+    } else {
+      localStorage.removeItem('googleAuth');
+    }
+  }, [authState]);
+
+  const googleLogin = useGoogleLogin({
+    onSuccess: async (response) => {
+      try {
+        setIsLoading(true);
+        // Get user profile info
+        const profileResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+          headers: {
+            Authorization: `Bearer ${response.access_token}`
+          }
+        });
+        
+        if (!profileResponse.ok) {
+          throw new Error('Failed to fetch user profile');
+        }
+        
+        const profileData = await profileResponse.json();
+        
+        setAuthState({
+          isAuthenticated: true,
+          token: response.access_token,
+          profile: {
+            name: profileData.name,
+            email: profileData.email,
+            picture: profileData.picture
+          }
+        });
+        
+        toast({
+          title: "Success!",
+          description: "Connected to Google Calendar",
+        });
+      } catch (error) {
+        console.error('Google auth error:', error);
+        toast({
+          variant: "destructive",
+          title: "Authentication failed",
+          description: "Could not connect to Google Calendar",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    scope: 'https://www.googleapis.com/auth/calendar.readonly',
+    onError: (error) => {
+      console.error('Login Failed:', error);
+      toast({
+        variant: "destructive",
+        title: "Authentication failed",
+        description: "Could not connect to Google Calendar",
+      });
+      setIsLoading(false);
+    }
+  });
+
+  const login = () => {
+    setIsLoading(true);
+    googleLogin();
+  };
+
+  const logout = () => {
+    setAuthState(defaultAuthState);
+    toast({
+      description: "Disconnected from Google Calendar",
+    });
+  };
+
+  return (
+    <GoogleAuthContext.Provider value={{ authState, login, logout, isLoading }}>
+      {children}
+    </GoogleAuthContext.Provider>
+  );
+};
+
+export const GoogleAuthProviderWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  return (
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+      <GoogleAuthProvider>{children}</GoogleAuthProvider>
+    </GoogleOAuthProvider>
+  );
+};
+
+export const useGoogleAuth = () => {
+  const context = useContext(GoogleAuthContext);
+  if (context === undefined) {
+    throw new Error('useGoogleAuth must be used within a GoogleAuthProvider');
+  }
+  return context;
+};

@@ -13,15 +13,15 @@ const ActivityTag: React.FC<ActivityTagProps> = ({ type, hours, className }) => 
   const getTagColor = () => {
     switch (type) {
       case 'design':
-        return 'bg-design';
+        return 'bg-purple-500';
       case 'strategy':
-        return 'bg-strategy';
+        return 'bg-blue-500';
       case 'dev':
-        return 'bg-dev';
+        return 'bg-green-500';
       case 'meetings':
-        return 'bg-meetings';
+        return 'bg-yellow-500';
       case 'admin':
-        return 'bg-admin';
+        return 'bg-gray-500';
       default:
         return 'bg-gray-500';
     }
@@ -30,7 +30,7 @@ const ActivityTag: React.FC<ActivityTagProps> = ({ type, hours, className }) => 
   return (
     <div 
       className={cn(
-        'activity-tag', 
+        'px-3 py-1 rounded text-white text-xs', 
         getTagColor(),
         className
       )}

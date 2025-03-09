@@ -31,3 +31,27 @@ export interface WeekData {
   weekNumber: number;
   hours: number;
 }
+
+export interface GoogleCalendarEvent {
+  id: string;
+  summary: string;
+  start: {
+    dateTime: string;
+    timeZone: string;
+  };
+  end: {
+    dateTime: string;
+    timeZone: string;
+  };
+  description?: string;
+}
+
+export interface GoogleAuthState {
+  isAuthenticated: boolean;
+  token: string | null;
+  profile: {
+    name?: string;
+    email?: string;
+    picture?: string;
+  } | null;
+}
