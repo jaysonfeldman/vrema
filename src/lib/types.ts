@@ -17,6 +17,7 @@ export interface Project {
   activities: Activity[];
   teamMembers: TeamMember[];
   color?: string;
+  monthlyHours?: number; // Hours logged in the current month
 }
 
 export interface TeamMember {

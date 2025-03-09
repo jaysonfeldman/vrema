@@ -1,16 +1,18 @@
-
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import Header from '@/components/Header';
 import Dashboard from '@/components/Dashboard';
 import GoogleCalendarSync from '@/components/GoogleCalendarSync';
 import CalendarProjectsList from '@/components/CalendarProjectsList';
 import CalendarEventsTable from '@/components/CalendarEventsTable';
+import ProjectView from '@/components/ProjectView';
+import TotalHoursView from '@/components/TotalHoursView';
 import { useCalendarSync } from '@/hooks/useCalendarSync';
 import { useGoogleAuth } from '@/providers/GoogleAuthProvider';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const Index: React.FC = () => {
   const { authState } = useGoogleAuth();
-  const { syncCalendar, lastSynced } = useCalendarSync();
+  const { syncCalendar, lastSynced, isAuthenticated } = useCalendarSync();
 
   // Auto-sync calendar when authenticated and not yet synced
   useEffect(() => {
@@ -24,9 +26,31 @@ const Index: React.FC = () => {
       <Header />
       <div className="container mx-auto py-6 px-4">
         <GoogleCalendarSync />
-        <CalendarProjectsList />
-        <CalendarEventsTable />
-        <Dashboard />
+        
+        {isAuthenticated && (
+          <Tabs defaultValue="projects" className="mt-6">
+            <TabsList className="mb-4">
+              <TabsTrigger value="projects">Projects</TabsTrigger>
+              <TabsTrigger value="events">Calendar Events</TabsTrigger>
+              <TabsTrigger value="dashboard">Dashboard Overview</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="projects">
+              <ProjectView />
+            </TabsContent>
+            
+            <TabsContent value="events">
+              <CalendarEventsTable />
+            </TabsContent>
+            
+            <TabsContent value="dashboard">
+              <TotalHoursView />
+              <CalendarProjectsList />
+              {/* Keep the mock dashboard for now, we'll replace it once the new components are working */}
+              <Dashboard /> 
+            </TabsContent>
+          </Tabs>
+        )}
       </div>
     </div>
   );

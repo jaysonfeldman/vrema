@@ -1,9 +1,10 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useGoogleAuth } from '@/providers/GoogleAuthProvider';
 import { fetchCalendarEvents, convertEventsToActivities } from '@/services/googleCalendarService';
 import { toast } from '@/components/ui/use-toast';
-import { GoogleCalendarEvent } from '@/lib/types';
+import { GoogleCalendarEvent, FilterOptions, Project } from '@/lib/types';
+import { addDays, format, parseISO, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 
 export const useCalendarSync = () => {
   const { authState } = useGoogleAuth();
@@ -18,11 +19,15 @@ export const useCalendarSync = () => {
     projectMap: {},
     activityMap: {}
   });
-  const [filters, setFilters] = useState({
+  
+  const [filters, setFilters] = useState<FilterOptions>({
     searchTerm: '',
     project: 'All',
     dateRange: 30
   });
+  
+  const [projectFilters, setProjectFilters] = useState<{[key: string]: string}>({});
+  const [customProjects, setCustomProjects] = useState<Project[]>([]);
 
   // Effect to apply filters whenever events or filters change
   useEffect(() => {
@@ -42,15 +47,95 @@ export const useCalendarSync = () => {
     // Apply project filter
     if (filters.project !== 'All') {
       filtered = filtered.filter(event => {
-        const projectName = event.summary.includes(':') 
-          ? event.summary.split(':')[0].trim() 
-          : 'Other';
+        const projectName = getProjectNameFromEvent(event);
         return projectName === filters.project;
       });
     }
     
+    // Apply date range filter (convert days to date range)
+    const today = new Date();
+    const startDate = new Date(today);
+    startDate.setDate(startDate.getDate() - filters.dateRange);
+    
+    filtered = filtered.filter(event => {
+      const eventDate = new Date(event.start.dateTime);
+      return eventDate >= startDate && eventDate <= today;
+    });
+    
     setFilteredEvents(filtered);
   }, [events, filters]);
+
+  // Create custom projects when events or project filters change
+  useEffect(() => {
+    if (events.length === 0) return;
+    
+    const newCustomProjects: Project[] = [];
+    const projectHours: {[key: string]: number} = {};
+    const projectActivities: {[key: string]: any[]} = {};
+    const today = new Date();
+    const startOfCurrentMonth = startOfMonth(today);
+    const endOfCurrentMonth = endOfMonth(today);
+
+    // For each project filter, create a custom project
+    Object.entries(projectFilters).forEach(([projectId, filterTerm]) => {
+      const filteredEvents = events.filter(event => 
+        event.summary.toLowerCase().includes(filterTerm.toLowerCase())
+      );
+      
+      if (filteredEvents.length === 0) return;
+      
+      // Calculate total hours for this project
+      let totalHours = 0;
+      let thisMonthHours = 0;
+      const activities: any[] = [];
+      
+      filteredEvents.forEach(event => {
+        const startTime = new Date(event.start.dateTime);
+        const endTime = new Date(event.end.dateTime);
+        const durationHours = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
+        
+        // Skip events with zero or negative duration
+        if (durationHours <= 0) return;
+        
+        totalHours += durationHours;
+        
+        // Check if event is in current month
+        if (isWithinInterval(startTime, { start: startOfCurrentMonth, end: endOfCurrentMonth })) {
+          thisMonthHours += durationHours;
+        }
+        
+        // Determine activity type
+        let activityType = determineActivityType(event);
+        
+        // Add to activities
+        const existingActivity = activities.find(a => a.type === activityType);
+        if (existingActivity) {
+          existingActivity.hours += durationHours;
+        } else {
+          activities.push({
+            id: `${projectId}-${activityType}`,
+            type: activityType,
+            hours: durationHours,
+            date: startTime
+          });
+        }
+      });
+      
+      if (totalHours > 0) {
+        newCustomProjects.push({
+          id: projectId,
+          name: projectId,
+          totalHours: totalHours,
+          budgetHours: 120, // Default budget hours
+          activities: activities,
+          teamMembers: [],
+          monthlyHours: thisMonthHours
+        });
+      }
+    });
+    
+    setCustomProjects(newCustomProjects);
+  }, [events, projectFilters]);
 
   const syncCalendar = async (days = 30) => {
     if (!authState.isAuthenticated || !authState.token) {
@@ -92,26 +177,105 @@ export const useCalendarSync = () => {
     }
   };
 
-  const updateFilters = (newFilters: Partial<typeof filters>) => {
+  const updateFilters = (newFilters: Partial<FilterOptions>) => {
     setFilters(prev => ({...prev, ...newFilters}));
   };
 
+  const getProjectNameFromEvent = (event: GoogleCalendarEvent): string => {
+    return event.summary.includes(':') 
+      ? event.summary.split(':')[0].trim() 
+      : 'Other';
+  };
+
+  const determineActivityType = (event: GoogleCalendarEvent): 'design' | 'strategy' | 'dev' | 'meetings' | 'admin' => {
+    const lowerSummary = event.summary.toLowerCase();
+    const lowerDescription = (event.description || '').toLowerCase();
+    
+    if (lowerSummary.includes('design') || lowerDescription.includes('design')) {
+      return 'design';
+    } else if (lowerSummary.includes('dev') || lowerDescription.includes('dev') || 
+              lowerSummary.includes('code') || lowerDescription.includes('code')) {
+      return 'dev';
+    } else if (lowerSummary.includes('strategy') || lowerDescription.includes('strategy') ||
+              lowerSummary.includes('planning') || lowerDescription.includes('planning')) {
+      return 'strategy';
+    } else if (lowerSummary.includes('admin') || lowerDescription.includes('admin')) {
+      return 'admin';
+    } else {
+      return 'meetings';
+    }
+  };
+
   // Get all unique projects from events
-  const getProjects = (): string[] => {
+  const getProjects = useCallback((): string[] => {
     if (!events.length) return [];
     
     const projectSet = new Set<string>();
     projectSet.add('All');
     
     events.forEach(event => {
-      const projectName = event.summary.includes(':') 
-        ? event.summary.split(':')[0].trim() 
-        : 'Other';
+      const projectName = getProjectNameFromEvent(event);
       projectSet.add(projectName);
     });
     
     return Array.from(projectSet);
-  };
+  }, [events]);
+
+  // Add a new project filter
+  const addProjectFilter = useCallback((projectId: string, filterTerm: string) => {
+    setProjectFilters(prev => ({
+      ...prev,
+      [projectId]: filterTerm
+    }));
+  }, []);
+
+  // Remove a project filter
+  const removeProjectFilter = useCallback((projectId: string) => {
+    setProjectFilters(prev => {
+      const newFilters = {...prev};
+      delete newFilters[projectId];
+      return newFilters;
+    });
+  }, []);
+
+  // Get total hours logged across all events
+  const getTotalHours = useCallback(() => {
+    if (events.length === 0) return 0;
+    
+    let totalHours = 0;
+    events.forEach(event => {
+      const startTime = new Date(event.start.dateTime);
+      const endTime = new Date(event.end.dateTime);
+      const durationHours = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
+      
+      if (durationHours > 0) {
+        totalHours += durationHours;
+      }
+    });
+    
+    return totalHours;
+  }, [events]);
+
+  // Get hours by activity type
+  const getActivityHours = useCallback((activityType: 'design' | 'strategy' | 'dev' | 'meetings' | 'admin') => {
+    if (events.length === 0) return 0;
+    
+    let activityHours = 0;
+    events.forEach(event => {
+      const type = determineActivityType(event);
+      if (type === activityType) {
+        const startTime = new Date(event.start.dateTime);
+        const endTime = new Date(event.end.dateTime);
+        const durationHours = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
+        
+        if (durationHours > 0) {
+          activityHours += durationHours;
+        }
+      }
+    });
+    
+    return activityHours;
+  }, [events]);
 
   return {
     syncCalendar,
@@ -123,6 +287,12 @@ export const useCalendarSync = () => {
     isAuthenticated: authState.isAuthenticated,
     filters,
     updateFilters,
-    getProjects
+    getProjects,
+    projectFilters,
+    addProjectFilter,
+    removeProjectFilter,
+    customProjects,
+    getTotalHours,
+    getActivityHours
   };
 };
