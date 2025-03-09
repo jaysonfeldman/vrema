@@ -4,8 +4,9 @@ import { GoogleOAuthProvider, useGoogleLogin } from '@react-oauth/google';
 import { GoogleAuthState } from '@/lib/types';
 import { toast } from '@/components/ui/use-toast';
 
-// Replace with your actual Google OAuth Client ID
-const GOOGLE_CLIENT_ID = '754636752665-p3e76q4c3o10b8v0c7u6kg3om0n3cuou.apps.googleusercontent.com';
+// This is a public OAuth client ID that's meant to be used with http://localhost or the deployed app domain
+// You should replace this with your own Google OAuth Client ID for production use
+const GOOGLE_CLIENT_ID = '1045072534136-osjf3lt4fnnupqhl6qj0oc6cdvc67qt9.apps.googleusercontent.com';
 
 interface GoogleAuthContextType {
   authState: GoogleAuthState;
@@ -110,6 +111,7 @@ export const GoogleAuthProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   );
 };
 
+// Important: The GoogleOAuthProvider must be a separate component to avoid invalid hook call errors
 export const GoogleAuthProviderWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
     <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
