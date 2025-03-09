@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { GoogleOAuthProvider, useGoogleLogin } from '@react-oauth/google';
 import { GoogleAuthState } from '@/lib/types';
@@ -6,7 +5,7 @@ import { toast } from '@/components/ui/use-toast';
 
 // This is a public OAuth client ID that's meant to be used with http://localhost or the deployed app domain
 // You should replace this with your own Google OAuth Client ID for production use
-const GOOGLE_CLIENT_ID = '1045072534136-osjf3lt4fnnupqhl6qj0oc6cdvc67qt9.apps.googleusercontent.com';
+const GOOGLE_CLIENT_ID = '238356005706-p3un444dbhbhqbb8opj5pg31o36ggqkf.apps.googleusercontent.com';
 
 interface GoogleAuthContextType {
   authState: GoogleAuthState;
