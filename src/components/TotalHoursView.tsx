@@ -94,14 +94,14 @@ const TotalHoursView: React.FC = () => {
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Total Hours Card */}
-        <Card>
+        <Card className="bg-gray-900 text-white border-0">
           <CardHeader className="pb-2">
-            <CardTitle className="text-lg">Total Hours Logged</CardTitle>
+            <CardTitle className="text-lg">Total hours</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-4">
-              <div className="text-4xl font-bold">{formatTime(totalHours)}</div>
-              <div className="text-muted-foreground">
+              <div className="text-4xl font-bold">{Math.floor(totalHours)}:{String(Math.round((totalHours % 1) * 60)).padStart(2, '0')}</div>
+              <div className="text-gray-400">
                 from {filteredEvents.length} events
                 {lastSynced && (
                   <div className="text-xs mt-1">
@@ -111,46 +111,50 @@ const TotalHoursView: React.FC = () => {
               </div>
             </div>
             
-            <div className="mt-6 grid grid-cols-2 gap-4">
-              {activityTypes.map(activity => {
-                const hours = getActivityHours(activity.type);
-                const percentage = totalHours > 0 ? (hours / totalHours) * 100 : 0;
-                
-                return (
-                  <div key={activity.type} className="relative">
-                    <ActivityTag
-                      type={activity.type}
-                      hours={hours}
-                    />
-                    <div className="mt-1 h-1 w-full bg-muted rounded-full overflow-hidden">
-                      <div 
-                        className="h-full rounded-full transition-all duration-500"
-                        style={{
-                          width: `${percentage}%`,
-                          backgroundColor: 
-                            activity.type === 'design' ? 'rgb(34, 197, 94)' :
-                            activity.type === 'strategy' ? 'rgb(59, 130, 246)' :
-                            activity.type === 'dev' ? 'rgb(168, 85, 247)' :
-                            activity.type === 'meetings' ? 'rgb(234, 179, 8)' :
-                            'rgb(239, 68, 68)'
-                        }}
+            <div className="mt-6">
+              <h3 className="text-sm text-gray-400 mb-2">Activities</h3>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+                {activityTypes.map(activity => {
+                  const hours = getActivityHours(activity.type);
+                  const percentage = totalHours > 0 ? (hours / totalHours) * 100 : 0;
+                  
+                  return (
+                    <div key={activity.type} className="relative">
+                      <ActivityTag
+                        type={activity.type}
+                        hours={hours}
+                        className="w-full justify-between"
                       />
+                      <div className="mt-1 h-1 w-full bg-gray-800 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full rounded-full transition-all duration-500"
+                          style={{
+                            width: `${percentage}%`,
+                            backgroundColor: 
+                              activity.type === 'design' ? 'rgb(34, 197, 94)' :
+                              activity.type === 'strategy' ? 'rgb(59, 130, 246)' :
+                              activity.type === 'dev' ? 'rgb(168, 85, 247)' :
+                              activity.type === 'meetings' ? 'rgb(234, 179, 8)' :
+                              'rgb(239, 68, 68)'
+                          }}
+                        />
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
           </CardContent>
         </Card>
         
         {/* Projects Overview Card */}
-        <Card>
+        <Card className="bg-gray-900 text-white border-0">
           <CardHeader className="pb-2">
             <CardTitle className="text-lg">Projects Overview</CardTitle>
           </CardHeader>
           <CardContent>
             {customProjects.length === 0 ? (
-              <div className="text-center p-4 text-muted-foreground">
+              <div className="text-center p-4 text-gray-400">
                 <p>No project views created yet</p>
                 <p className="text-xs mt-1">Go to the Projects tab to create custom project views</p>
               </div>
@@ -162,13 +166,13 @@ const TotalHoursView: React.FC = () => {
                     : 0;
                     
                   return (
-                    <div key={project.id} className="border-b pb-3 last:border-b-0">
+                    <div key={project.id} className="border-b border-gray-800 pb-3 last:border-b-0">
                       <div className="flex justify-between items-start mb-1">
                         <span className="font-medium">{project.name}</span>
                         <div className="flex items-center gap-2">
-                          <Badge variant="outline">{formatTime(project.totalHours)}</Badge>
+                          <Badge variant="outline" className="bg-transparent border-gray-700">{formatTime(project.totalHours)}</Badge>
                           {project.monthlyHours && (
-                            <Badge variant="secondary" className="flex items-center gap-1">
+                            <Badge variant="secondary" className="flex items-center gap-1 bg-gray-800 text-gray-300">
                               <Clock className="h-3 w-3" />
                               <span>{formatTime(project.monthlyHours)} this month</span>
                             </Badge>
@@ -176,9 +180,9 @@ const TotalHoursView: React.FC = () => {
                         </div>
                       </div>
                       
-                      <div className="mt-2 h-2 w-full bg-muted rounded-full overflow-hidden">
+                      <div className="mt-2 h-1.5 w-full bg-gray-800 rounded-full overflow-hidden">
                         <div 
-                          className="h-full bg-primary rounded-full transition-all duration-500"
+                          className="h-full bg-blue-500 rounded-full transition-all duration-500"
                           style={{ width: `${monthPercentage}%` }}
                         />
                       </div>

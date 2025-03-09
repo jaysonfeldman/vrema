@@ -23,7 +23,7 @@ const Index: React.FC = () => {
   }, [authState.isAuthenticated, lastSynced, syncCalendar, events.length]);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       <Header />
       <div className="container mx-auto py-6 px-4">
         <GoogleCalendarSync />
