@@ -8,9 +8,10 @@ import { cn } from '@/lib/utils';
 interface ProjectCardProps {
   project: Project;
   className?: string;
+  style?: React.CSSProperties;
 }
 
-const ProjectCard: React.FC<ProjectCardProps> = ({ project, className }) => {
+const ProjectCard: React.FC<ProjectCardProps> = ({ project, className, style }) => {
   const [isHovered, setIsHovered] = useState(false);
   
   const progressPercentage = project.budgetHours 
@@ -23,6 +24,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, className }) => {
         'project-card bg-project-bg text-project-text rounded-lg overflow-hidden animate-fade-in',
         className
       )}
+      style={style}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
