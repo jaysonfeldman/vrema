@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useCalendarSync } from '@/hooks/useCalendarSync';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -17,10 +17,22 @@ const TotalHoursView: React.FC = () => {
     updateFilters,
     events,
     filteredEvents,
-    lastSynced
+    lastSynced,
+    syncCalendar,
+    isAuthenticated
   } = useCalendarSync();
   
+  // Force recalculation on component mount and when events change
+  useEffect(() => {
+    if (isAuthenticated && events.length === 0 && !lastSynced) {
+      console.log("No events found, triggering calendar sync...");
+      syncCalendar();
+    }
+  }, [isAuthenticated, events.length, lastSynced, syncCalendar]);
+  
   const totalHours = getTotalHours();
+  console.log("TotalHoursView rendering with total hours:", totalHours);
+  console.log("Filtered events count:", filteredEvents.length);
   
   // Format time to hours and minutes
   const formatTime = (hours: number): string => {
@@ -37,6 +49,14 @@ const TotalHoursView: React.FC = () => {
     { type: 'meetings', label: 'Meetings' },
     { type: 'admin', label: 'Admin' }
   ];
+  
+  // Apply date range change and trigger re-sync
+  const handleDateRangeChange = (value: string) => {
+    const days = parseInt(value);
+    console.log(`Changing date range to ${days} days`);
+    updateFilters({ dateRange: days });
+    syncCalendar(days);
+  };
   
   return (
     <div className="mb-8">
@@ -55,7 +75,7 @@ const TotalHoursView: React.FC = () => {
           
           <Select
             value={filters.dateRange.toString()}
-            onValueChange={(value) => updateFilters({ dateRange: parseInt(value) })}
+            onValueChange={handleDateRangeChange}
           >
             <SelectTrigger className="w-[150px]">
               <SelectValue placeholder="Time range" />

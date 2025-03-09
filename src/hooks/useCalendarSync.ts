@@ -89,14 +89,25 @@ export function useCalendarSync() {
 
   // Get total hours logged across all events
   const getTotalHours = useCallback(() => {
+    console.log('Calculating total hours from', filteredEvents.length, 'events');
+    
     if (!filteredEvents.length) return 0;
     
     let totalHours = 0;
+    
     filteredEvents.forEach(event => {
-      if (!event.start?.dateTime || !event.end?.dateTime) return;
+      if (!event.start?.dateTime || !event.end?.dateTime) {
+        console.log('Skipping event without start/end time:', event.summary);
+        return;
+      }
       
       const startTime = new Date(event.start.dateTime);
       const endTime = new Date(event.end.dateTime);
+      
+      if (isNaN(startTime.getTime()) || isNaN(endTime.getTime())) {
+        console.log('Skipping event with invalid date:', event.summary);
+        return;
+      }
       
       // Calculate duration in hours
       const durationHours = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
@@ -104,9 +115,13 @@ export function useCalendarSync() {
       // Ensure we only count positive durations
       if (!isNaN(durationHours) && durationHours > 0) {
         totalHours += durationHours;
+        console.log(`Added ${durationHours.toFixed(2)} hours from event: ${event.summary}`);
+      } else {
+        console.log(`Skipping event with zero/negative duration: ${event.summary}`);
       }
     });
     
+    console.log('Total hours calculated:', totalHours.toFixed(2));
     return totalHours;
   }, [filteredEvents]);
 
@@ -156,8 +171,23 @@ export function useCalendarSync() {
       console.log(`Fetched ${fetchedEvents.length} calendar events`);
       
       // Filter out events without start/end dateTime
-      const validEvents = fetchedEvents.filter(event => event.start?.dateTime && event.end?.dateTime);
+      const validEvents = fetchedEvents.filter(event => {
+        const hasValidTimes = event.start?.dateTime && event.end?.dateTime;
+        if (!hasValidTimes) {
+          console.log(`Skipping event without valid times: ${event.summary}`);
+        }
+        return hasValidTimes;
+      });
+      
       console.log(`${validEvents.length} events have valid start/end times`);
+      
+      if (validEvents.length === 0) {
+        toast({
+          variant: "destructive",
+          title: "No valid events found",
+          description: "Could not find any events with start and end times",
+        });
+      }
       
       setEvents(validEvents);
       setFilteredEvents(validEvents);

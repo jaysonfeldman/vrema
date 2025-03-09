@@ -22,11 +22,43 @@ export const fetchCalendarEvents = async (token: string, days = 30): Promise<Goo
     );
 
     if (!response.ok) {
+      console.error('Google Calendar API error:', await response.text());
       throw new Error('Failed to fetch calendar events');
     }
 
     const data = await response.json();
-    return data.items.filter((event: any) => event.start?.dateTime && event.end?.dateTime) as GoogleCalendarEvent[];
+    console.log('Raw Google Calendar response data:', data);
+    
+    if (!data.items || !Array.isArray(data.items)) {
+      console.error('Invalid response format from Google Calendar API');
+      return [];
+    }
+    
+    // Transform events to our format and filter out events without start/end dateTime
+    const events = data.items
+      .filter((event: any) => event.start?.dateTime && event.end?.dateTime)
+      .map((event: any): GoogleCalendarEvent => ({
+        id: event.id,
+        summary: event.summary || 'Untitled Event',
+        description: event.description || '',
+        location: event.location || '',
+        start: {
+          dateTime: event.start.dateTime,
+          timeZone: event.start.timeZone || 'UTC'
+        },
+        end: {
+          dateTime: event.end.dateTime,
+          timeZone: event.end.timeZone || 'UTC'
+        },
+        attendees: event.attendees || [],
+        organizer: event.organizer || {},
+        created: event.created,
+        updated: event.updated,
+        status: event.status,
+        htmlLink: event.htmlLink
+      }));
+      
+    return events;
   } catch (error) {
     console.error('Error fetching calendar events:', error);
     throw error;
@@ -40,15 +72,31 @@ export const convertEventsToActivities = (events: GoogleCalendarEvent[]): {
   const projectMap: Record<string, number> = {};
   const activityMap: Record<string, { type: string, hours: number }[]> = {};
   
+  let totalValidEvents = 0;
+  
   events.forEach(event => {
     // Skip events without a start or end time
-    if (!event.start?.dateTime || !event.end?.dateTime) return;
+    if (!event.start?.dateTime || !event.end?.dateTime) {
+      console.log(`Skipping event without start/end time: ${event.summary}`);
+      return;
+    }
 
     const startTime = new Date(event.start.dateTime);
     const endTime = new Date(event.end.dateTime);
+    
+    if (isNaN(startTime.getTime()) || isNaN(endTime.getTime())) {
+      console.log(`Skipping event with invalid date: ${event.summary}`);
+      return;
+    }
+    
     const durationHours = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
     
-    if (durationHours <= 0) return;
+    if (durationHours <= 0) {
+      console.log(`Skipping event with non-positive duration: ${event.summary}`);
+      return;
+    }
+    
+    totalValidEvents++;
     
     // Extract project name from event summary (assuming format: "Project: Task")
     const projectName = event.summary.includes(':') 
@@ -82,11 +130,23 @@ export const convertEventsToActivities = (events: GoogleCalendarEvent[]): {
       activityMap[projectName] = [];
     }
     
-    activityMap[projectName].push({
-      type: activityType,
-      hours: durationHours
-    });
+    // Check if activity type already exists for this project
+    const existingActivityIndex = activityMap[projectName].findIndex(a => a.type === activityType);
+    
+    if (existingActivityIndex >= 0) {
+      // Add hours to existing activity
+      activityMap[projectName][existingActivityIndex].hours += durationHours;
+    } else {
+      // Add new activity type
+      activityMap[projectName].push({
+        type: activityType,
+        hours: durationHours
+      });
+    }
   });
+  
+  console.log(`Processed ${totalValidEvents} valid events into ${Object.keys(projectMap).length} projects`);
+  console.log('Project hours:', projectMap);
   
   return { projectMap, activityMap };
 };

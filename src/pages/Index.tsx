@@ -1,7 +1,6 @@
 
 import React, { useEffect } from 'react';
 import Header from '@/components/Header';
-import Dashboard from '@/components/Dashboard';
 import GoogleCalendarSync from '@/components/GoogleCalendarSync';
 import CalendarProjectsList from '@/components/CalendarProjectsList';
 import CalendarEventsTable from '@/components/CalendarEventsTable';
@@ -13,14 +12,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const Index: React.FC = () => {
   const { authState } = useGoogleAuth();
-  const { syncCalendar, lastSynced, isAuthenticated } = useCalendarSync();
+  const { syncCalendar, lastSynced, isAuthenticated, events } = useCalendarSync();
 
   // Auto-sync calendar when authenticated and not yet synced
   useEffect(() => {
-    if (authState.isAuthenticated && !lastSynced) {
+    if (authState.isAuthenticated && (!lastSynced || events.length === 0)) {
+      console.log("Auto-syncing calendar from Index component");
       syncCalendar();
     }
-  }, [authState.isAuthenticated, lastSynced, syncCalendar]);
+  }, [authState.isAuthenticated, lastSynced, syncCalendar, events.length]);
 
   return (
     <div className="min-h-screen bg-gray-50">
