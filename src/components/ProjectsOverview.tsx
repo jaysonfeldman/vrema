@@ -5,8 +5,6 @@ import ProjectList from '@/components/project/ProjectList';
 import ProjectFilters from '@/components/project/ProjectFilters';
 import NewProjectDialog from '@/components/project/NewProjectDialog';
 import ViewToggle from '@/components/project/ViewToggle';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/components/ui/use-toast';
 import { Loader2 } from 'lucide-react';
 
@@ -28,12 +26,8 @@ const ProjectsOverview: React.FC = () => {
     console.log('ProjectsOverview - Current selected month:', selectedMonth);
   }, [selectedMonth]);
   
-  const handleCreateProject = (projectName: string) => {
-    toast({
-      title: "Project created",
-      description: `Created new project "${projectName}"`,
-    });
-    setShowAddProject(false);
+  const handleOpenChange = (open: boolean) => {
+    setShowAddProject(open);
   };
   
   const handleViewModeChange = (mode: 'grid' | 'list') => {
@@ -99,7 +93,10 @@ const ProjectsOverview: React.FC = () => {
             selectedMonth={selectedMonth}
             onMonthChange={handleMonthChange}
           />
-          <ViewToggle mode={viewMode} onChange={handleViewModeChange} />
+          <ViewToggle 
+            viewMode={viewMode} 
+            onViewModeChange={handleViewModeChange} 
+          />
         </div>
       </div>
       
@@ -119,8 +116,7 @@ const ProjectsOverview: React.FC = () => {
       
       <NewProjectDialog 
         open={showAddProject} 
-        onOpenChange={setShowAddProject}
-        onSave={handleCreateProject}
+        onOpenChange={handleOpenChange}
       />
     </div>
   );

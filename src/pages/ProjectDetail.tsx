@@ -4,7 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useCalendarSync } from '@/hooks/useCalendarSync';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, Clock, Calendar } from 'lucide-react';
+import { ChevronLeft, Clock, Calendar, Folder, Tag } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,6 +12,7 @@ import { GoogleCalendarEvent, Project } from '@/lib/types';
 import { parseEventTitle, formatEventDate, calculateDuration } from '@/services/googleCalendarService';
 import { stringToColor } from '@/lib/utils';
 import { toast } from '@/components/ui/use-toast';
+import ActivityTag from '@/components/ActivityTag';
 
 const ProjectDetail: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>();
@@ -33,11 +34,12 @@ const ProjectDetail: React.FC = () => {
         title: "Project not found",
         description: "The requested project could not be found."
       });
+      navigate('/');
       return;
     }
     
     console.log(`Found project: "${foundProject.name}" with ID: ${foundProject.id}`);
-  }, [projectId, customProjects]);
+  }, [projectId, customProjects, navigate]);
   
   // Filter events for this project
   useEffect(() => {
@@ -56,6 +58,12 @@ const ProjectDetail: React.FC = () => {
     setProjectEvents(filteredEvents);
   }, [events, project]);
   
+  // Helper function to get activity color
+  const getActivityColor = (activityType: string): string => {
+    const color = stringToColor(activityType);
+    return `bg-[${color}] text-white`;
+  };
+
   if (!project) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -87,48 +95,77 @@ const ProjectDetail: React.FC = () => {
       </div>
     );
   }
-  
-  // Helper function to get activity color
-  const getActivityColor = (activityType: string): string => {
-    switch (activityType.toLowerCase()) {
-      case 'design':
-        return 'bg-green-500 text-white';
-      case 'strategy':
-        return 'bg-blue-500 text-white';
-      case 'dev':
-        return 'bg-purple-500 text-white';
-      case 'meetings':
-        return 'bg-yellow-500 text-white';
-      case 'admin':
-        return 'bg-red-500 text-white';
-      default:
-        // Generate a consistent color based on the activity type
-        const color = stringToColor(activityType);
-        return `bg-[${color}] text-white`;
-    }
-  };
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
       <div className="max-w-7xl mx-auto px-8 py-8">
-        <div className="flex items-center mb-8">
-          <Button 
-            variant="ghost" 
-            onClick={() => navigate('/')}
-            className="mr-4"
-          >
-            <ChevronLeft className="h-4 w-4 mr-1" /> Back to Dashboard
-          </Button>
-          <h1 className="text-3xl font-bold">{project.name}</h1>
-          <Badge variant="outline" className="ml-4">
-            {project.totalHours.toFixed(1)} hours logged
-          </Badge>
+        <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+          <div className="flex items-center">
+            <Button 
+              variant="ghost" 
+              onClick={() => navigate('/')}
+              className="mr-4"
+            >
+              <ChevronLeft className="h-4 w-4 mr-1" /> Back to Projects
+            </Button>
+            <h1 className="text-3xl font-bold">{project.name}</h1>
+            <Badge variant="outline" className="ml-4">
+              {project.totalHours.toFixed(1)} hours logged
+            </Badge>
+          </div>
+          
+          <div className="flex flex-wrap gap-2">
+            {project.activities.slice(0, 3).map(activity => (
+              <ActivityTag
+                key={activity.id}
+                type={activity.type}
+                hours={activity.hours}
+              />
+            ))}
+            {project.activities.length > 3 && (
+              <Badge variant="outline" className="bg-slate-700 text-white">
+                +{project.activities.length - 3} more
+              </Badge>
+            )}
+          </div>
         </div>
+        
+        <Card className="mb-8">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xl flex items-center">
+              <Folder className="mr-2 h-5 w-5" />
+              Project Details
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+              <div>
+                <h3 className="text-sm font-medium text-muted-foreground mb-1">Total Hours</h3>
+                <p className="text-2xl font-bold">{project.totalHours.toFixed(1)}</p>
+              </div>
+              {project.budgetHours && (
+                <div>
+                  <h3 className="text-sm font-medium text-muted-foreground mb-1">Budget Hours</h3>
+                  <p className="text-2xl font-bold">{project.budgetHours.toFixed(1)}</p>
+                </div>
+              )}
+              {project.monthlyHours !== undefined && (
+                <div>
+                  <h3 className="text-sm font-medium text-muted-foreground mb-1">Monthly Hours</h3>
+                  <p className="text-2xl font-bold">{project.monthlyHours.toFixed(1)}</p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
         
         <Card>
           <CardHeader>
-            <CardTitle>Project Events</CardTitle>
+            <CardTitle className="flex items-center">
+              <Tag className="mr-2 h-5 w-5" />
+              Project Events
+            </CardTitle>
           </CardHeader>
           <CardContent>
             {projectEvents.length === 0 ? (
@@ -154,7 +191,7 @@ const ProjectDetail: React.FC = () => {
                       return (
                         <TableRow key={event.id}>
                           <TableCell>
-                            <Badge className={getActivityColor(activityType)}>
+                            <Badge className="capitalize bg-slate-700 text-white">
                               {activityType}
                             </Badge>
                           </TableCell>
