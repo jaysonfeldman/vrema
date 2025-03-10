@@ -79,24 +79,6 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
     navigate(`/projects/${project.id}`);
   };
 
-  // Calculate project earnings if hourly rate is set
-  const getProjectEarnings = () => {
-    if (project.hourlyRate) {
-      return project.totalHours * project.hourlyRate;
-    }
-    return null;
-  };
-
-  const projectEarnings = getProjectEarnings();
-  
-  // Get budget-related calculations
-  const hasBudget = !!project.budgetHours;
-  const isMonthlyBudget = !!project.monthlyHours;
-  const hoursUsed = isMonthlyBudget ? (project.monthlyHours || 0) : project.totalHours;
-  const budgetRemaining = hasBudget ? (project.budgetHours || 0) - hoursUsed : null;
-  const isOverBudget = hasBudget && budgetRemaining !== null && budgetRemaining < 0;
-  const budgetText = hasBudget ? formatTime(Math.abs(budgetRemaining || 0)) : '';
-
   return (
     <>
       <div 
@@ -127,39 +109,11 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
             </div>
           </div>
           
-          <div className="mb-6">
-            <div className="grid grid-cols-2 gap-6">
-              <div>
-                <p className="text-sm text-gray-400 mb-1">Time logged</p>
-                <p className="font-mono font-bold text-2xl">{formatTime(project.totalHours)}</p>
-                <p className="text-xs text-gray-500 mt-1">in total</p>
-              </div>
-              
-              {hasBudget && (
-                <div>
-                  <p className="text-sm text-gray-400 mb-1">Budget left</p>
-                  <p className={cn(
-                    "font-mono font-bold text-2xl",
-                    isOverBudget ? "text-red-500" : "text-amber-500"
-                  )}>
-                    {budgetText}
-                  </p>
-                  <p className="text-xs text-gray-500 mt-1">
-                    {isMonthlyBudget ? "/this month" : "in total"}
-                  </p>
-                </div>
-              )}
-              
-              {projectEarnings !== null && (
-                <div>
-                  <p className="text-sm text-gray-400 mb-1">Earnings</p>
-                  <p className="font-mono font-bold text-2xl text-amber-500">
-                    €{projectEarnings.toFixed(2)}
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
+          <ProjectStatus 
+            totalHours={project.totalHours} 
+            budgetHours={project.budgetHours}
+            monthlyHours={project.monthlyHours}
+          />
           
           <ProjectActivities activities={project.activities} />
         </div>
@@ -185,20 +139,6 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
       />
     </>
   );
-};
-
-// Helper function for formatting time from mock-data
-const formatTime = (hours: number): string => {
-  const h = Math.floor(hours);
-  const m = Math.round((hours - h) * 60);
-  
-  if (h === 0) {
-    return `${m}m`;
-  } else if (m === 0) {
-    return `${h}h`;
-  } else {
-    return `${h}h ${m}m`;
-  }
 };
 
 export default ProjectCard;

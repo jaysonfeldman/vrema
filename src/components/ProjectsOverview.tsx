@@ -1,9 +1,11 @@
+
 import React, { useState, useEffect } from 'react';
 import { useCalendarSync } from '@/hooks/useCalendarSync';
 import { Project } from '@/lib/types';
 import ProjectList from '@/components/project/ProjectList';
 import ProjectFilters from '@/components/project/ProjectFilters';
 import NewProjectDialog from '@/components/project/NewProjectDialog';
+import ViewToggle from '@/components/project/ViewToggle';
 import { toast } from '@/components/ui/use-toast';
 import { Loader2 } from 'lucide-react';
 
@@ -19,10 +21,12 @@ const ProjectsOverview: React.FC = () => {
     addProjectFilter,
   } = useCalendarSync();
   
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showAddProject, setShowAddProject] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState('current');
   const [projectFilters, setProjectFilters] = useState<string[]>([]);
   const [filteredProjects, setFilteredProjects] = useState<Project[]>([]);
+  const [showHiddenProjects, setShowHiddenProjects] = useState(false);
   
   // New state for new project dialog
   const [newProjectName, setNewProjectName] = useState('');
@@ -46,7 +50,7 @@ const ProjectsOverview: React.FC = () => {
     if (projectFilters.length === 0) {
       setFilteredProjects([]);
     } else {
-      // Filter by name (case-insensitive matching)
+      // Filter by name and visibility (case-insensitive matching)
       let filtered = customProjects.filter(project => 
         projectFilters.some(filter => 
           // Case-insensitive comparison for project names
@@ -55,12 +59,14 @@ const ProjectsOverview: React.FC = () => {
         )
       );
       
-      // Only show visible projects
-      filtered = filtered.filter(project => project.visible !== false);
+      // Apply visibility filter
+      if (!showHiddenProjects) {
+        filtered = filtered.filter(project => project.visible !== false);
+      }
       
       setFilteredProjects(filtered);
     }
-  }, [customProjects, projectFilters]);
+  }, [customProjects, projectFilters, showHiddenProjects]);
   
   const handleOpenChange = (open: boolean) => {
     setShowAddProject(open);
@@ -69,6 +75,10 @@ const ProjectsOverview: React.FC = () => {
       setNewProjectName('');
       setNewProjectFilter('');
     }
+  };
+  
+  const handleViewModeChange = (mode: 'grid' | 'list') => {
+    setViewMode(mode);
   };
   
   const handleUpdateProject = (updatedProject: Project) => {
@@ -120,6 +130,10 @@ const ProjectsOverview: React.FC = () => {
     }
   };
 
+  const toggleHiddenProjects = () => {
+    setShowHiddenProjects(prev => !prev);
+  };
+
   const availableProjects = customProjects.map(project => project.name);
   
   // Handle adding new project with filter
@@ -165,6 +179,12 @@ const ProjectsOverview: React.FC = () => {
             projectFilters={projectFilters}
             availableProjects={availableProjects}
             onProjectFilterChange={setProjectFilters}
+            showHiddenProjects={showHiddenProjects}
+            onToggleHiddenProjects={toggleHiddenProjects}
+          />
+          <ViewToggle 
+            viewMode={viewMode} 
+            onViewChange={handleViewModeChange} 
           />
         </div>
       </div>
@@ -190,7 +210,7 @@ const ProjectsOverview: React.FC = () => {
       ) : (
         <ProjectList 
           projects={filteredProjects} 
-          viewMode="grid"
+          viewMode={viewMode}
           onUpdateProject={handleUpdateProject}
           onDeleteProject={handleDeleteProject}
         />

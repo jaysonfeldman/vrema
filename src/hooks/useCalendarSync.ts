@@ -28,9 +28,7 @@ export function useCalendarSync() {
     searchTerm: '',
     project: 'All',
     dateRange: 30,
-    activity: 'All',
-    selectedProjects: [],
-    selectedActivities: []
+    activity: 'All'
   });
   
   const [projectFilters, setProjectFilters] = useState<{[key: string]: string}>({});
@@ -386,28 +384,14 @@ export function useCalendarSync() {
       );
     }
     
-    if (filters.selectedProjects && filters.selectedProjects.length > 0) {
-      filtered = filtered.filter(event => {
-        const projectName = getProjectNameFromEvent(event);
-        return filters.selectedProjects.some(
-          selectedProject => projectName.toLowerCase() === selectedProject.toLowerCase()
-        );
-      });
-    } else if (filters.project !== 'All') {
+    if (filters.project !== 'All') {
       filtered = filtered.filter(event => {
         const projectName = getProjectNameFromEvent(event);
         return projectName === filters.project;
       });
     }
 
-    if (filters.selectedActivities && filters.selectedActivities.length > 0) {
-      filtered = filtered.filter(event => {
-        const activityType = determineActivityType(event);
-        return filters.selectedActivities.some(
-          selectedActivity => activityType.toLowerCase() === selectedActivity.toLowerCase()
-        );
-      });
-    } else if (filters.activity && filters.activity !== 'All') {
+    if (filters.activity && filters.activity !== 'All') {
       filtered = filtered.filter(event => {
         const activityType = determineActivityType(event);
         return activityType === filters.activity;

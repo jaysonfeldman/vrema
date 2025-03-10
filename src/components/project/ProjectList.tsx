@@ -2,17 +2,18 @@
 import React from 'react';
 import { Project } from '@/lib/types';
 import ProjectCard from '@/components/ProjectCard';
+import { cn } from '@/lib/utils';
 
 interface ProjectListProps {
   projects: Project[];
-  viewMode: 'grid' | 'list'; // We'll keep this for API compatibility, but will always use grid
+  viewMode: 'grid' | 'list';
   onUpdateProject: (updatedProject: Project) => void;
   onDeleteProject: (projectId: string) => void;
 }
 
 const ProjectList: React.FC<ProjectListProps> = ({ 
-  projects,
-  viewMode, // Kept for API compatibility but not used
+  projects, 
+  viewMode, 
   onUpdateProject, 
   onDeleteProject 
 }) => {
@@ -63,7 +64,11 @@ const ProjectList: React.FC<ProjectListProps> = ({
   console.log(`Showing ${dedupedProjects.length} unique projects after deduplication (original: ${projects.length})`);
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+    <div className={cn(
+      viewMode === 'grid' 
+        ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4" 
+        : "space-y-4"
+    )}>
       {dedupedProjects.map((project, index) => (
         <div key={project.id} id={`project-card-${project.id}`}>
           <ProjectCard
