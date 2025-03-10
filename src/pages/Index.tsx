@@ -15,7 +15,7 @@ const Index: React.FC = () => {
   const navigate = useNavigate();
   const { authState } = useGoogleAuth();
   const { syncCalendar, lastSynced, isAuthenticated, events, customProjects, updateFilters } = useCalendarSync();
-  const [activeTab, setActiveTab] = useState<string>("projects"); // Changed default to projects
+  const [activeTab, setActiveTab] = useState<string>("projects"); // Default to projects tab
   const [initialSyncDone, setInitialSyncDone] = useState(false);
 
   // Handle URL parameters
