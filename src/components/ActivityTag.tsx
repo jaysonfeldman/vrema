@@ -17,38 +17,58 @@ const ActivityTag: React.FC<ActivityTagProps> = ({
   style,
   color
 }) => {
-  // Define consistent colors for common activity types
+  // Define color palette with the specified colors from the user
   const getActivityColor = (activityType: string): string => {
     const activityLower = activityType.toLowerCase();
-    if (activityLower.includes('design')) return '#10b981'; // green
-    if (activityLower.includes('dev') || activityLower.includes('development')) return '#8b5cf6'; // purple
-    if (activityLower.includes('meet') || activityLower.includes('call')) return '#f59e0b'; // amber
-    if (activityLower.includes('plan') || activityLower.includes('strat')) return '#3b82f6'; // blue
-    if (activityLower.includes('admin')) return '#ef4444'; // red
-    if (activityLower.includes('review')) return '#ec4899'; // pink
-    if (activityLower.includes('research')) return '#6366f1'; // indigo
     
-    // Use provided color or fallback to a generic color
-    return color || '#6b7280'; // gray if no match
+    // Use the provided palette colors
+    if (activityLower.includes('design')) return '#FEF18B'; // Flax - soft yellow
+    if (activityLower.includes('dev') || activityLower.includes('development')) return '#7ED3FC'; // Pale azure - soft blue
+    if (activityLower.includes('meet') || activityLower.includes('call')) return '#D1FAE5'; // Nyanza - soft green
+    if (activityLower.includes('plan') || activityLower.includes('strat')) return '#6EE7B7'; // Aquamarine - soft green
+    if (activityLower.includes('admin')) return '#FED8AA'; // Sunset - soft peach
+    if (activityLower.includes('pm')) return '#22C55F'; // Emerald - bright green
+    
+    // Use provided color or generate one based on the type string
+    // This ensures each activity type gets a consistent but unique color
+    if (color) return color;
+    
+    // Simple hash function to generate a consistent color index
+    const getColorIndex = (str: string) => {
+      let hash = 0;
+      for (let i = 0; i < str.length; i++) {
+        hash = str.charCodeAt(i) + ((hash << 5) - hash);
+      }
+      return Math.abs(hash) % colors.length;
+    };
+    
+    // All colors from the palette
+    const colors = ['#22C55F', '#D1FAE5', '#FED8AA', '#6EE7B7', '#FEF18B', '#7ED3FC'];
+    return colors[getColorIndex(activityType)];
   };
   
   // Generate or use provided color
   const tagColor = getActivityColor(type);
   
+  // Format hours as "40:00" style
+  const formattedHours = hours !== undefined ? 
+    `${Math.floor(hours)}:${Math.round((hours - Math.floor(hours)) * 60).toString().padStart(2, '0')}` 
+    : '';
+  
   return (
     <div 
       className={cn(
-        "inline-flex items-center py-1 px-2 rounded-md text-xs font-medium",
+        "inline-flex items-center py-1 px-3 rounded-md text-sm font-medium",
         className
       )}
       style={{ 
         backgroundColor: tagColor,
-        color: 'white',
+        color: '#0f172a', // Dark text for better contrast
         ...style 
       }}
     >
       {hours !== undefined && (
-        <span className="mr-1 font-mono">{hours.toFixed(1)}</span>
+        <span className="mr-1 font-mono">{formattedHours}</span>
       )}
       <span>#{type.toLowerCase()}</span>
     </div>

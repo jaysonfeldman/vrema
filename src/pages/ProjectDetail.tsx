@@ -1,430 +1,211 @@
+
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useCalendarSync } from '@/hooks/useCalendarSync';
+import { Project, GoogleCalendarEvent } from '@/lib/types';
 import Header from '@/components/Header';
-import { Button } from '@/components/ui/button';
-import { ChevronLeft, Edit, Calendar, Clock, Users, Download, FileText } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Card, CardContent } from '@/components/ui/card';
-import { GoogleCalendarEvent, Project } from '@/lib/types';
-import { parseEventTitle, formatEventDate, calculateDuration } from '@/services/googleCalendarService';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { toast } from '@/components/ui/use-toast';
-import ActivityTag from '@/components/ActivityTag';
-import { formatTime } from '@/lib/mock-data';
-import ProjectHeader from '@/components/project/ProjectHeader';
-import ProjectStatus from '@/components/project/ProjectStatus';
-import ProjectActivities from '@/components/project/ProjectActivities';
+import { useToast } from '@/components/ui/use-toast';
 import EditProjectDialog from '@/components/project/EditProjectDialog';
+import ProjectsLoading from '@/components/project/ProjectsLoading';
+import ProjectDetailHeader from '@/components/project/ProjectDetailHeader';
+import ProjectStatsCards from '@/components/project/ProjectStatsCards';
+import ProjectEventsCard from '@/components/project/ProjectEventsCard';
+import { supabase } from '@/integrations/supabase/client';
 
 const ProjectDetail: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const { 
-    events, 
-    customProjects, 
+    isLoading: syncLoading, 
+    customProjects,
     syncCalendar,
-    isLoading,
-    lastSynced,
-    getProjects,
-    updateProject
+    updateProject,
+    getProjectById,
+    getProjectEvents,
+    events,
   } = useCalendarSync();
   
+  const [project, setProject] = useState<Project | null>(null);
   const [projectEvents, setProjectEvents] = useState<GoogleCalendarEvent[]>([]);
-  const [project, setProject] = useState<Project | undefined>();
-  const [searchTerm, setSearchTerm] = useState<string>('');
-  const [filteredEvents, setFilteredEvents] = useState<GoogleCalendarEvent[]>([]);
-  const [selectedActivity, setSelectedActivity] = useState<string>('All');
-  const [selectedMonth, setSelectedMonth] = useState<string>('October 2023');
   const [showEditDialog, setShowEditDialog] = useState(false);
-  const [editedProject, setEditedProject] = useState<Project | undefined>();
+  const [isLoading, setIsLoading] = useState(true);
   
+  // Load project and filter events
   useEffect(() => {
-    if (!projectId) return;
-    
-    if (!customProjects || customProjects.length === 0) {
-      if (!isLoading && !lastSynced) {
-        console.log("No projects loaded yet, syncing calendar...");
-        syncCalendar();
-      }
+    if (!projectId) {
+      navigate('/');
       return;
     }
-    
-    const foundProject = customProjects.find(p => p.id === projectId);
-    setProject(foundProject);
-    setEditedProject(foundProject ? {...foundProject} : undefined);
-    
-    if (!foundProject) {
-      toast({
-        variant: "destructive",
-        title: "Project not found",
-        description: "The requested project could not be found."
-      });
-      return;
-    }
-    
-    console.log(`Found project: "${foundProject.name}" with ID: ${foundProject.id}`);
-  }, [projectId, customProjects, syncCalendar, isLoading, lastSynced]);
-  
-  useEffect(() => {
-    if (!project || !events || events.length === 0) return;
-    
-    console.log(`Filtering events for project "${project.name}"`);
-    
-    const filteredEvents = events.filter(event => {
-      if (!event.summary) return false;
-      const { projectName } = parseEventTitle(event.summary);
-      return projectName.toLowerCase() === project.name.toLowerCase();
-    });
-    
-    console.log(`Found ${filteredEvents.length} events for project "${project.name}"`);
-    setProjectEvents(filteredEvents);
-    setFilteredEvents(filteredEvents);
-  }, [events, project]);
 
-  useEffect(() => {
-    if (!projectEvents.length) return;
+    console.log("ProjectDetail: Loading project with ID:", projectId);
+    setIsLoading(true);
     
-    let filtered = [...projectEvents];
-    
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      filtered = filtered.filter(event => 
-        event.summary.toLowerCase().includes(term) || 
-        (event.description && event.description.toLowerCase().includes(term))
-      );
-    }
-    
-    if (selectedActivity !== 'All') {
-      filtered = filtered.filter(event => {
-        const { activityType } = parseEventTitle(event.summary);
-        return activityType === selectedActivity;
-      });
-    }
-    
-    setFilteredEvents(filtered);
-  }, [projectEvents, searchTerm, selectedActivity]);
-
-  const getUniqueActivityTypes = () => {
-    const activityTypes = new Set<string>();
-    activityTypes.add('All');
-    
-    projectEvents.forEach(event => {
-      const { activityType } = parseEventTitle(event.summary);
-      if (activityType) {
-        activityTypes.add(activityType);
+    // Try to get project from Supabase first
+    const fetchProjectFromSupabase = async () => {
+      try {
+        const { data: projectData, error } = await supabase
+          .from('projects')
+          .select(`
+            *,
+            activities(*)
+          `)
+          .eq('id', projectId)
+          .single();
+          
+        if (error) {
+          console.error('Error fetching project from Supabase:', error);
+          // Fallback to local data
+          const localProject = getProjectById(projectId);
+          if (localProject) {
+            setProject(localProject);
+            const projectEvents = getProjectEvents(projectId);
+            setProjectEvents(projectEvents);
+          } else {
+            console.error('Project not found with ID:', projectId);
+            toast({
+              title: "Project not found",
+              description: "The requested project could not be found.",
+              variant: "destructive"
+            });
+            navigate('/');
+          }
+        } else if (projectData) {
+          console.log('Project fetched from Supabase:', projectData);
+          
+          // Convert Supabase project to app Project format
+          const formattedProject: Project = {
+            id: projectData.id,
+            name: projectData.name,
+            totalHours: parseFloat(projectData.total_hours.toString()),
+            budgetHours: projectData.budget_hours ? parseFloat(projectData.budget_hours.toString()) : undefined,
+            hourlyRate: projectData.hourly_rate ? parseFloat(projectData.hourly_rate.toString()) : undefined,
+            filterTerm: projectData.filter_term,
+            monthlyHours: projectData.monthly_hours ? parseFloat(projectData.monthly_hours.toString()) : 0,
+            visible: projectData.visible,
+            activities: projectData.activities.map((activity: any) => ({
+              id: activity.id,
+              type: activity.type,
+              hours: parseFloat(activity.hours.toString()),
+              date: new Date()
+            })),
+            teamMembers: [],
+            color: '#222222' // Default dark color
+          };
+          
+          setProject(formattedProject);
+          
+          // Get events for this project
+          const eventsForProject = getProjectEvents(projectId);
+          setProjectEvents(eventsForProject);
+        }
+      } catch (error) {
+        console.error('Error in fetchProjectFromSupabase:', error);
+      } finally {
+        setIsLoading(false);
       }
-    });
+    };
     
-    return Array.from(activityTypes);
-  };
+    fetchProjectFromSupabase();
+    
+    // Force a calendar sync to ensure we have the latest data
+    syncCalendar(90); // Get 3 months of data
+  }, [projectId, getProjectById, getProjectEvents, navigate, syncCalendar, toast]);
   
-  const calculateBillableHours = (totalHours: number): number => {
-    return totalHours * 0.9;
-  };
+  // Update project events when events change
+  useEffect(() => {
+    if (projectId && events.length > 0) {
+      const projectEvents = events.filter(event => {
+        // Check if event has projectId property matching this project
+        if ('projectId' in event && event.projectId === projectId) {
+          return true;
+        }
+        
+        // If project is loaded, check by name or filter term
+        if (project) {
+          const eventSummary = event.summary?.toLowerCase() || '';
+          const projectName = project.name.toLowerCase();
+          const filterTerm = project.filterTerm?.toLowerCase();
+          
+          return eventSummary.includes(projectName) || 
+                (filterTerm && eventSummary.includes(filterTerm));
+        }
+        
+        return false;
+      });
+      
+      setProjectEvents(projectEvents);
+    }
+  }, [events, projectId, project]);
 
-  const handleOpenEditDialog = () => {
-    setEditedProject(project ? {...project} : undefined);
-    setShowEditDialog(true);
-  };
-  
-  const handleSaveProject = () => {
-    if (editedProject) {
-      updateProject(editedProject);
-      setProject(editedProject);
-      setShowEditDialog(false);
+  // Handle project update
+  const handleProjectUpdate = (updatedProject: Project) => {
+    setShowEditDialog(false);
+    if (project) {
+      updateProject(updatedProject);
+      setProject(updatedProject);
+      
+      // Update project in Supabase
+      supabase
+        .from('projects')
+        .update({
+          name: updatedProject.name,
+          total_hours: updatedProject.totalHours.toString(),
+          budget_hours: updatedProject.budgetHours?.toString(),
+          hourly_rate: updatedProject.hourlyRate?.toString(),
+          filter_term: updatedProject.filterTerm,
+          monthly_hours: updatedProject.monthlyHours?.toString(),
+          visible: updatedProject.visible
+        })
+        .eq('id', updatedProject.id)
+        .then(({ error }) => {
+          if (error) {
+            console.error('Error updating project in Supabase:', error);
+          }
+        });
+      
       toast({
         title: "Project updated",
-        description: `Updated "${editedProject.name}" settings`
+        description: "Project details have been updated successfully."
       });
     }
   };
   
-  if (customProjects.length === 0 && isLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <Header />
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
-          <div className="flex items-center mb-8">
-            <Button 
-              variant="ghost" 
-              onClick={() => navigate('/')}
-              className="mr-4"
-            >
-              <ChevronLeft className="h-4 w-4 mr-1" /> Back to Dashboard
-            </Button>
-            <h1 className="text-3xl font-bold">Loading Project...</h1>
-          </div>
-          <Card>
-            <CardContent className="py-8">
-              <p className="text-center text-gray-500">
-                Loading projects from calendar. Please wait...
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    );
+  if (isLoading || syncLoading) {
+    return <ProjectsLoading />;
   }
-
+  
   if (!project) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <Header />
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
-          <div className="flex items-center mb-8">
-            <Button 
-              variant="ghost" 
-              onClick={() => navigate('/')}
-              className="mr-4"
-            >
-              <ChevronLeft className="h-4 w-4 mr-1" /> Back to Dashboard
-            </Button>
-            <h1 className="text-3xl font-bold">Project Not Found</h1>
-          </div>
-          <Card>
-            <CardContent className="py-8">
-              <p className="text-center text-gray-500">
-                The project you're looking for doesn't exist or has been deleted.
-              </p>
-              <div className="flex justify-center mt-6">
-                <Button onClick={() => navigate('/')}>
-                  Return to Dashboard
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    );
+    return <ProjectsLoading />;
   }
-
-  const totalHours = project.totalHours;
-  const budgetLeft = project.budgetHours ? project.budgetHours - totalHours : 0;
-  const hourlyRate = project.hourlyRate || 95;
-  const totalValue = Math.round(totalHours * hourlyRate);
-
+  
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       <Header />
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
-        <div className="flex flex-wrap justify-between items-center mb-6">
-          <div className="flex items-center gap-4">
-            <Button 
-              variant="ghost" 
-              onClick={() => navigate('/')}
-              className="p-2 h-auto"
-            >
-              <ChevronLeft className="h-5 w-5" />
-              <span className="ml-1">back</span>
-            </Button>
-            
-            <div>
-              <h1 className="text-4xl font-bold">{project.name}</h1>
-              {project.filterTerm && (
-                <Badge variant="outline" className="bg-zinc-200 text-zinc-800 text-xs mt-1">
-                  {project.filterTerm}
-                </Badge>
-              )}
-            </div>
-          </div>
-          
-          <div className="mt-4 sm:mt-0 flex items-center gap-2">
-            <Button variant="outline" className="h-10" onClick={handleOpenEditDialog}>
-              <Edit className="h-4 w-4 mr-2" />
-              Edit project
-            </Button>
-          </div>
-        </div>
+      <div className="container mx-auto py-6 px-4">
+        <ProjectDetailHeader 
+          projectName={project.name}
+          onEditClick={() => setShowEditDialog(true)}
+        />
         
-        <div className="flex flex-wrap gap-3 mb-6">
-          <Button variant="outline" className="h-10 bg-white">
-            <Calendar className="h-4 w-4 mr-2" />
-            {selectedMonth}
-          </Button>
-          
-          <Button variant="outline" className="h-10 bg-white">
-            All projects
-          </Button>
-          
-          <Button variant="outline" className="h-10 bg-white">
-            All activities
-          </Button>
-          
-          <Button variant="outline" className="h-10 bg-white">
-            <Users className="h-4 w-4 mr-2" />
-            3 members
-          </Button>
-        </div>
+        <ProjectStatsCards 
+          project={project} 
+          projectEvents={projectEvents}
+          syncCalendar={syncCalendar}
+        />
         
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <Card className="bg-zinc-900 text-white md:col-span-1">
-            <CardContent className="p-6">
-              <p className="text-sm text-gray-400 mb-2">Total value</p>
-              <p className="text-3xl font-mono font-bold text-green-400">€{totalValue}</p>
-            </CardContent>
-          </Card>
-          
-          <Card className="bg-zinc-900 text-white md:col-span-1">
-            <CardContent className="p-6">
-              <p className="text-sm text-gray-400 mb-2">Hours logged</p>
-              <p className="text-3xl font-mono font-bold">{formatTime(totalHours)}</p>
-            </CardContent>
-          </Card>
-          
-          <Card className="bg-zinc-900 text-white md:col-span-1">
-            <CardContent className="p-6">
-              <p className="text-sm text-gray-400 mb-2">Budget left</p>
-              <p className="text-3xl font-mono font-bold text-amber-500">
-                {formatTime(budgetLeft)}
-                <span className="text-xs text-gray-500 ml-1 block">/this month</span>
-              </p>
-            </CardContent>
-          </Card>
-          
-          <Card className="bg-zinc-900 text-white md:col-span-1">
-            <CardContent className="p-6">
-              <p className="text-sm text-gray-400 mb-2">Hourly rate</p>
-              <p className="text-3xl font-mono font-bold">€{hourlyRate}</p>
-            </CardContent>
-          </Card>
-        </div>
-        
-        <div className="mb-8">
-          <p className="text-lg font-medium mb-4">Activities</p>
-          <div className="flex flex-wrap gap-2">
-            {project.activities
-              .sort((a, b) => b.hours - a.hours)
-              .map(activity => (
-                <div key={activity.id} className="bg-green-500 text-white rounded-md px-3 py-1 text-sm">
-                  {formatTime(activity.hours)} #{activity.type}
-                </div>
-              ))}
-          </div>
-        </div>
-        
-        <div className="flex justify-between mb-8">
-          <div></div>
-          <div className="flex gap-3">
-            <Button variant="outline">
-              <Download className="h-4 w-4 mr-2" />
-              Export hours
-            </Button>
-            <Button className="bg-zinc-900 text-white hover:bg-zinc-800">
-              <FileText className="h-4 w-4 mr-2" />
-              Create invoice
-            </Button>
-          </div>
-        </div>
-        
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex flex-col md:flex-row justify-between gap-4 mb-6">
-              <h2 className="text-2xl font-bold">Activity log</h2>
-              
-              <div className="flex flex-col sm:flex-row gap-4">
-                <div className="relative flex-1 min-w-[200px]">
-                  <Input
-                    type="text"
-                    placeholder="Search events..."
-                    className="pl-3"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
-                </div>
-                
-                <Select
-                  value={selectedActivity}
-                  onValueChange={setSelectedActivity}
-                >
-                  <SelectTrigger className="w-full sm:w-[160px]">
-                    <SelectValue placeholder="Activity" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {getUniqueActivityTypes().map((activity) => (
-                      <SelectItem key={activity} value={activity}>
-                        {activity}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                
-                <Button 
-                  onClick={() => syncCalendar()} 
-                  disabled={isLoading}
-                  className="whitespace-nowrap"
-                >
-                  {isLoading ? "Syncing..." : "Sync Calendar"}
-                </Button>
-              </div>
-            </div>
-            
-            {filteredEvents.length === 0 ? (
-              <div className="py-8 text-center text-gray-500">
-                <p>No events found for this project.</p>
-                <p className="mt-2 text-sm">Try syncing your calendar or check the filters.</p>
-              </div>
-            ) : (
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Activity</TableHead>
-                      <TableHead>Description</TableHead>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Duration</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredEvents.map((event) => {
-                      const { activityType, description } = parseEventTitle(event.summary || '');
-                      
-                      return (
-                        <TableRow key={event.id}>
-                          <TableCell>
-                            <Badge className="capitalize bg-slate-700 text-white">
-                              {activityType}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="font-medium">
-                            {description || '(No description)'}
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <Calendar className="h-3 w-3 text-muted-foreground" />
-                              {formatEventDate(event.start?.dateTime || '')}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <Clock className="h-3 w-3 text-muted-foreground" />
-                              {calculateDuration(
-                                event.start?.dateTime || '', 
-                                event.end?.dateTime || ''
-                              )}
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        <ProjectEventsCard 
+          projectEvents={projectEvents}
+          syncCalendar={syncCalendar}
+        />
       </div>
-      
-      {editedProject && (
+
+      {showEditDialog && (
         <EditProjectDialog
+          project={project}
           open={showEditDialog}
           onOpenChange={setShowEditDialog}
-          project={project}
-          editedProject={editedProject}
-          setEditedProject={setEditedProject}
-          onSave={handleSaveProject}
+          onSave={handleProjectUpdate}
         />
       )}
     </div>

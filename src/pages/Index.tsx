@@ -3,9 +3,9 @@ import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import GoogleCalendarSync from '@/components/GoogleCalendarSync';
-import ProjectsOverview from '@/components/ProjectsOverview';
 import TotalHoursView from '@/components/TotalHoursView';
 import CalendarEventsTable from '@/components/CalendarEventsTable';
+import ProjectOverview from '@/components/project/ProjectOverview';
 import { useCalendarSync } from '@/hooks/useCalendarSync';
 import { useGoogleAuth } from '@/providers/GoogleAuthProvider';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -14,8 +14,9 @@ const Index: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { authState } = useGoogleAuth();
-  const { syncCalendar, lastSynced, isAuthenticated, events, projectFilters, customProjects, updateFilters } = useCalendarSync();
-  const [activeTab, setActiveTab] = useState<string>("projects");
+  const { syncCalendar, lastSynced, isAuthenticated, events, customProjects, updateFilters } = useCalendarSync();
+  const [activeTab, setActiveTab] = useState<string>("projects"); // Default to projects tab
+  const [initialSyncDone, setInitialSyncDone] = useState(false);
 
   // Handle URL parameters
   useEffect(() => {
@@ -24,7 +25,7 @@ const Index: React.FC = () => {
     const projectParam = params.get('project');
     
     // Set active tab based on URL parameter
-    if (tabParam && (tabParam === 'projects' || tabParam === 'events')) {
+    if (tabParam && (tabParam === 'events' || tabParam === 'projects')) {
       setActiveTab(tabParam);
     }
     
@@ -39,19 +40,27 @@ const Index: React.FC = () => {
     }
   }, [location, navigate, updateFilters]);
 
+  // Make sure all projects are shown by default
+  useEffect(() => {
+    // Reset project filters to ensure all projects are shown initially
+    if (customProjects.length > 0) {
+      console.log("Showing all projects by default");
+      updateFilters({ 
+        project: 'All',
+        selectedProjects: customProjects.map(p => p.name)
+      });
+    }
+  }, [customProjects, updateFilters]);
+
   // Auto-sync calendar when authenticated and not yet synced
   useEffect(() => {
-    if (authState.isAuthenticated && (!lastSynced || events.length === 0)) {
+    if (authState.isAuthenticated && !initialSyncDone && !lastSynced) {
       console.log("Auto-syncing calendar from Index component");
-      syncCalendar();
+      // Only sync if we haven't synced before
+      syncCalendar(90); // Show 3 months of data for better project visibility
+      setInitialSyncDone(true);
     }
-  }, [authState.isAuthenticated, lastSynced, syncCalendar, events.length]);
-
-  // For debugging
-  useEffect(() => {
-    console.log("Index - Current project filters:", projectFilters);
-    console.log("Index - Custom projects count:", customProjects.length);
-  }, [projectFilters, customProjects]);
+  }, [authState.isAuthenticated, initialSyncDone, syncCalendar, lastSynced]);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
@@ -64,12 +73,12 @@ const Index: React.FC = () => {
           
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="mb-4">
-              <TabsTrigger value="projects">Project Cards</TabsTrigger>
+              <TabsTrigger value="projects">Projects</TabsTrigger>
               <TabsTrigger value="events">Calendar Events</TabsTrigger>
             </TabsList>
             
             <TabsContent value="projects">
-              <ProjectsOverview />
+              <ProjectOverview />
             </TabsContent>
             
             <TabsContent value="events">

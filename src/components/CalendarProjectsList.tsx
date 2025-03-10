@@ -42,15 +42,16 @@ const CalendarProjectsList: React.FC = () => {
   
   const handleAddProject = () => {
     if (newProjectName && newProjectFilter) {
-      console.log("Dashboard: Adding new project filter:", newProjectName, newProjectFilter);
-      addProjectFilter(newProjectName.trim(), newProjectFilter.trim());
+      console.log("Dashboard: Adding new project filter:", newProjectFilter);
+      // Fix: Only pass one argument to addProjectFilter
+      addProjectFilter(newProjectFilter.trim());
       
       // Trigger a sync to update projects immediately
       syncCalendar();
       
       toast({
         title: "Project view created",
-        description: `Created "${newProjectName}" view for events containing "${newProjectFilter}"`,
+        description: `Created view for events containing "${newProjectFilter}"`,
       });
       setNewProjectName('');
       setNewProjectFilter('');

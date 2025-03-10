@@ -1,8 +1,8 @@
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { GoogleOAuthProvider, useGoogleLogin } from '@react-oauth/google';
 import { GoogleAuthState } from '@/lib/types';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from 'sonner';
 
 // This is a public OAuth client ID that's meant to be used with http://localhost or the deployed app domain
 // You should replace this with your own Google OAuth Client ID for production use
@@ -11,7 +11,7 @@ const GOOGLE_CLIENT_ID = '238356005706-p3un444dbhbhqbb8opj5pg31o36ggqkf.apps.goo
 interface GoogleAuthContextType {
   authState: GoogleAuthState;
   login: () => void;
-  logout: () => void;
+  logout: (silent?: boolean) => Promise<boolean>;
   isLoading: boolean;
   refreshToken: () => Promise<string | null>;
 }
@@ -31,7 +31,8 @@ export const GoogleAuthProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     return savedAuth ? JSON.parse(savedAuth) : defaultAuthState;
   });
   const [isLoading, setIsLoading] = useState<boolean>(false);
-
+  const [refreshAttempts, setRefreshAttempts] = useState<number>(0);
+  
   useEffect(() => {
     if (authState.isAuthenticated) {
       localStorage.setItem('googleAuth', JSON.stringify(authState));
@@ -41,7 +42,7 @@ export const GoogleAuthProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   }, [authState]);
 
   // Check if token is expired
-  const isTokenExpired = () => {
+  const isTokenExpired = useCallback(() => {
     if (!authState.tokenExpiry) return true;
     
     // Add a 5-minute buffer before expiration to refresh token
@@ -50,32 +51,39 @@ export const GoogleAuthProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     const fiveMinutesInMs = 5 * 60 * 1000;
     
     return currentTime + fiveMinutesInMs >= expiryTime;
-  };
+  }, [authState.tokenExpiry]);
 
-  const refreshToken = async (): Promise<string | null> => {
+  const refreshToken = useCallback(async (): Promise<string | null> => {
     if (!authState.isAuthenticated) {
+      console.log('Not authenticated, cannot refresh token');
       return null;
     }
 
+    // If token is expired, we need to re-login
     if (isTokenExpired()) {
-      console.log('Token expired or missing, attempting to re-login');
-      try {
-        setIsLoading(true);
-        // Handle re-login if needed
-        await logout();
-        toast({
-          variant: "destructive",
-          title: "Session expired",
-          description: "Please reconnect your Google Calendar",
-        });
+      console.log('Token expired, requiring re-authentication');
+      // Prevent infinite refresh loops
+      if (refreshAttempts > 2) {
+        console.log('Too many refresh attempts, logging out');
+        await logout(true);
         return null;
-      } finally {
-        setIsLoading(false);
       }
+      
+      setRefreshAttempts(prev => prev + 1);
+      await logout(true);
+      
+      // Inform the user they need to re-authenticate
+      toast.error('Session expired', {
+        description: 'Please reconnect to Google Calendar',
+        duration: 5000,
+      });
+      
+      return null;
     }
 
+    // Token still valid
     return authState.token;
-  };
+  }, [authState.isAuthenticated, authState.token, isTokenExpired, refreshAttempts]);
 
   const googleLogin = useGoogleLogin({
     onSuccess: async (response) => {
@@ -111,16 +119,14 @@ export const GoogleAuthProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           tokenExpiry: expiryTime.toISOString()
         });
         
-        toast({
-          title: "Success!",
-          description: "Connected to Google Calendar",
-        });
+        // Reset refresh attempts on successful login
+        setRefreshAttempts(0);
+        
+        toast.success('Connected to Google Calendar');
       } catch (error) {
         console.error('Google auth error:', error);
-        toast({
-          variant: "destructive",
-          title: "Authentication failed",
-          description: "Could not connect to Google Calendar",
+        toast.error('Authentication failed', {
+          description: 'Could not connect to Google Calendar'
         });
       } finally {
         setIsLoading(false);
@@ -129,27 +135,25 @@ export const GoogleAuthProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     scope: 'https://www.googleapis.com/auth/calendar.readonly',
     onError: (error) => {
       console.error('Login Failed:', error);
-      toast({
-        variant: "destructive",
-        title: "Authentication failed",
-        description: "Could not connect to Google Calendar",
+      toast.error('Authentication failed', {
+        description: 'Could not connect to Google Calendar'
       });
       setIsLoading(false);
     }
   });
 
-  const login = () => {
+  const login = useCallback(() => {
     setIsLoading(true);
     googleLogin();
-  };
+  }, [googleLogin]);
 
-  const logout = async () => {
+  const logout = useCallback(async (silent = false): Promise<boolean> => {
     setAuthState(defaultAuthState);
-    toast({
-      description: "Disconnected from Google Calendar",
-    });
+    if (!silent) {
+      toast.success('Disconnected from Google Calendar');
+    }
     return true;
-  };
+  }, []);
 
   return (
     <GoogleAuthContext.Provider value={{ authState, login, logout, isLoading, refreshToken }}>
@@ -158,7 +162,6 @@ export const GoogleAuthProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   );
 };
 
-// Important: The GoogleOAuthProvider must be a separate component to avoid invalid hook call errors
 export const GoogleAuthProviderWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
     <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>

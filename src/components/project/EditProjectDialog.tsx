@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Project } from '@/lib/types';
 import { 
   Dialog,
@@ -17,19 +17,39 @@ interface EditProjectDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   project: Project;
-  editedProject: Project;
-  setEditedProject: (project: Project) => void;
-  onSave: () => void;
+  onSave: (updatedProject: Project) => void;
+  // These are now optional
+  editedProject?: Project;
+  setEditedProject?: (project: Project) => void;
 }
 
 const EditProjectDialog: React.FC<EditProjectDialogProps> = ({
   open,
   onOpenChange,
   project,
-  editedProject,
-  setEditedProject,
-  onSave
+  onSave,
+  editedProject: externalEditedProject,
+  setEditedProject: externalSetEditedProject
 }) => {
+  // Create internal state if not provided externally
+  const [internalEditedProject, setInternalEditedProject] = useState<Project>({ ...project });
+  
+  // Use either the external state or the internal state
+  const editedProject = externalEditedProject || internalEditedProject;
+  const setEditedProject = externalSetEditedProject || setInternalEditedProject;
+
+  const handleResetHourlyRate = () => {
+    setEditedProject({...editedProject, hourlyRate: undefined});
+  };
+
+  const handleResetBudget = () => {
+    setEditedProject({...editedProject, budgetHours: undefined});
+  };
+  
+  const handleSave = () => {
+    onSave(editedProject);
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
@@ -52,31 +72,57 @@ const EditProjectDialog: React.FC<EditProjectDialogProps> = ({
             <Label htmlFor="budget-hours" className="text-right">
               Budget (hours)
             </Label>
-            <Input
-              id="budget-hours"
-              type="number"
-              value={editedProject.budgetHours || 0}
-              onChange={(e) => setEditedProject({
-                ...editedProject, 
-                budgetHours: parseFloat(e.target.value) || undefined
-              })}
-              className="col-span-3"
-            />
+            <div className="col-span-3 flex gap-2">
+              <Input
+                id="budget-hours"
+                type="number"
+                value={editedProject.budgetHours || ''}
+                onChange={(e) => setEditedProject({
+                  ...editedProject, 
+                  budgetHours: e.target.value ? parseFloat(e.target.value) : undefined
+                })}
+                className="flex-1"
+                placeholder="Not set"
+              />
+              {editedProject.budgetHours !== undefined && (
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  size="sm"
+                  onClick={handleResetBudget}
+                >
+                  Reset
+                </Button>
+              )}
+            </div>
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="hourly-rate" className="text-right">
               Rate (€/hour)
             </Label>
-            <Input
-              id="hourly-rate"
-              type="number"
-              value={editedProject.hourlyRate || 0}
-              onChange={(e) => setEditedProject({
-                ...editedProject, 
-                hourlyRate: parseFloat(e.target.value) || undefined
-              })}
-              className="col-span-3"
-            />
+            <div className="col-span-3 flex gap-2">
+              <Input
+                id="hourly-rate"
+                type="number"
+                value={editedProject.hourlyRate || ''}
+                onChange={(e) => setEditedProject({
+                  ...editedProject, 
+                  hourlyRate: e.target.value ? parseFloat(e.target.value) : undefined
+                })}
+                className="flex-1"
+                placeholder="Not set"
+              />
+              {editedProject.hourlyRate !== undefined && (
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  size="sm"
+                  onClick={handleResetHourlyRate}
+                >
+                  Reset
+                </Button>
+              )}
+            </div>
           </div>
         </div>
         <DialogFooter>
@@ -85,7 +131,7 @@ const EditProjectDialog: React.FC<EditProjectDialogProps> = ({
               Cancel
             </Button>
           </DialogClose>
-          <Button type="button" onClick={onSave}>
+          <Button type="button" onClick={handleSave}>
             Save changes
           </Button>
         </DialogFooter>

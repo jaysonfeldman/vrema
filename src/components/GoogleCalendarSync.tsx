@@ -7,6 +7,7 @@ import { useCalendarSync } from '@/hooks/useCalendarSync';
 import { Loader2, Calendar, LogOut, RefreshCw, AlertCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { toast } from 'sonner';
 
 const GoogleCalendarSync: React.FC = () => {
   const { authState, login, logout, isLoading: authLoading } = useGoogleAuth();
@@ -15,7 +16,8 @@ const GoogleCalendarSync: React.FC = () => {
     isLoading: syncLoading, 
     lastSynced, 
     events, 
-    syncError 
+    syncError,
+    isAuthenticated
   } = useCalendarSync();
 
   const handleSync = () => {
@@ -63,7 +65,7 @@ const GoogleCalendarSync: React.FC = () => {
               </Button>
               <Button 
                 variant="outline" 
-                onClick={logout}
+                onClick={() => logout()}
                 disabled={authLoading}
               >
                 <LogOut className="mr-2 h-4 w-4" />
