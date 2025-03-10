@@ -532,6 +532,11 @@ export function useCalendarSync() {
     updateCustomProjects(events, projectFilters);
   }, [events, projectFilters, updateCustomProjects]);
 
+  const getProjectById = useCallback((projectId: string): Project | null => {
+    const foundProject = customProjects.find(p => p.id === projectId);
+    return foundProject || null;
+  }, [customProjects]);
+
   return {
     syncCalendar,
     events,
@@ -551,6 +556,7 @@ export function useCalendarSync() {
     getActivityHours,
     syncError,
     updateProject,
-    getActivitiesFromEvents
+    getActivitiesFromEvents,
+    getProjectById
   };
 }
