@@ -53,10 +53,6 @@ const ProjectOverview: React.FC = () => {
     );
   }
 
-  const handleEditProject = (project: Project) => {
-    navigate(`/project/${project.id}`);
-  };
-
   return (
     <Card className="my-6">
       <CardHeader className="flex flex-row items-center justify-between">

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Project } from '@/lib/types';
@@ -5,7 +6,7 @@ import { Progress } from '@/components/ui/progress';
 import ActivityTag from '@/components/ActivityTag';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { MoreVertical, Edit } from 'lucide-react';
+import { MoreVertical, Edit, Calendar } from 'lucide-react';
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -78,7 +79,11 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
     <Card 
       className={`overflow-hidden hover:shadow-md transition-shadow cursor-pointer ${className}`}
       onClick={handleCardClick}
-      style={{ backgroundColor: '#3C3C3C', color: 'white', ...style }}
+      style={{ 
+        backgroundColor: project.color || '#3C3C3C', 
+        color: 'white', 
+        ...style 
+      }}
     >
       <CardHeader className="pb-3">
         <div className="flex justify-between items-start">
@@ -86,7 +91,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
             <CardTitle className="text-lg font-semibold text-white">{project.name}</CardTitle>
             {project.filterTerm && (
               <div className="text-xs text-gray-300 mt-1">
-                {project.id.substring(0, 6)}
+                Filter: {project.filterTerm}
               </div>
             )}
           </div>
@@ -111,6 +116,12 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
                     setShowEditDialog(true);
                   }}>
                     <Edit className="mr-2 h-4 w-4" /> Edit Project
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(`/project/${project.id}`);
+                  }}>
+                    <Calendar className="mr-2 h-4 w-4" /> View Events
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>

@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from 'react';
 import { useGoogleAuth } from '@/providers/GoogleAuthProvider';
 import { 
@@ -7,6 +8,7 @@ import {
 } from '@/services/googleCalendarService';
 import { toast } from 'sonner';
 import { GoogleCalendarEvent, FilterOptions, Project } from '@/lib/types';
+import { supabase } from '@/integrations/supabase/client';
 
 export function useCalendarEvents() {
   const { authState, refreshToken } = useGoogleAuth();
@@ -66,6 +68,9 @@ export function useCalendarEvents() {
         };
       });
       
+      // Save processed projects to Supabase
+      await syncProjectsToSupabase(projects);
+      
       console.log(`Processed ${processedEvents.length} events with project associations`);
       setEvents(processedEvents);
       setFilteredEvents(processedEvents);
@@ -107,6 +112,92 @@ export function useCalendarEvents() {
       setSyncInProgress(false);
     }
   }, [authState.isAuthenticated, refreshToken]);
+
+  // Sync projects to Supabase
+  const syncProjectsToSupabase = async (projects: Project[]) => {
+    if (!projects || projects.length === 0) return;
+    
+    console.log('Syncing projects to Supabase:', projects.length);
+    
+    try {
+      for (const project of projects) {
+        // Check if project already exists
+        const { data: existingProject } = await supabase
+          .from('projects')
+          .select('id')
+          .eq('id', project.id)
+          .single();
+          
+        if (existingProject) {
+          // Update existing project
+          await supabase
+            .from('projects')
+            .update({
+              name: project.name,
+              total_hours: project.totalHours,
+              budget_hours: project.budgetHours,
+              hourly_rate: project.hourlyRate,
+              filter_term: project.filterTerm,
+              monthly_hours: project.monthlyHours,
+              visible: project.visible
+            })
+            .eq('id', project.id);
+        } else {
+          // Insert new project
+          await supabase
+            .from('projects')
+            .insert({
+              id: project.id,
+              name: project.name,
+              total_hours: project.totalHours,
+              budget_hours: project.budgetHours,
+              hourly_rate: project.hourlyRate,
+              filter_term: project.filterTerm,
+              monthly_hours: project.monthlyHours,
+              visible: project.visible
+            });
+        }
+        
+        // Sync activities for this project
+        if (project.activities && project.activities.length > 0) {
+          for (const activity of project.activities) {
+            // Check if activity exists
+            const { data: existingActivity } = await supabase
+              .from('activities')
+              .select('id')
+              .eq('id', activity.id)
+              .single();
+              
+            if (existingActivity) {
+              // Update existing activity
+              await supabase
+                .from('activities')
+                .update({
+                  project_id: project.id,
+                  type: activity.type,
+                  hours: activity.hours
+                })
+                .eq('id', activity.id);
+            } else {
+              // Insert new activity
+              await supabase
+                .from('activities')
+                .insert({
+                  id: activity.id,
+                  project_id: project.id,
+                  type: activity.type,
+                  hours: activity.hours
+                });
+            }
+          }
+        }
+      }
+      
+      console.log('Projects and activities synced to Supabase successfully');
+    } catch (error) {
+      console.error('Error syncing projects to Supabase:', error);
+    }
+  };
 
   const getProjectNameFromEvent = useCallback((event: GoogleCalendarEvent): string => {
     if (!event.summary) return 'Other';

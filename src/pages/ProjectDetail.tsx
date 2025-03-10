@@ -10,24 +10,26 @@ import ProjectsLoading from '@/components/project/ProjectsLoading';
 import ProjectDetailHeader from '@/components/project/ProjectDetailHeader';
 import ProjectStatsCards from '@/components/project/ProjectStatsCards';
 import ProjectEventsCard from '@/components/project/ProjectEventsCard';
-import { formatEventDate, calculateDuration } from '@/services/googleCalendarService';
+import { supabase } from '@/integrations/supabase/client';
 
 const ProjectDetail: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
   const { 
-    isLoading, 
+    isLoading: syncLoading, 
     customProjects,
     syncCalendar,
     updateProject,
     getProjectById,
-    getProjectEvents
+    getProjectEvents,
+    events,
   } = useCalendarSync();
   
   const [project, setProject] = useState<Project | null>(null);
   const [projectEvents, setProjectEvents] = useState<GoogleCalendarEvent[]>([]);
   const [showEditDialog, setShowEditDialog] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   
   // Load project and filter events
   useEffect(() => {
@@ -37,26 +39,104 @@ const ProjectDetail: React.FC = () => {
     }
 
     console.log("ProjectDetail: Loading project with ID:", projectId);
+    setIsLoading(true);
     
-    // Find the project by ID first
-    const foundProject = getProjectById(projectId);
+    // Try to get project from Supabase first
+    const fetchProjectFromSupabase = async () => {
+      try {
+        const { data: projectData, error } = await supabase
+          .from('projects')
+          .select(`
+            *,
+            activities(*)
+          `)
+          .eq('id', projectId)
+          .single();
+          
+        if (error) {
+          console.error('Error fetching project from Supabase:', error);
+          // Fallback to local data
+          const localProject = getProjectById(projectId);
+          if (localProject) {
+            setProject(localProject);
+            const projectEvents = getProjectEvents(projectId);
+            setProjectEvents(projectEvents);
+          } else {
+            console.error('Project not found with ID:', projectId);
+            toast({
+              title: "Project not found",
+              description: "The requested project could not be found.",
+              variant: "destructive"
+            });
+            navigate('/');
+          }
+        } else if (projectData) {
+          console.log('Project fetched from Supabase:', projectData);
+          
+          // Convert Supabase project to app Project format
+          const formattedProject: Project = {
+            id: projectData.id,
+            name: projectData.name,
+            totalHours: parseFloat(projectData.total_hours),
+            budgetHours: projectData.budget_hours ? parseFloat(projectData.budget_hours) : undefined,
+            hourlyRate: projectData.hourly_rate ? parseFloat(projectData.hourly_rate) : undefined,
+            filterTerm: projectData.filter_term,
+            monthlyHours: projectData.monthly_hours ? parseFloat(projectData.monthly_hours) : 0,
+            visible: projectData.visible,
+            activities: projectData.activities.map((activity: any) => ({
+              id: activity.id,
+              type: activity.type,
+              hours: parseFloat(activity.hours),
+              date: new Date()
+            })),
+            teamMembers: [],
+            color: '#3C3C3C'
+          };
+          
+          setProject(formattedProject);
+          
+          // Get events for this project
+          const eventsForProject = getProjectEvents(projectId);
+          setProjectEvents(eventsForProject);
+        }
+      } catch (error) {
+        console.error('Error in fetchProjectFromSupabase:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
     
-    if (foundProject) {
-      console.log("Project found:", foundProject.name);
-      setProject(foundProject);
+    fetchProjectFromSupabase();
+    
+    // Force a calendar sync to ensure we have the latest data
+    syncCalendar(90); // Get 3 months of data
+  }, [projectId, getProjectById, getProjectEvents, navigate, syncCalendar, toast]);
+  
+  // Update project events when events change
+  useEffect(() => {
+    if (projectId && events.length > 0) {
+      const projectEvents = events.filter(event => {
+        // Check if event has projectId property matching this project
+        if ('projectId' in event && event.projectId === projectId) {
+          return true;
+        }
+        
+        // If project is loaded, check by name or filter term
+        if (project) {
+          const eventSummary = event.summary?.toLowerCase() || '';
+          const projectName = project.name.toLowerCase();
+          const filterTerm = project.filterTerm?.toLowerCase();
+          
+          return eventSummary.includes(projectName) || 
+                (filterTerm && eventSummary.includes(filterTerm));
+        }
+        
+        return false;
+      });
       
-      // Get project events and update state
-      const events = getProjectEvents(projectId);
-      console.log(`Found ${events.length} events for project ${foundProject.name}`);
-      setProjectEvents(events);
-      
-      // Force a calendar sync to ensure we have the latest data
-      syncCalendar(90); // Get 3 months of data
-    } else {
-      console.error('Project not found with ID:', projectId);
-      navigate('/');
+      setProjectEvents(projectEvents);
     }
-  }, [projectId, customProjects, getProjectById, getProjectEvents, navigate, syncCalendar]);
+  }, [events, projectId, project]);
 
   // Handle project update
   const handleProjectUpdate = (updatedProject: Project) => {
@@ -64,6 +144,26 @@ const ProjectDetail: React.FC = () => {
     if (project) {
       updateProject(updatedProject);
       setProject(updatedProject);
+      
+      // Update project in Supabase
+      supabase
+        .from('projects')
+        .update({
+          name: updatedProject.name,
+          total_hours: updatedProject.totalHours,
+          budget_hours: updatedProject.budgetHours,
+          hourly_rate: updatedProject.hourlyRate,
+          filter_term: updatedProject.filterTerm,
+          monthly_hours: updatedProject.monthlyHours,
+          visible: updatedProject.visible
+        })
+        .eq('id', updatedProject.id)
+        .then(({ error }) => {
+          if (error) {
+            console.error('Error updating project in Supabase:', error);
+          }
+        });
+      
       toast({
         title: "Project updated",
         description: "Project details have been updated successfully."
@@ -71,21 +171,13 @@ const ProjectDetail: React.FC = () => {
     }
   };
   
-  if (isLoading) {
+  if (isLoading || syncLoading) {
     return <ProjectsLoading />;
   }
   
   if (!project) {
     return <ProjectsLoading />;
   }
-  
-  // Calculate total hours for this project
-  const totalProjectHours = projectEvents.reduce((total, event) => {
-    if (!event.start?.dateTime || !event.end?.dateTime) return total;
-    const duration = calculateDuration(event.start.dateTime, event.end.dateTime);
-    const hours = parseFloat(duration.split(':')[0]) + parseFloat(duration.split(':')[1]) / 60;
-    return total + hours;
-  }, 0);
   
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
