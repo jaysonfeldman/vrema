@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 interface ProjectStatusProps {
   totalHours: number;
   budgetHours?: number;
-  monthlyHours?: boolean;
+  monthlyHours?: number; // Changed from boolean to number to match the Project type
 }
 
 const ProjectStatus: React.FC<ProjectStatusProps> = ({ 
