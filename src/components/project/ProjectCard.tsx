@@ -19,9 +19,17 @@ import { useCalendarSync } from '@/hooks/useCalendarSync';
 
 interface ProjectCardProps {
   project: Project;
+  className?: string;
+  style?: React.CSSProperties;
+  onUpdateProject?: (updatedProject: Project) => void;
+  onDeleteProject?: (projectId: string) => void;
 }
 
-const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
+const ProjectCard: React.FC<ProjectCardProps> = ({ 
+  project, 
+  className = "",
+  style
+}) => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [showEditDialog, setShowEditDialog] = React.useState(false);
@@ -70,9 +78,9 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
 
   return (
     <Card 
-      className="overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
+      className={`overflow-hidden hover:shadow-md transition-shadow cursor-pointer ${className}`}
       onClick={handleCardClick}
-      style={{ backgroundColor: '#3C3C3C', color: 'white' }}
+      style={{ backgroundColor: '#3C3C3C', color: 'white', ...style }}
     >
       <CardHeader className="pb-3">
         <div className="flex justify-between items-start">
