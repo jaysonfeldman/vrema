@@ -20,8 +20,9 @@ const ProjectDetail: React.FC = () => {
   const [projectEvents, setProjectEvents] = useState<GoogleCalendarEvent[]>([]);
   const [project, setProject] = useState<Project | undefined>();
   
+  // Find the project based on projectId
   useEffect(() => {
-    if (!projectId || !customProjects.length) return;
+    if (!projectId || !customProjects || customProjects.length === 0) return;
     
     const foundProject = customProjects.find(p => p.id === projectId);
     setProject(foundProject);
@@ -34,14 +35,17 @@ const ProjectDetail: React.FC = () => {
       });
       return;
     }
+    
+    console.log(`Found project: "${foundProject.name}" with ID: ${foundProject.id}`);
   }, [projectId, customProjects]);
   
+  // Filter events for this project
   useEffect(() => {
-    if (!project || events.length === 0) return;
+    if (!project || !events || events.length === 0) return;
     
     console.log(`Filtering events for project "${project.name}"`);
     
-    // Filter events that match this project's filter term
+    // Filter events that match this project's name
     const filteredEvents = events.filter(event => {
       if (!event.summary) return false;
       const { projectName } = parseEventTitle(event.summary);
@@ -60,10 +64,10 @@ const ProjectDetail: React.FC = () => {
           <div className="flex items-center mb-8">
             <Button 
               variant="ghost" 
-              onClick={() => navigate('/projects')}
+              onClick={() => navigate('/')}
               className="mr-4"
             >
-              <ChevronLeft className="h-4 w-4 mr-1" /> Back to Projects
+              <ChevronLeft className="h-4 w-4 mr-1" /> Back to Dashboard
             </Button>
             <h1 className="text-3xl font-bold">Project Not Found</h1>
           </div>
@@ -73,8 +77,8 @@ const ProjectDetail: React.FC = () => {
                 The project you're looking for doesn't exist or has been deleted.
               </p>
               <div className="flex justify-center mt-6">
-                <Button onClick={() => navigate('/projects')}>
-                  Return to Projects
+                <Button onClick={() => navigate('/')}>
+                  Return to Dashboard
                 </Button>
               </div>
             </CardContent>
@@ -111,10 +115,10 @@ const ProjectDetail: React.FC = () => {
         <div className="flex items-center mb-8">
           <Button 
             variant="ghost" 
-            onClick={() => navigate('/projects')}
+            onClick={() => navigate('/')}
             className="mr-4"
           >
-            <ChevronLeft className="h-4 w-4 mr-1" /> Back to Projects
+            <ChevronLeft className="h-4 w-4 mr-1" /> Back to Dashboard
           </Button>
           <h1 className="text-3xl font-bold">{project.name}</h1>
           <Badge variant="outline" className="ml-4">
