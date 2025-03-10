@@ -4,26 +4,20 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useCalendarSync } from '@/hooks/useCalendarSync';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
-import { 
-  ChevronLeft, 
-  Clock, 
-  Calendar, 
-  Folder, 
-  Tag,
-  Power
-} from 'lucide-react';
+import { ChevronLeft, Clock, Calendar, Folder, Tag } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { GoogleCalendarEvent, Project } from '@/lib/types';
 import { parseEventTitle, formatEventDate, calculateDuration } from '@/services/googleCalendarService';
+import { stringToColor } from '@/lib/utils';
 import { toast } from '@/components/ui/use-toast';
 import ActivityTag from '@/components/ActivityTag';
 
 const ProjectDetail: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
-  const { events, customProjects, updateProject } = useCalendarSync();
+  const { events, customProjects } = useCalendarSync();
   const [projectEvents, setProjectEvents] = useState<GoogleCalendarEvent[]>([]);
   const [project, setProject] = useState<Project | undefined>();
   
@@ -64,21 +58,10 @@ const ProjectDetail: React.FC = () => {
     setProjectEvents(filteredEvents);
   }, [events, project]);
   
-  const handleToggleActive = () => {
-    if (!project) return;
-    
-    const updatedProject = {
-      ...project,
-      active: !project.active
-    };
-    
-    updateProject(updatedProject);
-    setProject(updatedProject);
-    
-    toast({
-      title: updatedProject.active ? "Project activated" : "Project deactivated",
-      description: `${project.name} is now ${updatedProject.active ? "active" : "inactive"}`,
-    });
+  // Helper function to get activity color
+  const getActivityColor = (activityType: string): string => {
+    const color = stringToColor(activityType);
+    return `bg-[${color}] text-white`;
   };
 
   if (!project) {
@@ -127,38 +110,24 @@ const ProjectDetail: React.FC = () => {
               <ChevronLeft className="h-4 w-4 mr-1" /> Back to Projects
             </Button>
             <h1 className="text-3xl font-bold">{project.name}</h1>
-            <Badge 
-              variant={project.active ? "default" : "outline"}
-              className={project.active ? "bg-green-600 ml-4" : "bg-zinc-700 ml-4"}
-            >
-              {project.active ? "Active" : "Inactive"}
+            <Badge variant="outline" className="ml-4">
+              {project.totalHours.toFixed(1)} hours logged
             </Badge>
           </div>
           
-          <div className="flex items-center gap-4">
-            <Button
-              variant={project.active ? "outline" : "default"}
-              className={project.active ? "border-green-500 text-green-600" : "bg-green-600 hover:bg-green-700"}
-              onClick={handleToggleActive}
-            >
-              <Power className="h-4 w-4 mr-2" />
-              {project.active ? "Deactivate Project" : "Activate Project"}
-            </Button>
-          
-            <div className="flex flex-wrap gap-2">
-              {project.activities.slice(0, 3).map(activity => (
-                <ActivityTag
-                  key={activity.id}
-                  type={activity.type}
-                  hours={activity.hours}
-                />
-              ))}
-              {project.activities.length > 3 && (
-                <Badge variant="outline" className="bg-slate-700 text-white">
-                  +{project.activities.length - 3} more
-                </Badge>
-              )}
-            </div>
+          <div className="flex flex-wrap gap-2">
+            {project.activities.slice(0, 3).map(activity => (
+              <ActivityTag
+                key={activity.id}
+                type={activity.type}
+                hours={activity.hours}
+              />
+            ))}
+            {project.activities.length > 3 && (
+              <Badge variant="outline" className="bg-slate-700 text-white">
+                +{project.activities.length - 3} more
+              </Badge>
+            )}
           </div>
         </div>
         

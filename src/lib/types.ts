@@ -21,7 +21,6 @@ export interface Project {
   monthlyHours?: number; // Hours logged in the current month
   filterTerm?: string;   // Term used to filter events for this project
   visible?: boolean;     // Whether the project is visible in the UI
-  active?: boolean;      // Whether the project is active
 }
 
 export interface TeamMember {
