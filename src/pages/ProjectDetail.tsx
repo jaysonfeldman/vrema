@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useCalendarSync } from '@/hooks/useCalendarSync';
@@ -42,12 +41,10 @@ const ProjectDetail: React.FC = () => {
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [editedProject, setEditedProject] = useState<Project | undefined>();
   
-  // Find the project based on projectId
   useEffect(() => {
     if (!projectId) return;
     
     if (!customProjects || customProjects.length === 0) {
-      // If no projects are loaded yet, try to sync the calendar
       if (!isLoading && !lastSynced) {
         console.log("No projects loaded yet, syncing calendar...");
         syncCalendar();
@@ -65,20 +62,17 @@ const ProjectDetail: React.FC = () => {
         title: "Project not found",
         description: "The requested project could not be found."
       });
-      // Don't navigate away, just show the error message
       return;
     }
     
     console.log(`Found project: "${foundProject.name}" with ID: ${foundProject.id}`);
   }, [projectId, customProjects, syncCalendar, isLoading, lastSynced]);
   
-  // Filter events for this project
   useEffect(() => {
     if (!project || !events || events.length === 0) return;
     
     console.log(`Filtering events for project "${project.name}"`);
     
-    // Filter events that match this project's name
     const filteredEvents = events.filter(event => {
       if (!event.summary) return false;
       const { projectName } = parseEventTitle(event.summary);
@@ -90,13 +84,11 @@ const ProjectDetail: React.FC = () => {
     setFilteredEvents(filteredEvents);
   }, [events, project]);
 
-  // Apply search and activity filters
   useEffect(() => {
     if (!projectEvents.length) return;
     
     let filtered = [...projectEvents];
     
-    // Apply search filter
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
       filtered = filtered.filter(event => 
@@ -105,7 +97,6 @@ const ProjectDetail: React.FC = () => {
       );
     }
     
-    // Apply activity filter
     if (selectedActivity !== 'All') {
       filtered = filtered.filter(event => {
         const { activityType } = parseEventTitle(event.summary);
@@ -116,7 +107,6 @@ const ProjectDetail: React.FC = () => {
     setFilteredEvents(filtered);
   }, [projectEvents, searchTerm, selectedActivity]);
 
-  // Get unique activity types from events
   const getUniqueActivityTypes = () => {
     const activityTypes = new Set<string>();
     activityTypes.add('All');
@@ -131,7 +121,6 @@ const ProjectDetail: React.FC = () => {
     return Array.from(activityTypes);
   };
   
-  // Calculate billable hours (example calculation - 90% of total)
   const calculateBillableHours = (totalHours: number): number => {
     return totalHours * 0.9;
   };
@@ -153,7 +142,6 @@ const ProjectDetail: React.FC = () => {
     }
   };
   
-  // Wait for calendar sync if projects are not loaded yet
   if (customProjects.length === 0 && isLoading) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -213,18 +201,15 @@ const ProjectDetail: React.FC = () => {
     );
   }
 
-  // Calculate values for display
   const totalHours = project.totalHours;
-  const billableHours = calculateBillableHours(totalHours);
   const budgetLeft = project.budgetHours ? project.budgetHours - totalHours : 0;
-  const hourlyRate = project.hourlyRate || 95; // Use project hourly rate or default
-  const totalValue = Math.round(billableHours * hourlyRate);
+  const hourlyRate = project.hourlyRate || 95;
+  const totalValue = Math.round(totalHours * hourlyRate);
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
-        {/* Project Header */}
         <div className="flex flex-wrap justify-between items-center mb-6">
           <div className="flex items-center gap-4">
             <Button 
@@ -254,7 +239,6 @@ const ProjectDetail: React.FC = () => {
           </div>
         </div>
         
-        {/* Project Filter Controls */}
         <div className="flex flex-wrap gap-3 mb-6">
           <Button variant="outline" className="h-10 bg-white">
             <Calendar className="h-4 w-4 mr-2" />
@@ -275,9 +259,7 @@ const ProjectDetail: React.FC = () => {
           </Button>
         </div>
         
-        {/* Metrics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
-          {/* Total Value Card */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
           <Card className="bg-zinc-900 text-white md:col-span-1">
             <CardContent className="p-6">
               <p className="text-sm text-gray-400 mb-2">Total value</p>
@@ -285,7 +267,6 @@ const ProjectDetail: React.FC = () => {
             </CardContent>
           </Card>
           
-          {/* Hours Logged Card */}
           <Card className="bg-zinc-900 text-white md:col-span-1">
             <CardContent className="p-6">
               <p className="text-sm text-gray-400 mb-2">Hours logged</p>
@@ -293,15 +274,6 @@ const ProjectDetail: React.FC = () => {
             </CardContent>
           </Card>
           
-          {/* Billable Hours Card */}
-          <Card className="bg-zinc-900 text-white md:col-span-1">
-            <CardContent className="p-6">
-              <p className="text-sm text-gray-400 mb-2">Billable hours</p>
-              <p className="text-3xl font-mono font-bold">{formatTime(billableHours)}</p>
-            </CardContent>
-          </Card>
-          
-          {/* Budget Left Card */}
           <Card className="bg-zinc-900 text-white md:col-span-1">
             <CardContent className="p-6">
               <p className="text-sm text-gray-400 mb-2">Budget left</p>
@@ -312,7 +284,6 @@ const ProjectDetail: React.FC = () => {
             </CardContent>
           </Card>
           
-          {/* Billable Rate Card */}
           <Card className="bg-zinc-900 text-white md:col-span-1">
             <CardContent className="p-6">
               <p className="text-sm text-gray-400 mb-2">Hourly rate</p>
@@ -321,7 +292,6 @@ const ProjectDetail: React.FC = () => {
           </Card>
         </div>
         
-        {/* Activities Section */}
         <div className="mb-8">
           <p className="text-lg font-medium mb-4">Activities</p>
           <div className="flex flex-wrap gap-2">
@@ -335,9 +305,8 @@ const ProjectDetail: React.FC = () => {
           </div>
         </div>
         
-        {/* Action Buttons */}
         <div className="flex justify-between mb-8">
-          <div></div> {/* Spacer */}
+          <div></div>
           <div className="flex gap-3">
             <Button variant="outline">
               <Download className="h-4 w-4 mr-2" />
@@ -350,14 +319,12 @@ const ProjectDetail: React.FC = () => {
           </div>
         </div>
         
-        {/* Events Table */}
         <Card>
           <CardContent className="pt-6">
             <div className="flex flex-col md:flex-row justify-between gap-4 mb-6">
               <h2 className="text-2xl font-bold">Activity log</h2>
               
               <div className="flex flex-col sm:flex-row gap-4">
-                {/* Search filter */}
                 <div className="relative flex-1 min-w-[200px]">
                   <Input
                     type="text"
@@ -368,7 +335,6 @@ const ProjectDetail: React.FC = () => {
                   />
                 </div>
                 
-                {/* Activity type filter */}
                 <Select
                   value={selectedActivity}
                   onValueChange={setSelectedActivity}
@@ -385,7 +351,6 @@ const ProjectDetail: React.FC = () => {
                   </SelectContent>
                 </Select>
                 
-                {/* Sync button */}
                 <Button 
                   onClick={() => syncCalendar()} 
                   disabled={isLoading}
@@ -452,7 +417,6 @@ const ProjectDetail: React.FC = () => {
         </Card>
       </div>
       
-      {/* Edit Project Dialog */}
       {editedProject && (
         <EditProjectDialog
           open={showEditDialog}
