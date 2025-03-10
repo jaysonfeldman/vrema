@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useCalendarSync } from '@/hooks/useCalendarSync';
 import { Project } from '@/lib/types';
@@ -27,13 +26,15 @@ export const useProjectManagement = () => {
   const [newProjectName, setNewProjectName] = useState('');
   const [newProjectFilter, setNewProjectFilter] = useState('');
   
-  // Load projects from Supabase on mount
+  // Load projects from Supabase on mount and trigger initial calendar sync
   useEffect(() => {
     const loadProjects = async () => {
       setIsLoading(true);
       try {
         const projects = await fetchProjects();
         setStoredProjects(projects);
+        // Initial calendar sync
+        syncCalendar(30);
       } catch (error) {
         console.error('Error loading projects:', error);
         toast({
@@ -47,14 +48,14 @@ export const useProjectManagement = () => {
     };
     
     loadProjects();
-  }, []);
+  }, [syncCalendar]);
   
-  // Merge stored projects with calendar projects and extract available project names
+  // Merge stored projects with calendar projects and initialize filters
   useEffect(() => {
     const allProjects = [...storedProjects];
     const projectNames = new Set<string>();
     
-    // Add any custom projects that aren't already in stored projects
+    // Add custom projects and collect names
     for (const customProject of customProjects) {
       const existingProject = storedProjects.find(p => 
         p.id === customProject.id || 
@@ -63,61 +64,24 @@ export const useProjectManagement = () => {
       if (!existingProject) {
         allProjects.push(customProject);
       }
-      
-      // Add to available project names
       projectNames.add(customProject.name);
     }
     
-    // Add stored project names to available project names
+    // Add stored project names
     storedProjects.forEach(project => {
       projectNames.add(project.name);
     });
     
-    // Update available project names
     const namesArray = Array.from(projectNames);
     setAvailableProjectNames(namesArray);
+    setProjectFilters(namesArray); // Always set all projects as filtered by default
     
-    // Initialize project filters with all project names if not set yet
-    if (projectFilters.length === 0 && namesArray.length > 0) {
-      setProjectFilters(namesArray);
-    }
-  }, [customProjects, storedProjects, projectFilters]);
-  
-  // Apply filtering based on project filters
-  useEffect(() => {
-    const allProjects = [...storedProjects];
+    // Update filtered projects immediately
+    const filtered = allProjects.filter(project => project.visible !== false);
+    setFilteredProjects(filtered);
     
-    // Add any custom projects that aren't already in stored projects
-    for (const customProject of customProjects) {
-      const existingProject = storedProjects.find(p => 
-        p.id === customProject.id || 
-        p.name.toLowerCase() === customProject.name.toLowerCase());
-      
-      if (!existingProject) {
-        allProjects.push(customProject);
-      }
-    }
-    
-    // Apply project filters and visibility settings
-    if (projectFilters.length === 0) {
-      setFilteredProjects([]);
-    } else {
-      // Filter by name (case-insensitive matching)
-      let filtered = allProjects.filter(project => 
-        projectFilters.some(filter => 
-          // Case-insensitive comparison for project names
-          project.name.toLowerCase() === filter.toLowerCase() ||
-          filter === project.name
-        )
-      );
-      
-      // Only show visible projects
-      filtered = filtered.filter(project => project.visible !== false);
-      
-      setFilteredProjects(filtered);
-    }
-  }, [customProjects, projectFilters, storedProjects]);
-  
+  }, [customProjects, storedProjects]);
+
   const handleOpenChange = (open: boolean) => {
     setShowAddProject(open);
     if (!open) {
@@ -192,22 +156,17 @@ export const useProjectManagement = () => {
   const handleMonthChange = (month: string) => {
     setSelectedMonth(month);
     
-    // Update date range based on selected month
     switch (month) {
       case 'current':
-        // Current month - about 30 days
         syncCalendar(30);
         break;
       case 'previous':
-        // Previous month - about 60 days
         syncCalendar(60);
         break;
       case 'all':
-        // All time - last 365 days
         syncCalendar(365);
         break;
       case 'custom':
-        // Custom range - keep current range but show date picker
         toast({
           title: "Custom date range",
           description: "Custom date range selection is not yet implemented"
