@@ -28,7 +28,9 @@ export function useCalendarSync() {
     searchTerm: '',
     project: 'All',
     dateRange: 30,
-    activity: 'All'
+    activity: 'All',
+    selectedProjects: [],
+    selectedActivities: []
   });
   
   const [projectFilters, setProjectFilters] = useState<{[key: string]: string}>({});
@@ -384,14 +386,28 @@ export function useCalendarSync() {
       );
     }
     
-    if (filters.project !== 'All') {
+    if (filters.selectedProjects && filters.selectedProjects.length > 0) {
+      filtered = filtered.filter(event => {
+        const projectName = getProjectNameFromEvent(event);
+        return filters.selectedProjects.some(
+          selectedProject => projectName.toLowerCase() === selectedProject.toLowerCase()
+        );
+      });
+    } else if (filters.project !== 'All') {
       filtered = filtered.filter(event => {
         const projectName = getProjectNameFromEvent(event);
         return projectName === filters.project;
       });
     }
 
-    if (filters.activity && filters.activity !== 'All') {
+    if (filters.selectedActivities && filters.selectedActivities.length > 0) {
+      filtered = filtered.filter(event => {
+        const activityType = determineActivityType(event);
+        return filters.selectedActivities.some(
+          selectedActivity => activityType.toLowerCase() === selectedActivity.toLowerCase()
+        );
+      });
+    } else if (filters.activity && filters.activity !== 'All') {
       filtered = filtered.filter(event => {
         const activityType = determineActivityType(event);
         return activityType === filters.activity;
@@ -516,6 +532,11 @@ export function useCalendarSync() {
     updateCustomProjects(events, projectFilters);
   }, [events, projectFilters, updateCustomProjects]);
 
+  const getProjectById = useCallback((projectId: string): Project | null => {
+    const foundProject = customProjects.find(p => p.id === projectId);
+    return foundProject || null;
+  }, [customProjects]);
+
   return {
     syncCalendar,
     events,
@@ -535,6 +556,7 @@ export function useCalendarSync() {
     getActivityHours,
     syncError,
     updateProject,
-    getActivitiesFromEvents
+    getActivitiesFromEvents,
+    getProjectById
   };
 }

@@ -1,9 +1,7 @@
 
-// This is a new file I'm creating to update the ProjectFilters component
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Plus, Calendar, Filter, Eye, EyeOff } from 'lucide-react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Plus, Calendar, Filter } from 'lucide-react';
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -21,8 +19,6 @@ interface ProjectFiltersProps {
   projectFilters: string[];
   availableProjects: string[];
   onProjectFilterChange: (projects: string[]) => void;
-  showHiddenProjects: boolean;
-  onToggleHiddenProjects: () => void;
 }
 
 const ProjectFilters: React.FC<ProjectFiltersProps> = ({
@@ -31,9 +27,7 @@ const ProjectFilters: React.FC<ProjectFiltersProps> = ({
   onMonthChange,
   projectFilters,
   availableProjects,
-  onProjectFilterChange,
-  showHiddenProjects,
-  onToggleHiddenProjects
+  onProjectFilterChange
 }) => {
   const handleSelectAll = () => {
     onProjectFilterChange([...availableProjects]);
@@ -93,20 +87,6 @@ const ProjectFilters: React.FC<ProjectFiltersProps> = ({
           </DropdownMenuGroup>
         </DropdownMenuContent>
       </DropdownMenu>
-      
-      <Button variant="outline" size="sm" className="h-9" onClick={onToggleHiddenProjects}>
-        {showHiddenProjects ? (
-          <>
-            <EyeOff className="h-4 w-4 mr-2" />
-            Hide Hidden
-          </>
-        ) : (
-          <>
-            <Eye className="h-4 w-4 mr-2" />
-            Show Hidden
-          </>
-        )}
-      </Button>
       
       <Button variant="default" size="sm" className="h-9" onClick={onAddProject}>
         <Plus className="h-4 w-4 mr-2" />

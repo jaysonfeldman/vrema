@@ -81,7 +81,9 @@ export interface FilterOptions {
   searchTerm: string;
   project: string;
   dateRange: number;
-  activity?: string; // Activity filter property
+  activity: string;
+  selectedProjects?: string[];
+  selectedActivities?: string[]; // Added for multi-select activities
 }
 
 export interface ParsedEvent {

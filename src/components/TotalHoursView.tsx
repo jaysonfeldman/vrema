@@ -1,11 +1,14 @@
+
 import React, { useEffect, useState } from 'react';
 import { useCalendarSync } from '@/hooks/useCalendarSync';
 import { Card } from '@/components/ui/card';
 import TotalHoursCard from './TotalHoursCard';
 import { Activity } from '@/lib/types';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from './ui/button';
-import { Calendar, Download, FileText, BarChart } from 'lucide-react';
+import { Calendar, Check, ChevronDown, Filter } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
+import { Badge } from './ui/badge';
+import { Checkbox } from './ui/checkbox';
 
 const TotalHoursView: React.FC = () => {
   const { 
@@ -67,6 +70,21 @@ const TotalHoursView: React.FC = () => {
     }
   }, [filteredEvents, events, getActivitiesFromEvents]);
 
+  // Initial setup to select all projects except "Other" by default
+  useEffect(() => {
+    const projects = getProjects();
+    if (projects.length > 0) {
+      // Filter out "Other" and "All" from the default selection
+      const defaultSelected = projects.filter(p => p !== 'Other' && p !== 'All');
+      if (defaultSelected.length > 0) {
+        updateFilters({ 
+          project: defaultSelected.length === 1 ? defaultSelected[0] : 'All',
+          selectedProjects: defaultSelected 
+        });
+      }
+    }
+  }, [getProjects, updateFilters]);
+
   const handleProjectChange = (value: string) => {
     setSelectedProject(value);
     updateFilters({ project: value });
@@ -94,13 +112,52 @@ const TotalHoursView: React.FC = () => {
 
   const getAllActivities = () => {
     const activitySet = new Set<string>();
-    activitySet.add('All');
     
     activities.forEach(activity => {
       activitySet.add(activity.type);
     });
     
     return Array.from(activitySet);
+  };
+
+  const toggleProjectSelection = (projectName: string) => {
+    const currentSelected = filters.selectedProjects || [];
+    
+    if (currentSelected.includes(projectName)) {
+      // Remove project from selection
+      const newSelection = currentSelected.filter(p => p !== projectName);
+      updateFilters({ 
+        selectedProjects: newSelection,
+        project: newSelection.length === 1 ? newSelection[0] : 'All'
+      });
+    } else {
+      // Add project to selection
+      const newSelection = [...currentSelected, projectName];
+      updateFilters({ 
+        selectedProjects: newSelection,
+        project: newSelection.length === 1 ? newSelection[0] : 'All'
+      });
+    }
+  };
+
+  const toggleActivitySelection = (activityType: string) => {
+    const currentSelected = filters.selectedActivities || [];
+    
+    if (currentSelected.includes(activityType)) {
+      // Remove activity from selection
+      const newSelection = currentSelected.filter(a => a !== activityType);
+      updateFilters({ 
+        selectedActivities: newSelection.length > 0 ? newSelection : undefined,
+        activity: newSelection.length === 1 ? newSelection[0] : 'All'
+      });
+    } else {
+      // Add activity to selection
+      const newSelection = [...currentSelected, activityType];
+      updateFilters({ 
+        selectedActivities: newSelection,
+        activity: newSelection.length === 1 ? newSelection[0] : 'All'
+      });
+    }
   };
 
   const projects = getProjects();
@@ -110,70 +167,102 @@ const TotalHoursView: React.FC = () => {
     <div className="space-y-8">
       <div className="flex flex-row justify-between items-center mb-4">
         <div className="flex items-center">
-          <Select
-            value={filters.dateRange === 30 ? 'current' : filters.dateRange === 60 ? 'previous' : 'all'}
-            onValueChange={(value) => {
-              const days = value === 'current' ? 30 : value === 'previous' ? 60 : 365;
-              handleDateRangeChange(days.toString());
-            }}
-          >
-            <SelectTrigger className="w-[150px] bg-white">
-              <div className="flex items-center gap-2">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="bg-white mr-2 flex items-center gap-2">
                 <Calendar className="h-4 w-4" />
-                <SelectValue placeholder="This Month" />
+                <span>{filters.dateRange === 30 ? 'This Month' : filters.dateRange === 60 ? 'Last Month' : 'All Time'}</span>
+                <ChevronDown className="h-4 w-4 ml-1" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[200px] p-0">
+              <div className="p-2">
+                {monthViewOptions.map(option => (
+                  <Button
+                    key={option.value}
+                    variant="ghost"
+                    className="w-full justify-start"
+                    onClick={() => {
+                      const days = option.value === 'current' ? 30 : option.value === 'previous' ? 60 : 365;
+                      handleDateRangeChange(days.toString());
+                    }}
+                  >
+                    {option.label}
+                  </Button>
+                ))}
               </div>
-            </SelectTrigger>
-            <SelectContent>
-              {monthViewOptions.map(option => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            </PopoverContent>
+          </Popover>
           
-          <Select
-            value={selectedProject}
-            onValueChange={handleProjectChange}
-          >
-            <SelectTrigger className="w-[150px] bg-white ml-2">
-              <SelectValue placeholder="All projects" />
-            </SelectTrigger>
-            <SelectContent>
-              {projects.map(project => (
-                <SelectItem key={project} value={project}>{project}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="bg-white mr-2 flex items-center gap-2">
+                <Filter className="h-4 w-4" />
+                <span>Projects</span>
+                {filters.selectedProjects && filters.selectedProjects.length > 0 && (
+                  <Badge variant="secondary" className="ml-1">
+                    {filters.selectedProjects.length}
+                  </Badge>
+                )}
+                <ChevronDown className="h-4 w-4 ml-1" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[250px] p-0">
+              <div className="py-2 px-3 border-b">
+                <h4 className="font-medium text-sm">Select Projects</h4>
+              </div>
+              <div className="p-2 max-h-[300px] overflow-y-auto">
+                {projects.filter(p => p !== 'All').map(project => (
+                  <div key={project} className="flex items-center py-2 px-2 hover:bg-gray-100 rounded-md">
+                    <Checkbox 
+                      id={`project-${project}`}
+                      checked={filters.selectedProjects?.includes(project) || false}
+                      onCheckedChange={() => toggleProjectSelection(project)}
+                      className="mr-2"
+                    />
+                    <label htmlFor={`project-${project}`} className="flex-1 cursor-pointer text-sm">
+                      {project}
+                    </label>
+                  </div>
+                ))}
+              </div>
+            </PopoverContent>
+          </Popover>
           
-          <Select
-            value={selectedActivity}
-            onValueChange={handleActivityChange}
-          >
-            <SelectTrigger className="w-[150px] bg-white ml-2">
-              <SelectValue placeholder="All activities" />
-            </SelectTrigger>
-            <SelectContent>
-              {allActivities.map(activity => (
-                <SelectItem key={activity} value={activity}>{activity}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        
-        <div className="flex gap-2">
-          <Button variant="outline" className="bg-white">
-            <Download className="h-4 w-4 mr-2" />
-            Export hours
-          </Button>
-          <Button variant="outline" className="bg-white">
-            <BarChart className="h-4 w-4 mr-2" />
-            View reports
-          </Button>
-          <Button className="bg-zinc-900">
-            <FileText className="h-4 w-4 mr-2" />
-            Create invoice
-          </Button>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="bg-white flex items-center gap-2">
+                <Filter className="h-4 w-4" />
+                <span>Activities</span>
+                {filters.selectedActivities && filters.selectedActivities.length > 0 && (
+                  <Badge variant="secondary" className="ml-1">
+                    {filters.selectedActivities.length}
+                  </Badge>
+                )}
+                <ChevronDown className="h-4 w-4 ml-1" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[250px] p-0">
+              <div className="py-2 px-3 border-b">
+                <h4 className="font-medium text-sm">Select Activities</h4>
+              </div>
+              <div className="p-2 max-h-[300px] overflow-y-auto">
+                {allActivities.map(activity => (
+                  <div key={activity} className="flex items-center py-2 px-2 hover:bg-gray-100 rounded-md">
+                    <Checkbox 
+                      id={`activity-${activity}`}
+                      checked={filters.selectedActivities?.includes(activity) || false}
+                      onCheckedChange={() => toggleActivitySelection(activity)}
+                      className="mr-2"
+                    />
+                    <label htmlFor={`activity-${activity}`} className="flex-1 cursor-pointer text-sm">
+                      {activity}
+                    </label>
+                  </div>
+                ))}
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
       </div>
       
