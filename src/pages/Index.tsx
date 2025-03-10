@@ -40,6 +40,18 @@ const Index: React.FC = () => {
     }
   }, [location, navigate, updateFilters]);
 
+  // Make sure all projects are shown by default
+  useEffect(() => {
+    // Reset project filters to ensure all projects are shown initially
+    if (customProjects.length > 0) {
+      console.log("Showing all projects by default");
+      updateFilters({ 
+        project: 'All',
+        selectedProjects: customProjects.map(p => p.name)
+      });
+    }
+  }, [customProjects, updateFilters]);
+
   // Auto-sync calendar when authenticated and not yet synced
   useEffect(() => {
     if (authState.isAuthenticated && !initialSyncDone && !lastSynced) {
