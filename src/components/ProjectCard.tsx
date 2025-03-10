@@ -37,7 +37,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
     console.log(`Rendering ProjectCard for ${project.name} (ID: ${project.id})`);
   }, [project]);
 
-  // This fixes the type mismatch by having the function accept the Project parameter
+  // Fixed the type mismatch by ensuring the function accepts a Project parameter
   const handleSaveSettings = (updatedProject: Project) => {
     onUpdateProject(updatedProject);
     setShowSettings(false);
@@ -78,7 +78,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
         <div className="text-sm font-medium leading-none">Total Hours: {project.totalHours?.toFixed(1) || '0'}</div>
         <div className="flex items-center">
           <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none" className="mr-2">
-            <circle cx="8" cy="8" r="8" fill={stringToColor(project.name)} />
+            <circle cx="8" cy="8" r="8" fill={project.color || stringToColor(project.name)} />
           </svg>
           <span className="text-sm text-muted-foreground">
             {project.filterTerm}

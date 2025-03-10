@@ -2,7 +2,6 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Index from '@/pages/Index';
-import Projects from '@/pages/Projects';
 import Activities from '@/pages/Activities';
 import NotFound from '@/pages/NotFound';
 import { GoogleAuthProviderWrapper } from '@/providers/GoogleAuthProvider';
@@ -25,7 +24,6 @@ function App() {
               <Routes>
                 <Route path="/" element={<Index />} />
                 <Route path="/project/:projectId" element={<ProjectDetail />} />
-                <Route path="/projects" element={<Projects />} />
                 <Route path="/activities" element={<Activities />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
