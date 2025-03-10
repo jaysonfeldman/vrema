@@ -21,14 +21,14 @@ const ProjectActivities: React.FC<ProjectActivitiesProps> = ({ activities }) => 
   const getActivityColor = (activityType: string): string => {
     const activityLower = activityType.toLowerCase();
     
-    if (activityLower.includes('design')) return '#FEF7CD'; // soft yellow
-    if (activityLower.includes('dev') || activityLower.includes('development')) return '#D3E4FD'; // soft blue
-    if (activityLower.includes('meet') || activityLower.includes('call')) return '#E5DEFF'; // soft purple
-    if (activityLower.includes('plan') || activityLower.includes('strat')) return '#F2FCE2'; // soft green
-    if (activityLower.includes('admin')) return '#F1F0FB'; // soft gray
-    if (activityLower.includes('pm')) return '#FDE1D3'; // soft peach
+    if (activityLower.includes('design')) return '#FEF18B'; // Flax
+    if (activityLower.includes('dev') || activityLower.includes('development')) return '#7ED3FC'; // Pale azure
+    if (activityLower.includes('meet') || activityLower.includes('call')) return '#D1FAE5'; // Nyanza
+    if (activityLower.includes('plan') || activityLower.includes('strat')) return '#6EE7B7'; // Aquamarine
+    if (activityLower.includes('admin')) return '#FED8AA'; // Sunset
+    if (activityLower.includes('pm')) return '#22C55F'; // Emerald
     
-    return '#FFDEE2'; // soft pink as default
+    return '#D1FAE5'; // Default to Nyanza
   };
   
   return (

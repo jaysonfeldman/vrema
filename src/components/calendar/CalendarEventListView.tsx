@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { GoogleCalendarEvent } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -13,23 +12,19 @@ interface CalendarEventListViewProps {
 
 // Helper function to get activity color
 const getActivityColor = (activityType: string): string => {
-  // Map common activity types to specific colors for consistency
-  switch (activityType.toLowerCase()) {
-    case 'design':
-      return 'bg-[#fef18b] text-slate-900 border-[#fef18b]';
-    case 'strategy':
-      return 'bg-[#22c55f] text-white border-[#22c55f]';
-    case 'dev':
-      return 'bg-[#7ed3fc] text-slate-900 border-[#7ed3fc]';
-    case 'meetings':
-      return 'bg-[#6ee7b7] text-slate-900 border-[#6ee7b7]';
-    case 'admin':
-      return 'bg-[#d1fae5] text-slate-900 border-[#d1fae5]';
-    default:
-      // Generate a consistent color based on the activity type
-      const color = stringToColor(activityType);
-      return `bg-[${color}] text-white border-[${color}]`;
-  }
+  // Use the specified palette colors
+  const activityLower = activityType.toLowerCase();
+  
+  if (activityLower.includes('design')) return 'bg-[#FEF18B] text-slate-900 border-[#FEF18B]'; // Flax
+  if (activityLower.includes('dev') || activityLower.includes('development')) return 'bg-[#7ED3FC] text-slate-900 border-[#7ED3FC]'; // Pale azure
+  if (activityLower.includes('meet') || activityLower.includes('call')) return 'bg-[#D1FAE5] text-slate-900 border-[#D1FAE5]'; // Nyanza
+  if (activityLower.includes('plan') || activityLower.includes('strat')) return 'bg-[#6EE7B7] text-slate-900 border-[#6EE7B7]'; // Aquamarine
+  if (activityLower.includes('admin')) return 'bg-[#FED8AA] text-slate-900 border-[#FED8AA]'; // Sunset
+  if (activityLower.includes('pm')) return 'bg-[#22C55F] text-white border-[#22C55F]'; // Emerald
+  
+  // Generate a consistent color based on the activity type
+  const color = stringToColor(activityType);
+  return `bg-[${color}] text-white border-[${color}]`;
 };
 
 const CalendarEventListView: React.FC<CalendarEventListViewProps> = ({ events }) => {

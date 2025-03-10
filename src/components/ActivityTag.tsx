@@ -17,19 +17,20 @@ const ActivityTag: React.FC<ActivityTagProps> = ({
   style,
   color
 }) => {
-  // Define light pastel colors for common activity types
+  // Define color palette with the specified colors
   const getActivityColor = (activityType: string): string => {
     const activityLower = activityType.toLowerCase();
     
-    if (activityLower.includes('design')) return '#FEF7CD'; // soft yellow
-    if (activityLower.includes('dev') || activityLower.includes('development')) return '#D3E4FD'; // soft blue
-    if (activityLower.includes('meet') || activityLower.includes('call')) return '#E5DEFF'; // soft purple
-    if (activityLower.includes('plan') || activityLower.includes('strat')) return '#F2FCE2'; // soft green
-    if (activityLower.includes('admin')) return '#F1F0FB'; // soft gray
-    if (activityLower.includes('pm')) return '#FDE1D3'; // soft peach
+    // Use the specified palette colors
+    if (activityLower.includes('design')) return '#FEF18B'; // Flax - soft yellow
+    if (activityLower.includes('dev') || activityLower.includes('development')) return '#7ED3FC'; // Pale azure - soft blue
+    if (activityLower.includes('meet') || activityLower.includes('call')) return '#D1FAE5'; // Nyanza - soft green
+    if (activityLower.includes('plan') || activityLower.includes('strat')) return '#6EE7B7'; // Aquamarine - soft green
+    if (activityLower.includes('admin')) return '#FED8AA'; // Sunset - soft peach
+    if (activityLower.includes('pm')) return '#22C55F'; // Emerald - bright green
     
-    // Use provided color or fallback to a pleasant pastel color
-    return color || '#FFDEE2'; // soft pink as default
+    // Use provided color or fallback to a color from our palette
+    return color || '#D1FAE5'; // Default to Nyanza
   };
   
   // Generate or use provided color

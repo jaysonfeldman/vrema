@@ -15,7 +15,7 @@ const ProjectsOverview: React.FC = () => {
     customProjects
   } = useCalendarSync();
   
-  const [calendarSynced, setCalendarSynced] = useState(false);
+  const [calendarSyncInitiated, setCalendarSyncInitiated] = useState(false);
   
   const {
     showAddProject,
@@ -37,14 +37,14 @@ const ProjectsOverview: React.FC = () => {
     setProjectFilters
   } = useProjectManagement();
   
-  // Sync calendar only once when component mounts
+  // Immediately sync calendar when component mounts
   useEffect(() => {
-    if (!calendarLoading && customProjects.length === 0 && !calendarSynced) {
+    if (!calendarSyncInitiated) {
       console.log('ProjectsOverview - Initial calendar sync');
       syncCalendar(30); // Default to 30 days for initial load
-      setCalendarSynced(true);
+      setCalendarSyncInitiated(true);
     }
-  }, [calendarLoading, customProjects.length, syncCalendar, calendarSynced]);
+  }, [syncCalendar, calendarSyncInitiated]);
 
   return (
     <div className="space-y-6">
