@@ -78,12 +78,14 @@ export const parseEventTitle = (title: string): {
   activityType: string; 
   description: string 
 } => {
+  // Make project names case-insensitive by normalizing to lowercase
   let projectName = 'Other';
   let activityType = 'other'; // Default to 'other' instead of 'meetings'
   let description = title;
 
   if (title.includes('#')) {
     const [projectPart, rest] = title.split('#', 2);
+    // Normalize project name to lowercase for case-insensitivity
     projectName = projectPart.trim();
     
     const activityAndDescription = rest;
@@ -136,20 +138,23 @@ export const convertEventsToActivities = (events: GoogleCalendarEvent[]): {
     
     totalValidEvents++;
     
+    // Get project name but normalize to lowercase for case-insensitivity
     const { projectName, activityType } = parseEventTitle(event.summary);
+    // Normalize projectName to lowercase to ensure case-insensitivity
+    const normalizedProjectName = projectName.toLowerCase();
     
-    projectMap[projectName] = (projectMap[projectName] || 0) + durationHours;
+    projectMap[normalizedProjectName] = (projectMap[normalizedProjectName] || 0) + durationHours;
     
-    if (!activityMap[projectName]) {
-      activityMap[projectName] = [];
+    if (!activityMap[normalizedProjectName]) {
+      activityMap[normalizedProjectName] = [];
     }
     
-    const existingActivityIndex = activityMap[projectName].findIndex(a => a.type === activityType);
+    const existingActivityIndex = activityMap[normalizedProjectName].findIndex(a => a.type === activityType);
     
     if (existingActivityIndex >= 0) {
-      activityMap[projectName][existingActivityIndex].hours += durationHours;
+      activityMap[normalizedProjectName][existingActivityIndex].hours += durationHours;
     } else {
-      activityMap[projectName].push({
+      activityMap[normalizedProjectName].push({
         type: activityType,
         hours: durationHours
       });

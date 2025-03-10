@@ -45,9 +45,13 @@ const ProjectsOverview: React.FC = () => {
     if (projectFilters.length === 0) {
       setFilteredProjects([]);
     } else {
-      // Filter by name and visibility
+      // Filter by name and visibility (case-insensitive matching)
       let filtered = customProjects.filter(project => 
-        projectFilters.includes(project.name)
+        projectFilters.some(filter => 
+          // Case-insensitive comparison for project names
+          project.name.toLowerCase() === filter.toLowerCase() ||
+          filter === project.name
+        )
       );
       
       // Apply visibility filter

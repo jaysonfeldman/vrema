@@ -111,9 +111,10 @@ export function useCalendarSync() {
   const addProjectFilter = useCallback((projectId: string, filterTerm: string) => {
     console.log(`Adding project filter: ${projectId} with term "${filterTerm}"`);
     setProjectFilters(prev => {
+      const projectKey = projectId.toLowerCase();
       const newFilters = {
         ...prev,
-        [projectId]: filterTerm
+        [projectKey]: filterTerm
       };
       console.log("Updated project filters:", newFilters);
       saveProjectFilters(newFilters);
@@ -124,16 +125,20 @@ export function useCalendarSync() {
   const removeProjectFilter = useCallback((projectId: string) => {
     setProjectFilters(prev => {
       const newFilters = {...prev};
-      delete newFilters[projectId];
+      const projectKey = projectId.toLowerCase();
+      delete newFilters[projectKey];
       saveProjectFilters(newFilters);
       return newFilters;
     });
 
     const savedSettings = loadSavedProjectSettings();
-    if (savedSettings && savedSettings[projectId]) {
-      const newSettings = {...savedSettings};
-      delete newSettings[projectId];
-      saveProjectSettings(newSettings);
+    if (savedSettings) {
+      const projectKey = projectId.toLowerCase();
+      if (savedSettings[projectKey]) {
+        const newSettings = {...savedSettings};
+        delete newSettings[projectKey];
+        saveProjectSettings(newSettings);
+      }
     }
   }, [saveProjectFilters, loadSavedProjectSettings, saveProjectSettings]);
 
@@ -147,9 +152,10 @@ export function useCalendarSync() {
     );
     
     const settings = loadSavedProjectSettings();
+    const projectKey = updatedProject.id.toLowerCase();
     const updatedSettings = {
       ...settings,
-      [updatedProject.id]: {
+      [projectKey]: {
         name: updatedProject.name,
         budgetHours: updatedProject.budgetHours,
         hourlyRate: updatedProject.hourlyRate,
@@ -264,21 +270,21 @@ export function useCalendarSync() {
     
     console.log(`Identifying projects from ${eventsList.length} events`);
     
-    const uniqueProjects = new Set<string>();
+    const uniqueProjects = new Map<string, string>();
     
     eventsList.forEach(event => {
       const { projectName } = parseEventTitle(event.summary);
       if (projectName && projectName !== 'Other') {
-        uniqueProjects.add(projectName);
+        uniqueProjects.set(projectName.toLowerCase(), projectName);
       }
     });
     
     console.log(`Found ${uniqueProjects.size} unique projects in events`);
     
-    uniqueProjects.forEach(projectName => {
-      if (!projectFilters[projectName]) {
-        console.log(`Adding automatic project filter for "${projectName}"`);
-        addProjectFilter(projectName, projectName);
+    uniqueProjects.forEach((displayName, normalizedName) => {
+      if (!projectFilters[normalizedName]) {
+        console.log(`Adding automatic project filter for "${displayName}" (normalized: "${normalizedName}")`);
+        addProjectFilter(normalizedName, displayName);
       }
     });
   }, [projectFilters, addProjectFilter]);
@@ -407,7 +413,7 @@ export function useCalendarSync() {
   }, [events, filters, getProjectNameFromEvent, determineActivityType]);
 
   const getProjectColor = useCallback((projectName: string) => {
-    return stringToColor(projectName);
+    return stringToColor(projectName.toLowerCase());
   }, []);
 
   const updateCustomProjects = useCallback((eventsList: GoogleCalendarEvent[], filters: {[key: string]: string}) => {
@@ -426,8 +432,8 @@ export function useCalendarSync() {
     const savedSettings = loadSavedProjectSettings();
     console.log("Loaded saved project settings:", savedSettings);
 
-    Object.entries(filters).forEach(([projectId, filterTerm]) => {
-      console.log(`Creating project "${projectId}" with filter "${filterTerm}"`);
+    Object.entries(filters).forEach(([projectKey, filterTerm]) => {
+      console.log(`Creating project "${projectKey}" with filter "${filterTerm}"`);
       
       const filteredEvents = eventsList.filter(event => {
         const { projectName } = parseEventTitle(event.summary);
@@ -465,7 +471,7 @@ export function useCalendarSync() {
             existingActivity.hours += durationHours;
           } else {
             activities.push({
-              id: `${projectId}-${activityType}`,
+              id: `${projectKey}-${activityType}`,
               type: activityType,
               hours: durationHours,
               description: description,
@@ -476,19 +482,20 @@ export function useCalendarSync() {
       });
       
       if (totalHours > 0) {
-        const projectSettings = savedSettings && savedSettings[projectId] ? savedSettings[projectId] : {};
+        const normalizedKey = projectKey.toLowerCase();
+        const projectSettings = savedSettings && savedSettings[normalizedKey] ? savedSettings[normalizedKey] : {};
         
-        console.log(`Adding project "${projectId}" with ${totalHours.toFixed(2)} hours and ${activities.length} activities`);
+        console.log(`Adding project "${projectKey}" with ${totalHours.toFixed(2)} hours and ${activities.length} activities`);
         newCustomProjects.push({
-          id: projectId,
-          name: projectSettings.name || projectId,
+          id: projectKey,
+          name: projectSettings.name || filterTerm,
           totalHours: totalHours,
           budgetHours: projectSettings.budgetHours || 120,
           hourlyRate: projectSettings.hourlyRate || 95,
           activities: activities,
           teamMembers: [],
           monthlyHours: thisMonthHours,
-          color: getProjectColor(projectId),
+          color: getProjectColor(projectKey),
           visible: projectSettings.visible !== false
         });
       }

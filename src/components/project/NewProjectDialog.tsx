@@ -50,6 +50,7 @@ const NewProjectDialog: React.FC<NewProjectDialogProps> = ({
   };
   
   const handleProjectFilterChange = (value: string) => {
+    // For case-insensitivity, we store filter term in original case but normalize when used for comparison
     if (externalProjectFilterChange) {
       externalProjectFilterChange(value);
     } else {
