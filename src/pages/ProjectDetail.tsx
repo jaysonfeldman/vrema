@@ -21,7 +21,7 @@ const ProjectDetail: React.FC = () => {
   useEffect(() => {
     if (projectId) {
       console.log('Looking for project with ID:', projectId);
-      console.log('Available projects:', customProjects.map(p => ({ id: p.id, name: p.name })));
+      console.log('Available projects:', customProjects.map(p => ({ id: p.id, name: p.name, filterTerm: p.filterTerm })));
       
       // Try to find the project by ID first
       const foundProject = getProjectById(projectId);
@@ -32,11 +32,19 @@ const ProjectDetail: React.FC = () => {
         
         // Filter events for this project
         const filteredEvents = events.filter(event => {
+          if (!event.summary) return false;
+          
           const { projectName } = parseEventTitle(event.summary);
-          return projectName.toLowerCase() === foundProject.filterTerm.toLowerCase();
+          const matchesFilter = projectName && (
+            projectName.toLowerCase() === foundProject.filterTerm.toLowerCase() ||
+            foundProject.filterTerm.toLowerCase().includes(projectName.toLowerCase()) ||
+            projectName.toLowerCase().includes(foundProject.filterTerm.toLowerCase())
+          );
+          
+          return matchesFilter;
         });
         
-        console.log(`Found ${filteredEvents.length} events for project ${foundProject.name}`);
+        console.log(`Found ${filteredEvents.length} events for project ${foundProject.name} using filter term "${foundProject.filterTerm}"`);
         setProjectEvents(filteredEvents);
       } else {
         console.log('Project not found with ID:', projectId);
