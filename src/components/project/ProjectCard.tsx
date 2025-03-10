@@ -5,6 +5,16 @@ import { Project } from '@/lib/types';
 import { Progress } from '@/components/ui/progress';
 import ActivityTag from '@/components/ActivityTag';
 import { useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { MoreVertical, Edit } from 'lucide-react';
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuTrigger 
+} from '@/components/ui/dropdown-menu';
+import { useToast } from '@/components/ui/use-toast';
+import EditProjectDialog from '@/components/project/EditProjectDialog';
 
 interface ProjectCardProps {
   project: Project;
@@ -12,6 +22,9 @@ interface ProjectCardProps {
 
 const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const [showEditDialog, setShowEditDialog] = React.useState(false);
+  
   const formatHoursDisplay = (hours: number) => {
     const wholeHours = Math.floor(hours);
     const minutes = Math.round((hours - wholeHours) * 60);
@@ -32,14 +45,31 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
       : { text: `${formatHoursDisplay(project.budgetHours - project.totalHours)}`, color: 'text-amber-400' }
     : null;
 
-  const handleClick = () => {
+  // Calculate earned value if hourly rate exists
+  const earnedValue = project.hourlyRate 
+    ? (project.totalHours * project.hourlyRate).toFixed(2)
+    : null;
+
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Don't navigate if clicking on dropdown
+    if ((e.target as HTMLElement).closest('.dropdown-trigger')) {
+      return;
+    }
     navigate(`/project/${project.id}`);
+  };
+
+  const handleEditComplete = () => {
+    setShowEditDialog(false);
+    toast({
+      title: "Project updated",
+      description: "Project details have been updated successfully.",
+    });
   };
 
   return (
     <Card 
       className="overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
-      onClick={handleClick}
+      onClick={handleCardClick}
       style={{ backgroundColor: '#3C3C3C', color: 'white' }}
     >
       <CardHeader className="pb-3">
@@ -52,13 +82,35 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
               </div>
             )}
           </div>
-          <div className="flex -space-x-2">
-            {project.teamMembers && project.teamMembers.slice(0, 4).map((member, index) => (
-              <div key={index} className="w-8 h-8 rounded-full bg-gray-500 border-2 border-gray-800"></div>
-            ))}
+          
+          <div className="flex items-center space-x-2">
+            <div className="flex -space-x-2">
+              {project.teamMembers && project.teamMembers.slice(0, 4).map((member, index) => (
+                <div key={index} className="w-8 h-8 rounded-full bg-gray-500 border-2 border-gray-800"></div>
+              ))}
+            </div>
+            
+            <div className="dropdown-trigger z-10" onClick={(e) => e.stopPropagation()}>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-white">
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={(e) => {
+                    e.stopPropagation();
+                    setShowEditDialog(true);
+                  }}>
+                    <Edit className="mr-2 h-4 w-4" /> Edit Project
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
         </div>
       </CardHeader>
+      
       <CardContent className="pt-4">
         <div className="space-y-6">
           <div className="grid grid-cols-2 gap-y-1">
@@ -72,6 +124,15 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
                   {budgetStatus?.text}
                 </div>
                 <div className="text-xs text-gray-400 col-span-2 text-right">/this month</div>
+              </>
+            )}
+            
+            {earnedValue && (
+              <>
+                <div className="text-sm text-gray-300">Earned value</div>
+                <div className="text-right font-mono font-bold text-green-400">
+                  ${earnedValue}
+                </div>
               </>
             )}
           </div>
@@ -95,6 +156,15 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
           </div>
         </div>
       </CardContent>
+      
+      {showEditDialog && (
+        <EditProjectDialog
+          project={project}
+          open={showEditDialog}
+          onOpenChange={setShowEditDialog}
+          onSave={handleEditComplete}
+        />
+      )}
     </Card>
   );
 };
