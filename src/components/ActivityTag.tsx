@@ -2,6 +2,7 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
 import { ActivityType } from '@/lib/types';
+import { stringToColor } from '@/lib/utils';
 
 interface ActivityTagProps {
   type: ActivityType;
@@ -10,8 +11,10 @@ interface ActivityTagProps {
 }
 
 const ActivityTag: React.FC<ActivityTagProps> = ({ type, hours, className }) => {
+  // Generate a consistent color based on the activity type string
   const getTagColor = () => {
-    switch (type) {
+    // Map common activity types to specific colors for consistency
+    switch (type.toLowerCase()) {
       case 'design':
         return 'bg-green-500';
       case 'strategy':
@@ -23,7 +26,8 @@ const ActivityTag: React.FC<ActivityTagProps> = ({ type, hours, className }) => 
       case 'admin':
         return 'bg-orange-500';
       default:
-        return 'bg-gray-500';
+        // For any other activity type, generate a consistent color based on the string
+        return `bg-[${stringToColor(type)}]`;
     }
   };
 

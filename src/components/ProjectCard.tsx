@@ -143,7 +143,8 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, className, style }) 
                     activity.type === 'strategy' ? 'rgb(59, 130, 246)' :
                     activity.type === 'dev' ? 'rgb(168, 85, 247)' :
                     activity.type === 'meetings' ? 'rgb(234, 179, 8)' :
-                    'rgb(239, 68, 68)'
+                    activity.type === 'admin' ? 'rgb(239, 68, 68)' :
+                    `#${activity.type.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0).toString(16).slice(-6)}`
                 }}
                 title={activity.description || undefined}
               >

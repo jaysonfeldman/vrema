@@ -16,6 +16,28 @@ import {
 import { Search, Calendar, Clock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
+import { stringToColor } from '@/lib/utils';
+
+// Helper function to get activity color
+const getActivityColor = (activityType: string): string => {
+  // Map common activity types to specific colors for consistency
+  switch (activityType.toLowerCase()) {
+    case 'design':
+      return 'bg-green-500 text-white border-green-400';
+    case 'strategy':
+      return 'bg-blue-500 text-white border-blue-400';
+    case 'dev':
+      return 'bg-purple-500 text-white border-purple-400';
+    case 'meetings':
+      return 'bg-yellow-500 text-white border-yellow-400';
+    case 'admin':
+      return 'bg-red-500 text-white border-red-400';
+    default:
+      // Generate a consistent color based on the activity type
+      const color = stringToColor(activityType);
+      return `bg-[${color}] text-white border-[${color}]`;
+  }
+};
 
 const CalendarEventsTable: React.FC = () => {
   const { 
@@ -145,13 +167,7 @@ const CalendarEventsTable: React.FC = () => {
                               <Badge variant="outline">{projectName}</Badge>
                             </TableCell>
                             <TableCell>
-                              <Badge variant="outline" className={
-                                activityType === 'design' ? 'bg-green-500 text-white border-green-400' :
-                                activityType === 'strategy' ? 'bg-blue-500 text-white border-blue-400' :
-                                activityType === 'dev' ? 'bg-purple-500 text-white border-purple-400' :
-                                activityType === 'meetings' ? 'bg-yellow-500 text-white border-yellow-400' :
-                                'bg-red-500 text-white border-red-400'
-                              }>
+                              <Badge variant="outline" className={getActivityColor(activityType)}>
                                 #{activityType}
                               </Badge>
                             </TableCell>
@@ -217,13 +233,7 @@ const CalendarEventsTable: React.FC = () => {
                                     </div>
                                     <div className="flex items-center gap-2">
                                       <Badge variant="outline">{projectName}</Badge>
-                                      <Badge className={
-                                        activityType === 'design' ? 'bg-green-500 text-white' :
-                                        activityType === 'strategy' ? 'bg-blue-500 text-white' :
-                                        activityType === 'dev' ? 'bg-purple-500 text-white' :
-                                        activityType === 'meetings' ? 'bg-yellow-500 text-white' :
-                                        'bg-red-500 text-white'
-                                      }>
+                                      <Badge className={getActivityColor(activityType).split(' ')[0]}>
                                         #{activityType}
                                       </Badge>
                                       <span className="text-sm flex items-center gap-1">
