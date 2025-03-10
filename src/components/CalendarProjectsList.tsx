@@ -112,7 +112,7 @@ const CalendarProjectsList: React.FC = () => {
       )}
       
       {/* Custom Project Cards */}
-      {customProjects.length > 0 && (
+      {customProjects.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
           {customProjects.map(project => (
             <Card key={project.id} className="overflow-hidden bg-gray-900 text-white border-0">
@@ -164,6 +164,15 @@ const CalendarProjectsList: React.FC = () => {
             </Card>
           ))}
         </div>
+      ) : (
+        <Card className="bg-gray-900 text-white p-8 text-center">
+          <div className="py-6">
+            <h3 className="text-lg font-medium mb-2">No project views created yet</h3>
+            <p className="text-gray-400">
+              Create a custom project view to filter your calendar events
+            </p>
+          </div>
+        </Card>
       )}
       
       {/* Default Calendar Projects */}
@@ -198,17 +207,6 @@ const CalendarProjectsList: React.FC = () => {
               );
             })}
         </div>
-      )}
-      
-      {Object.keys(projectStats.projectMap).length === 0 && customProjects.length === 0 && (
-        <Card className="p-6 text-center">
-          <div className="py-6">
-            <h3 className="text-lg font-medium mb-2">No projects available</h3>
-            <p className="text-muted-foreground">
-              Sync your calendar or create a custom project view to see your projects here.
-            </p>
-          </div>
-        </Card>
       )}
     </div>
   );

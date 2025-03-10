@@ -24,8 +24,8 @@ const Index: React.FC = () => {
 
   // For debugging
   useEffect(() => {
-    console.log("Current project filters:", projectFilters);
-    console.log("Custom projects:", customProjects.length);
+    console.log("Index - Current project filters:", projectFilters);
+    console.log("Index - Custom projects count:", customProjects.length);
   }, [projectFilters, customProjects]);
 
   return (

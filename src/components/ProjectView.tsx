@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useCalendarSync } from '@/hooks/useCalendarSync';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -24,18 +24,27 @@ const ProjectView: React.FC = () => {
   const [newProjectFilter, setNewProjectFilter] = useState('');
   const [isAddingProject, setIsAddingProject] = useState(false);
 
+  // Debug log when component renders
+  useEffect(() => {
+    console.log("ProjectView rendered with customProjects:", customProjects);
+    console.log("Current project filters:", projectFilters);
+  }, [customProjects, projectFilters]);
+
   const handleAddProject = () => {
     if (newProjectName.trim() && newProjectFilter.trim()) {
       console.log("Adding new project filter:", newProjectName, newProjectFilter);
+      
+      // Add the new project filter
       addProjectFilter(newProjectName.trim(), newProjectFilter.trim());
       
-      // Trigger a sync to update projects immediately
+      // Force an immediate calendar sync to update the projects
       syncCalendar();
       
       toast({
         title: "Project view created",
         description: `Created "${newProjectName}" view for events containing "${newProjectFilter}"`,
       });
+      
       setNewProjectName('');
       setNewProjectFilter('');
       setIsAddingProject(false);
@@ -87,7 +96,10 @@ const ProjectView: React.FC = () => {
                   This will create a project view for all calendar events containing this text in their title
                 </p>
               </div>
-              <Button onClick={handleAddProject} disabled={!newProjectName.trim() || !newProjectFilter.trim()}>
+              <Button 
+                onClick={handleAddProject} 
+                disabled={!newProjectName.trim() || !newProjectFilter.trim()}
+              >
                 Create Project View
               </Button>
             </div>
@@ -137,7 +149,11 @@ const ProjectView: React.FC = () => {
                     <Button 
                       variant="ghost" 
                       size="sm" 
-                      onClick={() => removeProjectFilter(projectId)}
+                      onClick={() => {
+                        removeProjectFilter(projectId);
+                        // Force sync after removing filter
+                        syncCalendar();
+                      }}
                       className="text-destructive hover:text-destructive/80"
                     >
                       Remove
