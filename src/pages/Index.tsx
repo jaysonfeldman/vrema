@@ -15,7 +15,7 @@ const Index: React.FC = () => {
   const navigate = useNavigate();
   const { authState } = useGoogleAuth();
   const { syncCalendar, lastSynced, isAuthenticated, events, customProjects, updateFilters } = useCalendarSync();
-  const [activeTab, setActiveTab] = useState<string>("events");
+  const [activeTab, setActiveTab] = useState<string>("projects"); // Changed default to projects
   const [initialSyncDone, setInitialSyncDone] = useState(false);
 
   // Handle URL parameters
@@ -73,16 +73,16 @@ const Index: React.FC = () => {
           
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="mb-4">
-              <TabsTrigger value="events">Calendar Events</TabsTrigger>
               <TabsTrigger value="projects">Projects</TabsTrigger>
+              <TabsTrigger value="events">Calendar Events</TabsTrigger>
             </TabsList>
-            
-            <TabsContent value="events">
-              <CalendarEventsTable />
-            </TabsContent>
             
             <TabsContent value="projects">
               <ProjectOverview />
+            </TabsContent>
+            
+            <TabsContent value="events">
+              <CalendarEventsTable />
             </TabsContent>
           </Tabs>
         </div>

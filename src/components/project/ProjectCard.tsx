@@ -29,7 +29,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
   const budgetStatus = project.budgetHours 
     ? project.totalHours > project.budgetHours 
       ? { text: `-${formatHoursDisplay(project.totalHours - project.budgetHours)}`, color: 'text-red-500' }
-      : { text: `${formatHoursDisplay(project.budgetHours - project.totalHours)}`, color: 'text-green-500' }
+      : { text: `${formatHoursDisplay(project.budgetHours - project.totalHours)}`, color: 'text-amber-400' }
     : null;
 
   const handleClick = () => {
@@ -40,49 +40,49 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
     <Card 
       className="overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
       onClick={handleClick}
+      style={{ backgroundColor: '#3C3C3C', color: 'white' }}
     >
-      <CardHeader className="bg-gray-50 dark:bg-gray-800 pb-3">
+      <CardHeader className="pb-3">
         <div className="flex justify-between items-start">
           <div>
-            <CardTitle className="text-lg font-semibold">{project.name}</CardTitle>
+            <CardTitle className="text-lg font-semibold text-white">{project.name}</CardTitle>
             {project.filterTerm && (
-              <div className="text-xs text-muted-foreground mt-1">
-                Filter: {project.filterTerm}
+              <div className="text-xs text-gray-300 mt-1">
+                {project.id.substring(0, 6)}
               </div>
             )}
           </div>
-          <div className="bg-black/10 dark:bg-white/10 text-xs px-2 py-1 rounded">
-            {project.id.substring(0, 6)}
+          <div className="flex -space-x-2">
+            {project.teamMembers && project.teamMembers.slice(0, 4).map((member, index) => (
+              <div key={index} className="w-8 h-8 rounded-full bg-gray-500 border-2 border-gray-800"></div>
+            ))}
           </div>
         </div>
       </CardHeader>
       <CardContent className="pt-4">
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-y-2">
-            <div className="text-sm text-muted-foreground">Time logged</div>
-            <div className="text-right font-mono font-bold">{formatHoursDisplay(project.totalHours)}</div>
+        <div className="space-y-6">
+          <div className="grid grid-cols-2 gap-y-1">
+            <div className="text-sm text-gray-300">Time logged</div>
+            <div className="text-right font-mono font-bold text-white">{formatHoursDisplay(project.totalHours)}</div>
             
             {project.budgetHours && (
               <>
-                <div className="text-sm text-muted-foreground">Budget left</div>
+                <div className="text-sm text-gray-300">Budget left</div>
                 <div className={`text-right font-mono font-bold ${budgetStatus?.color}`}>
                   {budgetStatus?.text}
                 </div>
+                <div className="text-xs text-gray-400 col-span-2 text-right">/this month</div>
               </>
             )}
           </div>
           
-          {budgetProgress !== null && (
-            <div className="space-y-1.5">
-              <Progress value={budgetProgress} className="h-2" />
-              <p className="text-xs text-muted-foreground text-right">
-                {budgetProgress > 100 ? 'Over budget' : `${Math.round(budgetProgress)}% of budget used`}
-              </p>
-            </div>
-          )}
-          
           <div>
-            <div className="text-sm font-medium mb-2">Activities</div>
+            <div className="text-sm text-gray-300 mb-2">Activities</div>
+            {budgetProgress !== null && (
+              <div className="mb-3">
+                <Progress value={budgetProgress} className="h-2 bg-gray-600" />
+              </div>
+            )}
             <div className="flex flex-wrap gap-2">
               {sortedActivities.slice(0, 3).map((activity) => (
                 <ActivityTag
