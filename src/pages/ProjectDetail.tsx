@@ -150,11 +150,11 @@ const ProjectDetail: React.FC = () => {
         .from('projects')
         .update({
           name: updatedProject.name,
-          total_hours: updatedProject.totalHours.toString(),
-          budget_hours: updatedProject.budgetHours?.toString(),
-          hourly_rate: updatedProject.hourlyRate?.toString(),
+          total_hours: updatedProject.totalHours,  // Convert to number directly
+          budget_hours: updatedProject.budgetHours || null,  // Use null for undefined values
+          hourly_rate: updatedProject.hourlyRate || null,    // Use null for undefined values
           filter_term: updatedProject.filterTerm,
-          monthly_hours: updatedProject.monthlyHours?.toString(),
+          monthly_hours: updatedProject.monthlyHours || 0,   // Default to 0 if undefined
           visible: updatedProject.visible
         })
         .eq('id', updatedProject.id)
