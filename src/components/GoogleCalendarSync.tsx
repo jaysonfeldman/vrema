@@ -4,12 +4,23 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useGoogleAuth } from '@/providers/GoogleAuthProvider';
 import { useCalendarSync } from '@/hooks/useCalendarSync';
-import { Loader2, Calendar, LogOut, RefreshCw } from 'lucide-react';
+import { Loader2, Calendar, LogOut, RefreshCw, AlertCircle } from 'lucide-react';
 import { format } from 'date-fns';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const GoogleCalendarSync: React.FC = () => {
   const { authState, login, logout, isLoading: authLoading } = useGoogleAuth();
-  const { syncCalendar, isLoading: syncLoading, lastSynced, events } = useCalendarSync();
+  const { 
+    syncCalendar, 
+    isLoading: syncLoading, 
+    lastSynced, 
+    events, 
+    syncError 
+  } = useCalendarSync();
+
+  const handleSync = () => {
+    syncCalendar();
+  };
 
   return (
     <Card className="p-5 mb-6">
@@ -35,7 +46,7 @@ const GoogleCalendarSync: React.FC = () => {
             <>
               <Button 
                 variant="outline" 
-                onClick={() => syncCalendar()} 
+                onClick={handleSync} 
                 disabled={syncLoading}
               >
                 {syncLoading ? (
@@ -74,6 +85,15 @@ const GoogleCalendarSync: React.FC = () => {
           )}
         </div>
       </div>
+      
+      {syncError && (
+        <Alert variant="destructive" className="mt-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Error: {syncError}. Please try disconnecting and reconnecting your Google Calendar.
+          </AlertDescription>
+        </Alert>
+      )}
     </Card>
   );
 };

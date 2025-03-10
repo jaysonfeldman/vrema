@@ -7,7 +7,7 @@ import { GoogleCalendarEvent, FilterOptions, Project, ActivityType } from '@/lib
 import { addDays, format, parseISO, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 
 export function useCalendarSync() {
-  const { authState } = useGoogleAuth();
+  const { authState, refreshToken } = useGoogleAuth();
   const [events, setEvents] = useState<GoogleCalendarEvent[]>([]);
   const [filteredEvents, setFilteredEvents] = useState<GoogleCalendarEvent[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -28,6 +28,7 @@ export function useCalendarSync() {
   
   const [projectFilters, setProjectFilters] = useState<{[key: string]: string}>({});
   const [customProjects, setCustomProjects] = useState<Project[]>([]);
+  const [syncError, setSyncError] = useState<string | null>(null);
 
   // Define all callbacks first to maintain proper hook order
   const getProjectNameFromEvent = useCallback((event: GoogleCalendarEvent): string => {
@@ -158,7 +159,10 @@ export function useCalendarSync() {
   }, []);
 
   const syncCalendar = useCallback(async (days = 30) => {
-    if (!authState.isAuthenticated || !authState.token) {
+    // Reset any previous sync errors
+    setSyncError(null);
+    
+    if (!authState.isAuthenticated) {
       toast({
         variant: "destructive",
         title: "Not authenticated",
@@ -169,8 +173,21 @@ export function useCalendarSync() {
 
     setIsLoading(true);
     try {
+      // First, try to refresh the token if needed
+      const token = await refreshToken();
+      if (!token) {
+        toast({
+          variant: "destructive",
+          title: "Authentication failed",
+          description: "Please reconnect your Google Calendar",
+        });
+        return;
+      }
+      
+      console.log(`Syncing calendar data for the last ${days} days...`);
+      
       // Fetch events for the specified time range
-      const fetchedEvents = await fetchCalendarEvents(authState.token, days);
+      const fetchedEvents = await fetchCalendarEvents(token, days);
       
       // Log for debugging
       console.log(`Fetched ${fetchedEvents.length} calendar events`);
@@ -214,15 +231,17 @@ export function useCalendarSync() {
       return { events: validEvents, stats };
     } catch (error) {
       console.error('Error syncing calendar:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Could not sync with Google Calendar';
+      setSyncError(errorMessage);
       toast({
         variant: "destructive",
         title: "Sync failed",
-        description: "Could not sync with Google Calendar",
+        description: errorMessage,
       });
     } finally {
       setIsLoading(false);
     }
-  }, [authState.isAuthenticated, authState.token, projectFilters]);
+  }, [authState.isAuthenticated, refreshToken, projectFilters]);
 
   // Effect to apply filters whenever events or filters change
   useEffect(() => {
@@ -367,6 +386,7 @@ export function useCalendarSync() {
     removeProjectFilter,
     customProjects,
     getTotalHours,
-    getActivityHours
+    getActivityHours,
+    syncError
   };
 }

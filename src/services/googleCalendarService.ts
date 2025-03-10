@@ -12,6 +12,7 @@ export const fetchCalendarEvents = async (token: string, days = 30): Promise<Goo
     const timeMin = encodeURIComponent(startDate.toISOString());
     const timeMax = encodeURIComponent(today.toISOString());
     
+    console.log(`Fetching calendar events from ${startDate.toISOString()} to ${today.toISOString()}`);
     const response = await fetch(
       `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${timeMin}&timeMax=${timeMax}&singleEvents=true&orderBy=startTime&maxResults=2500`,
       {
@@ -22,12 +23,21 @@ export const fetchCalendarEvents = async (token: string, days = 30): Promise<Goo
     );
 
     if (!response.ok) {
-      console.error('Google Calendar API error:', await response.text());
-      throw new Error('Failed to fetch calendar events');
+      const errorText = await response.text();
+      console.error('Google Calendar API error:', errorText);
+      
+      // Check for specific error types to provide better feedback
+      if (response.status === 401) {
+        throw new Error('Authentication failed - please reconnect your Google Calendar');
+      } else if (response.status === 403) {
+        throw new Error('Permission denied - check Google Calendar access permissions');
+      } else {
+        throw new Error(`Failed to fetch calendar events: ${response.status} ${response.statusText}`);
+      }
     }
 
     const data = await response.json();
-    console.log('Raw Google Calendar response data:', data);
+    console.log(`Received ${data.items?.length || 0} events from Google Calendar API`);
     
     if (!data.items || !Array.isArray(data.items)) {
       console.error('Invalid response format from Google Calendar API');
@@ -58,6 +68,7 @@ export const fetchCalendarEvents = async (token: string, days = 30): Promise<Goo
         htmlLink: event.htmlLink
       }));
       
+    console.log(`Transformed ${events.length} valid events with start/end times`);
     return events;
   } catch (error) {
     console.error('Error fetching calendar events:', error);

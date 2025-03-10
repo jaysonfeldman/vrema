@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { GoogleOAuthProvider, useGoogleLogin } from '@react-oauth/google';
 import { GoogleAuthState } from '@/lib/types';
@@ -12,12 +13,14 @@ interface GoogleAuthContextType {
   login: () => void;
   logout: () => void;
   isLoading: boolean;
+  refreshToken: () => Promise<string | null>;
 }
 
 const defaultAuthState: GoogleAuthState = {
   isAuthenticated: false,
   token: null,
-  profile: null
+  profile: null,
+  tokenExpiry: null
 };
 
 const GoogleAuthContext = createContext<GoogleAuthContextType | undefined>(undefined);
@@ -37,10 +40,53 @@ export const GoogleAuthProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }
   }, [authState]);
 
+  // Check if token is expired
+  const isTokenExpired = () => {
+    if (!authState.tokenExpiry) return true;
+    
+    // Add a 5-minute buffer before expiration to refresh token
+    const expiryTime = new Date(authState.tokenExpiry).getTime();
+    const currentTime = new Date().getTime();
+    const fiveMinutesInMs = 5 * 60 * 1000;
+    
+    return currentTime + fiveMinutesInMs >= expiryTime;
+  };
+
+  const refreshToken = async (): Promise<string | null> => {
+    if (!authState.isAuthenticated) {
+      return null;
+    }
+
+    if (isTokenExpired()) {
+      console.log('Token expired or missing, attempting to re-login');
+      try {
+        setIsLoading(true);
+        // Handle re-login if needed
+        await logout();
+        toast({
+          variant: "destructive",
+          title: "Session expired",
+          description: "Please reconnect your Google Calendar",
+        });
+        return null;
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    return authState.token;
+  };
+
   const googleLogin = useGoogleLogin({
     onSuccess: async (response) => {
       try {
         setIsLoading(true);
+        console.log('Google login successful, fetching user profile');
+        
+        // Calculate token expiry (default OAuth tokens last 1 hour)
+        const now = new Date();
+        const expiryTime = new Date(now.getTime() + response.expires_in * 1000);
+        
         // Get user profile info
         const profileResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
           headers: {
@@ -61,7 +107,8 @@ export const GoogleAuthProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             name: profileData.name,
             email: profileData.email,
             picture: profileData.picture
-          }
+          },
+          tokenExpiry: expiryTime.toISOString()
         });
         
         toast({
@@ -96,15 +143,16 @@ export const GoogleAuthProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     googleLogin();
   };
 
-  const logout = () => {
+  const logout = async () => {
     setAuthState(defaultAuthState);
     toast({
       description: "Disconnected from Google Calendar",
     });
+    return true;
   };
 
   return (
-    <GoogleAuthContext.Provider value={{ authState, login, logout, isLoading }}>
+    <GoogleAuthContext.Provider value={{ authState, login, logout, isLoading, refreshToken }}>
       {children}
     </GoogleAuthContext.Provider>
   );

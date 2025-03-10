@@ -1,4 +1,3 @@
-
 export type ActivityType = 'design' | 'strategy' | 'dev' | 'meetings' | 'admin';
 
 export interface Activity {
@@ -69,6 +68,7 @@ export interface GoogleAuthState {
     email?: string;
     picture?: string;
   } | null;
+  tokenExpiry?: string | null;
 }
 
 export interface FilterOptions {
