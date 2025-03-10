@@ -10,7 +10,7 @@ const ProjectTeam: React.FC<ProjectTeamProps> = ({ members }) => {
   if (members.length === 0) return null;
   
   return (
-    <div className="flex -space-x-3">
+    <>
       {members.slice(0, 4).map((member, index) => (
         <div 
           key={member.id} 
@@ -29,7 +29,7 @@ const ProjectTeam: React.FC<ProjectTeamProps> = ({ members }) => {
           +{members.length - 4}
         </div>
       )}
-    </div>
+    </>
   );
 };
 
