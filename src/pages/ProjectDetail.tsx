@@ -8,27 +8,47 @@ import { ChevronLeft, Clock, Calendar } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { GoogleCalendarEvent } from '@/lib/types';
+import { GoogleCalendarEvent, Project } from '@/lib/types';
 import { parseEventTitle, formatEventDate, calculateDuration } from '@/services/googleCalendarService';
 import { stringToColor } from '@/lib/utils';
+import { toast } from '@/components/ui/use-toast';
 
 const ProjectDetail: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
   const { events, customProjects } = useCalendarSync();
   const [projectEvents, setProjectEvents] = useState<GoogleCalendarEvent[]>([]);
+  const [project, setProject] = useState<Project | undefined>();
   
-  const project = customProjects.find(p => p.id === projectId);
+  useEffect(() => {
+    if (!projectId || !customProjects.length) return;
+    
+    const foundProject = customProjects.find(p => p.id === projectId);
+    setProject(foundProject);
+    
+    if (!foundProject) {
+      toast({
+        variant: "destructive",
+        title: "Project not found",
+        description: "The requested project could not be found."
+      });
+      return;
+    }
+  }, [projectId, customProjects]);
   
   useEffect(() => {
     if (!project || events.length === 0) return;
     
+    console.log(`Filtering events for project "${project.name}"`);
+    
     // Filter events that match this project's filter term
     const filteredEvents = events.filter(event => {
+      if (!event.summary) return false;
       const { projectName } = parseEventTitle(event.summary);
       return projectName.toLowerCase() === project.name.toLowerCase();
     });
     
+    console.log(`Found ${filteredEvents.length} events for project "${project.name}"`);
     setProjectEvents(filteredEvents);
   }, [events, project]);
   
@@ -125,7 +145,7 @@ const ProjectDetail: React.FC = () => {
                   </TableHeader>
                   <TableBody>
                     {projectEvents.map((event) => {
-                      const { activityType, description } = parseEventTitle(event.summary);
+                      const { activityType, description } = parseEventTitle(event.summary || '');
                       
                       return (
                         <TableRow key={event.id}>
@@ -140,13 +160,16 @@ const ProjectDetail: React.FC = () => {
                           <TableCell>
                             <div className="flex items-center gap-2">
                               <Calendar className="h-3 w-3 text-muted-foreground" />
-                              {formatEventDate(event.start.dateTime)}
+                              {formatEventDate(event.start?.dateTime || '')}
                             </div>
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">
                               <Clock className="h-3 w-3 text-muted-foreground" />
-                              {calculateDuration(event.start.dateTime, event.end.dateTime)}
+                              {calculateDuration(
+                                event.start?.dateTime || '', 
+                                event.end?.dateTime || ''
+                              )}
                             </div>
                           </TableCell>
                         </TableRow>
