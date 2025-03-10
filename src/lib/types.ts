@@ -16,6 +16,7 @@ export interface Project {
   name: string;
   totalHours: number;
   budgetHours?: number;
+  hourlyRate?: number;
   activities: Activity[];
   teamMembers: TeamMember[];
   color?: string;

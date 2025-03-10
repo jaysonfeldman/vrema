@@ -63,6 +63,21 @@ const EditProjectDialog: React.FC<EditProjectDialogProps> = ({
               className="col-span-3"
             />
           </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="hourly-rate" className="text-right">
+              Rate (€/hour)
+            </Label>
+            <Input
+              id="hourly-rate"
+              type="number"
+              value={editedProject.hourlyRate || 0}
+              onChange={(e) => setEditedProject({
+                ...editedProject, 
+                hourlyRate: parseFloat(e.target.value) || undefined
+              })}
+              className="col-span-3"
+            />
+          </div>
         </div>
         <DialogFooter>
           <DialogClose asChild>

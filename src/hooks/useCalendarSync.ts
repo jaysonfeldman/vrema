@@ -152,6 +152,8 @@ export function useCalendarSync() {
       [updatedProject.id]: {
         name: updatedProject.name,
         budgetHours: updatedProject.budgetHours,
+        hourlyRate: updatedProject.hourlyRate,
+        visible: updatedProject.visible
       }
     };
     
@@ -482,10 +484,12 @@ export function useCalendarSync() {
           name: projectSettings.name || projectId,
           totalHours: totalHours,
           budgetHours: projectSettings.budgetHours || 120,
+          hourlyRate: projectSettings.hourlyRate || 95,
           activities: activities,
           teamMembers: [],
           monthlyHours: thisMonthHours,
-          color: getProjectColor(projectId)
+          color: getProjectColor(projectId),
+          visible: projectSettings.visible !== false
         });
       }
     });

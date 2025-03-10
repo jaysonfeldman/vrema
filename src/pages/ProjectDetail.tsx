@@ -18,6 +18,7 @@ import { formatTime } from '@/lib/mock-data';
 import ProjectHeader from '@/components/project/ProjectHeader';
 import ProjectStatus from '@/components/project/ProjectStatus';
 import ProjectActivities from '@/components/project/ProjectActivities';
+import EditProjectDialog from '@/components/project/EditProjectDialog';
 
 const ProjectDetail: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>();
@@ -28,7 +29,8 @@ const ProjectDetail: React.FC = () => {
     syncCalendar,
     isLoading,
     lastSynced,
-    getProjects 
+    getProjects,
+    updateProject
   } = useCalendarSync();
   
   const [projectEvents, setProjectEvents] = useState<GoogleCalendarEvent[]>([]);
@@ -37,6 +39,8 @@ const ProjectDetail: React.FC = () => {
   const [filteredEvents, setFilteredEvents] = useState<GoogleCalendarEvent[]>([]);
   const [selectedActivity, setSelectedActivity] = useState<string>('All');
   const [selectedMonth, setSelectedMonth] = useState<string>('October 2023');
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [editedProject, setEditedProject] = useState<Project | undefined>();
   
   // Find the project based on projectId
   useEffect(() => {
@@ -53,6 +57,7 @@ const ProjectDetail: React.FC = () => {
     
     const foundProject = customProjects.find(p => p.id === projectId);
     setProject(foundProject);
+    setEditedProject(foundProject ? {...foundProject} : undefined);
     
     if (!foundProject) {
       toast({
@@ -130,6 +135,23 @@ const ProjectDetail: React.FC = () => {
   const calculateBillableHours = (totalHours: number): number => {
     return totalHours * 0.9;
   };
+
+  const handleOpenEditDialog = () => {
+    setEditedProject(project ? {...project} : undefined);
+    setShowEditDialog(true);
+  };
+  
+  const handleSaveProject = () => {
+    if (editedProject) {
+      updateProject(editedProject);
+      setProject(editedProject);
+      setShowEditDialog(false);
+      toast({
+        title: "Project updated",
+        description: `Updated "${editedProject.name}" settings`
+      });
+    }
+  };
   
   // Wait for calendar sync if projects are not loaded yet
   if (customProjects.length === 0 && isLoading) {
@@ -195,7 +217,8 @@ const ProjectDetail: React.FC = () => {
   const totalHours = project.totalHours;
   const billableHours = calculateBillableHours(totalHours);
   const budgetLeft = project.budgetHours ? project.budgetHours - totalHours : 0;
-  const billableRate = 95; // Example value for design
+  const hourlyRate = project.hourlyRate || 95; // Use project hourly rate or default
+  const totalValue = Math.round(billableHours * hourlyRate);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -224,7 +247,7 @@ const ProjectDetail: React.FC = () => {
           </div>
           
           <div className="mt-4 sm:mt-0 flex items-center gap-2">
-            <Button variant="outline" className="h-10">
+            <Button variant="outline" className="h-10" onClick={handleOpenEditDialog}>
               <Edit className="h-4 w-4 mr-2" />
               Edit project
             </Button>
@@ -258,7 +281,7 @@ const ProjectDetail: React.FC = () => {
           <Card className="bg-zinc-900 text-white md:col-span-1">
             <CardContent className="p-6">
               <p className="text-sm text-gray-400 mb-2">Total value</p>
-              <p className="text-3xl font-mono font-bold text-green-400">€5.200</p>
+              <p className="text-3xl font-mono font-bold text-green-400">€{totalValue}</p>
             </CardContent>
           </Card>
           
@@ -292,8 +315,8 @@ const ProjectDetail: React.FC = () => {
           {/* Billable Rate Card */}
           <Card className="bg-zinc-900 text-white md:col-span-1">
             <CardContent className="p-6">
-              <p className="text-sm text-gray-400 mb-2">Billable rate</p>
-              <p className="text-3xl font-mono font-bold">{billableRate}%</p>
+              <p className="text-sm text-gray-400 mb-2">Hourly rate</p>
+              <p className="text-3xl font-mono font-bold">€{hourlyRate}</p>
             </CardContent>
           </Card>
         </div>
@@ -428,6 +451,18 @@ const ProjectDetail: React.FC = () => {
           </CardContent>
         </Card>
       </div>
+      
+      {/* Edit Project Dialog */}
+      {editedProject && (
+        <EditProjectDialog
+          open={showEditDialog}
+          onOpenChange={setShowEditDialog}
+          project={project}
+          editedProject={editedProject}
+          setEditedProject={setEditedProject}
+          onSave={handleSaveProject}
+        />
+      )}
     </div>
   );
 };

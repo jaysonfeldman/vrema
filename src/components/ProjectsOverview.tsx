@@ -25,6 +25,7 @@ const ProjectsOverview: React.FC = () => {
   const [selectedMonth, setSelectedMonth] = useState('current');
   const [projectFilters, setProjectFilters] = useState<string[]>([]);
   const [filteredProjects, setFilteredProjects] = useState<Project[]>([]);
+  const [showHiddenProjects, setShowHiddenProjects] = useState(false);
   
   // Sync calendar when component mounts to ensure we have project data
   useEffect(() => {
@@ -40,17 +41,23 @@ const ProjectsOverview: React.FC = () => {
       setProjectFilters(customProjects.map(project => project.name));
     }
     
-    // Apply project filters
+    // Apply project filters and visibility settings
     if (projectFilters.length === 0) {
       setFilteredProjects([]);
-    } else if (projectFilters.length === customProjects.length) {
-      setFilteredProjects([...customProjects]);
     } else {
-      setFilteredProjects(customProjects.filter(project => 
+      // Filter by name and visibility
+      let filtered = customProjects.filter(project => 
         projectFilters.includes(project.name)
-      ));
+      );
+      
+      // Apply visibility filter
+      if (!showHiddenProjects) {
+        filtered = filtered.filter(project => project.visible !== false);
+      }
+      
+      setFilteredProjects(filtered);
     }
-  }, [customProjects, projectFilters]);
+  }, [customProjects, projectFilters, showHiddenProjects]);
   
   const handleOpenChange = (open: boolean) => {
     setShowAddProject(open);
@@ -109,6 +116,10 @@ const ProjectsOverview: React.FC = () => {
     }
   };
 
+  const toggleHiddenProjects = () => {
+    setShowHiddenProjects(prev => !prev);
+  };
+
   const availableProjects = customProjects.map(project => project.name);
 
   return (
@@ -123,6 +134,8 @@ const ProjectsOverview: React.FC = () => {
             projectFilters={projectFilters}
             availableProjects={availableProjects}
             onProjectFilterChange={setProjectFilters}
+            showHiddenProjects={showHiddenProjects}
+            onToggleHiddenProjects={toggleHiddenProjects}
           />
           <ViewToggle 
             viewMode={viewMode} 
