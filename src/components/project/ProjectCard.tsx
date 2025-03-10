@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Project } from '@/lib/types';
@@ -58,7 +57,6 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
     : null;
 
   const handleCardClick = (e: React.MouseEvent) => {
-    // Check if the click was on the dropdown or its children
     if ((e.target as HTMLElement).closest('.dropdown-trigger')) {
       return;
     }

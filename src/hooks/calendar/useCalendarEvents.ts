@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from 'react';
 import { useGoogleAuth } from '@/providers/GoogleAuthProvider';
 import { 
@@ -21,7 +20,6 @@ export function useCalendarEvents() {
   const syncCalendar = useCallback(async (days = 30, projects: Project[] = []) => {
     setSyncError(null);
     
-    // Prevent multiple sync operations at once
     if (syncInProgress) {
       console.log('Sync already in progress, skipping');
       return;
@@ -45,7 +43,6 @@ export function useCalendarEvents() {
       console.log(`Syncing calendar data for the last ${days} days...`);
       
       const fetchedEvents = await fetchCalendarEvents(token, days);
-      
       console.log(`Fetched ${fetchedEvents.length} calendar events`);
       
       const validEvents = fetchedEvents.filter(event => {
@@ -56,20 +53,27 @@ export function useCalendarEvents() {
         return hasValidTimes;
       });
       
-      console.log(`${validEvents.length} events have valid start/end times`);
+      const processedEvents = validEvents.map(event => {
+        const { projectName } = parseEventTitle(event.summary || '');
+        const matchingProject = projects.find(p => 
+          p.name.toLowerCase() === projectName.toLowerCase() ||
+          (p.filterTerm && event.summary?.toLowerCase().includes(p.filterTerm.toLowerCase()))
+        );
+        
+        return {
+          ...event,
+          projectId: matchingProject?.id
+        };
+      });
       
-      // Associate events with projects if projects are provided
-      const eventsWithProjects = projects.length > 0 
-        ? associateEventsWithProjects(validEvents, projects)
-        : validEvents;
-      
-      setEvents(eventsWithProjects);
-      setFilteredEvents(eventsWithProjects);
+      console.log(`Processed ${processedEvents.length} events with project associations`);
+      setEvents(processedEvents);
+      setFilteredEvents(processedEvents);
       setLastSynced(new Date());
       
-      if (eventsWithProjects.length > 0) {
+      if (processedEvents.length > 0) {
         toast.success(`Calendar synced`, {
-          description: `Found ${eventsWithProjects.length} events`
+          description: `Found ${processedEvents.length} events`
         });
       } else {
         toast.info('No events found', { 
@@ -77,7 +81,7 @@ export function useCalendarEvents() {
         });
       }
       
-      return { events: eventsWithProjects };
+      return { events: processedEvents };
     } catch (error) {
       console.error('Error syncing calendar:', error);
       const errorMessage = error instanceof Error ? error.message : 'Could not sync with Google Calendar';
