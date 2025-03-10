@@ -17,7 +17,7 @@ const ActivityTag: React.FC<ActivityTagProps> = ({
   style,
   color
 }) => {
-  // Define consistent colors for common activity types
+  // Define consistent colors for common activity types using the specified palette
   const getActivityColor = (activityType: string): string => {
     const activityLower = activityType.toLowerCase();
     
@@ -45,7 +45,7 @@ const ActivityTag: React.FC<ActivityTagProps> = ({
       )}
       style={{ 
         backgroundColor: tagColor,
-        color: ['#fef18b', '#7ed3fc', '#6ee7b7', '#d1fae5'].includes(tagColor) ? '#0f172a' : 'white', // dark text for light colors
+        color: '#0f172a', // Always use dark text for better contrast
         ...style 
       }}
     >
