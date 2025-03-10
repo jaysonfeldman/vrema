@@ -13,29 +13,36 @@ const ActivityTag: React.FC<ActivityTagProps> = ({ type, hours, className }) => 
   const getTagColor = () => {
     switch (type) {
       case 'design':
-        return 'bg-purple-500';
+        return 'bg-green-500';
       case 'strategy':
         return 'bg-blue-500';
       case 'dev':
-        return 'bg-green-500';
+        return 'bg-purple-500';
       case 'meetings':
         return 'bg-yellow-500';
       case 'admin':
-        return 'bg-gray-500';
+        return 'bg-orange-500';
       default:
         return 'bg-gray-500';
     }
   };
 
+  // Format hours to show as "40:00" for example
+  const formatHours = (hours: number) => {
+    const wholeHours = Math.floor(hours);
+    const minutes = Math.round((hours - wholeHours) * 60);
+    return `${wholeHours}:${minutes.toString().padStart(2, '0')}`;
+  };
+
   return (
     <div 
       className={cn(
-        'px-3 py-1 rounded text-white text-xs', 
+        'px-3 py-1 rounded-md text-white text-xs inline-flex items-center', 
         getTagColor(),
         className
       )}
     >
-      {hours}:00 #{type}
+      {formatHours(hours)} #{type}
     </div>
   );
 };

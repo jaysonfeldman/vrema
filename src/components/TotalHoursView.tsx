@@ -1,10 +1,11 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useCalendarSync } from '@/hooks/useCalendarSync';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
 import ActivityTag from './ActivityTag';
-import { Clock, Calendar } from 'lucide-react';
+import { Clock, Calendar, Search, CalendarDays } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 
@@ -12,7 +13,6 @@ const TotalHoursView: React.FC = () => {
   const { 
     getTotalHours, 
     getActivityHours, 
-    customProjects, 
     filters, 
     updateFilters,
     events,
@@ -21,6 +21,24 @@ const TotalHoursView: React.FC = () => {
     syncCalendar,
     isAuthenticated
   } = useCalendarSync();
+  
+  // Title filter state
+  const [titleFilter, setTitleFilter] = useState('');
+  const [debouncedTitleFilter, setDebouncedTitleFilter] = useState('');
+  
+  // For debouncing the title filter
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedTitleFilter(titleFilter);
+      // Apply the filter when typing stops
+      if (titleFilter !== '') {
+        updateFilters({ titleFilter: titleFilter });
+        syncCalendar();
+      }
+    }, 500);
+    
+    return () => clearTimeout(timer);
+  }, [titleFilter, updateFilters, syncCalendar]);
   
   // Force recalculation on component mount and when events change
   useEffect(() => {
@@ -38,7 +56,7 @@ const TotalHoursView: React.FC = () => {
   const formatTime = (hours: number): string => {
     const wholeHours = Math.floor(hours);
     const minutes = Math.round((hours - wholeHours) * 60);
-    return `${wholeHours}h ${minutes}m`;
+    return `${wholeHours}:${String(minutes).padStart(2, '0')}`;
   };
   
   // Calculate hours by activity type
@@ -59,20 +77,21 @@ const TotalHoursView: React.FC = () => {
   };
   
   return (
-    <div className="mb-8">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-2xl font-bold">Total Hours Overview</h2>
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">Total hours</h2>
         <div className="flex items-center gap-2">
-          <Badge variant="outline" className="flex items-center gap-1">
-            <Calendar className="h-3 w-3" />
-            <span>
-              {filters.dateRange === 30 ? 'Last 30 days' : 
-               filters.dateRange === 7 ? 'Last week' : 
-               filters.dateRange === 90 ? 'Last 3 months' : 
-               `Last ${filters.dateRange} days`}
-            </span>
-          </Badge>
-          
+          <div className="relative">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input 
+              type="text" 
+              placeholder="Filter by title" 
+              className="pl-9 w-[200px]"
+              value={titleFilter}
+              onChange={(e) => setTitleFilter(e.target.value)}
+            />
+          </div>
+
           <Select
             value={filters.dateRange.toString()}
             onValueChange={handleDateRangeChange}
@@ -92,40 +111,58 @@ const TotalHoursView: React.FC = () => {
         </div>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Total Hours Card */}
-        <Card className="bg-gray-900 text-white border-0">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg">Total hours</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-4">
-              <div className="text-4xl font-bold">{Math.floor(totalHours)}:{String(Math.round((totalHours % 1) * 60)).padStart(2, '0')}</div>
-              <div className="text-gray-400">
-                from {filteredEvents.length} events
+      {/* Main Total Hours Card */}
+      <Card className="bg-gray-900 text-white border-0">
+        <CardContent className="p-6">
+          <div className="flex flex-col md:flex-row md:justify-between gap-6">
+            {/* Total hours display */}
+            <div className="flex flex-col">
+              <div className="text-gray-400 text-sm mb-1">Total hours</div>
+              <div className="text-4xl font-bold mb-2">{formatTime(totalHours)}</div>
+              <div className="flex items-center gap-2 text-sm text-gray-400">
+                <Calendar className="h-4 w-4" />
+                <span>
+                  {filters.dateRange === 30 ? 'Last 30 days' : 
+                   filters.dateRange === 7 ? 'Last week' : 
+                   filters.dateRange === 90 ? 'Last 3 months' : 
+                   `Last ${filters.dateRange} days`}
+                </span>
                 {lastSynced && (
-                  <div className="text-xs mt-1">
+                  <Badge variant="outline" className="bg-transparent border-gray-700 text-gray-300 ml-2">
                     Last synced: {format(lastSynced, 'MMM d, h:mm a')}
-                  </div>
+                  </Badge>
                 )}
               </div>
             </div>
             
-            <div className="mt-6">
-              <h3 className="text-sm text-gray-400 mb-2">Activities</h3>
-              <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+            {/* Activities */}
+            <div className="flex-1">
+              <div className="text-gray-400 text-sm mb-3">Activities</div>
+              <div className="space-y-4">
                 {activityTypes.map(activity => {
                   const hours = getActivityHours(activity.type);
                   const percentage = totalHours > 0 ? (hours / totalHours) * 100 : 0;
                   
                   return (
-                    <div key={activity.type} className="relative">
-                      <ActivityTag
-                        type={activity.type}
-                        hours={hours}
-                        className="w-full justify-between"
-                      />
-                      <div className="mt-1 h-1 w-full bg-gray-800 rounded-full overflow-hidden">
+                    <div key={activity.type}>
+                      <div className="flex justify-between items-center mb-1">
+                        <div className="flex items-center">
+                          <div 
+                            className="w-3 h-3 rounded-full mr-2"
+                            style={{
+                              backgroundColor: 
+                                activity.type === 'design' ? 'rgb(34, 197, 94)' :
+                                activity.type === 'strategy' ? 'rgb(59, 130, 246)' :
+                                activity.type === 'dev' ? 'rgb(168, 85, 247)' :
+                                activity.type === 'meetings' ? 'rgb(234, 179, 8)' :
+                                'rgb(239, 68, 68)'
+                            }}
+                          />
+                          <span className="text-sm">{activity.label}</span>
+                        </div>
+                        <span className="text-sm font-medium">{formatTime(hours)}</span>
+                      </div>
+                      <div className="h-2 w-full bg-gray-800 rounded-full overflow-hidden">
                         <div 
                           className="h-full rounded-full transition-all duration-500"
                           style={{
@@ -144,56 +181,9 @@ const TotalHoursView: React.FC = () => {
                 })}
               </div>
             </div>
-          </CardContent>
-        </Card>
-        
-        {/* Projects Overview Card */}
-        <Card className="bg-gray-900 text-white border-0">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg">Projects Overview</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {customProjects.length === 0 ? (
-              <div className="text-center p-4 text-gray-400">
-                <p>No project views created yet</p>
-                <p className="text-xs mt-1">Go to the Projects tab to create custom project views</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {customProjects.map(project => {
-                  const monthPercentage = project.monthlyHours && project.totalHours 
-                    ? (project.monthlyHours / project.totalHours) * 100 
-                    : 0;
-                    
-                  return (
-                    <div key={project.id} className="border-b border-gray-800 pb-3 last:border-b-0">
-                      <div className="flex justify-between items-start mb-1">
-                        <span className="font-medium">{project.name}</span>
-                        <div className="flex items-center gap-2">
-                          <Badge variant="outline" className="bg-transparent border-gray-700">{formatTime(project.totalHours)}</Badge>
-                          {project.monthlyHours && (
-                            <Badge variant="secondary" className="flex items-center gap-1 bg-gray-800 text-gray-300">
-                              <Clock className="h-3 w-3" />
-                              <span>{formatTime(project.monthlyHours)} this month</span>
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                      
-                      <div className="mt-2 h-1.5 w-full bg-gray-800 rounded-full overflow-hidden">
-                        <div 
-                          className="h-full bg-blue-500 rounded-full transition-all duration-500"
-                          style={{ width: `${monthPercentage}%` }}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };
