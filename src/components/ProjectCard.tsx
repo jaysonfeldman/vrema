@@ -36,13 +36,6 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
   
   const projectTag = getProjectTag(project.name);
 
-  // Log project details for debugging
-  console.log(`Rendering ProjectCard for ${project.name} with ${project.totalHours} hours and ${project.activities?.length || 0} activities`);
-  
-  if (project.activities?.length > 0) {
-    console.log(`Activities for ${project.name}:`, project.activities.map(a => ({type: a.type, hours: a.hours})));
-  }
-
   const handleSaveChanges = async () => {
     try {
       // Save to Supabase
@@ -172,18 +165,14 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
       return;
     }
     
-    console.log(`Navigating to project detail page for project ID: ${project.id}`);
-    
     // Navigate to the dedicated project page
     navigate(`/projects/${project.id}`);
   };
 
   // Calculate project earnings if hourly rate is set
   const getProjectEarnings = () => {
-    if (project.hourlyRate && project.hourlyRate > 0) {
-      const earnings = project.totalHours * project.hourlyRate;
-      console.log(`Calculated earnings for ${project.name}: ${earnings} (${project.totalHours} × ${project.hourlyRate})`);
-      return earnings;
+    if (project.hourlyRate) {
+      return project.totalHours * project.hourlyRate;
     }
     return null;
   };

@@ -14,40 +14,24 @@ import { GoogleCalendarEvent, Project } from '@/lib/types';
 const ProjectDetail: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
-  const { events, customProjects, getProjectById } = useCalendarSync();
+  const { getProjectById, events } = useCalendarSync();
   const [project, setProject] = useState<Project | null>(null);
   const [projectEvents, setProjectEvents] = useState<GoogleCalendarEvent[]>([]);
 
   useEffect(() => {
     if (projectId) {
-      console.log('Looking for project with ID:', projectId);
-      console.log('Available projects:', customProjects.map(p => ({ id: p.id, name: p.name, filterTerm: p.filterTerm })));
-      
-      // Try to find the project by ID first
       const foundProject = getProjectById(projectId);
-      
       if (foundProject) {
-        console.log('Found project by ID:', foundProject);
         setProject(foundProject);
-        
-        // Filter events for this project based on the parsed project name
+        // Filter events for this project
         const filteredEvents = events.filter(event => {
-          if (!event.summary) return false;
-          
           const { projectName } = parseEventTitle(event.summary);
-          if (!projectName) return false;
-          
-          // Case insensitive matching of project name
           return projectName.toLowerCase() === foundProject.name.toLowerCase();
         });
-        
-        console.log(`Found ${filteredEvents.length} events for project ${foundProject.name}`);
         setProjectEvents(filteredEvents);
-      } else {
-        console.log('Project not found with ID:', projectId);
       }
     }
-  }, [projectId, customProjects, events, getProjectById]);
+  }, [projectId, getProjectById, events]);
 
   if (!project) {
     return (
@@ -61,7 +45,7 @@ const ProjectDetail: React.FC = () => {
             </Button>
           </div>
           <div className="text-center py-12">
-            <p className="text-muted-foreground">Project not found with ID: {projectId}</p>
+            <p className="text-muted-foreground">Project not found</p>
           </div>
         </div>
       </div>
@@ -122,7 +106,7 @@ const ProjectDetail: React.FC = () => {
                   {projectEvents.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={4} className="text-center py-6 text-muted-foreground">
-                        No events found for this project. Create calendar events with format "ProjectName#ActivityType Description" to track time.
+                        No events found for this project.
                       </TableCell>
                     </TableRow>
                   ) : (
