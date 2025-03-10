@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { GoogleCalendarEvent } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -15,16 +16,34 @@ const getActivityColor = (activityType: string): string => {
   // Use the specified palette colors
   const activityLower = activityType.toLowerCase();
   
-  if (activityLower.includes('design')) return 'bg-[#FEF18B] text-slate-900 border-[#FEF18B]'; // Flax
-  if (activityLower.includes('dev') || activityLower.includes('development')) return 'bg-[#7ED3FC] text-slate-900 border-[#7ED3FC]'; // Pale azure
-  if (activityLower.includes('meet') || activityLower.includes('call')) return 'bg-[#D1FAE5] text-slate-900 border-[#D1FAE5]'; // Nyanza
-  if (activityLower.includes('plan') || activityLower.includes('strat')) return 'bg-[#6EE7B7] text-slate-900 border-[#6EE7B7]'; // Aquamarine
-  if (activityLower.includes('admin')) return 'bg-[#FED8AA] text-slate-900 border-[#FED8AA]'; // Sunset
-  if (activityLower.includes('pm')) return 'bg-[#22C55F] text-white border-[#22C55F]'; // Emerald
+  if (activityLower.includes('design')) return 'bg-flax text-slate-900 border-flax'; // Flax - soft yellow
+  if (activityLower.includes('dev') || activityLower.includes('development')) return 'bg-pale_azure text-slate-900 border-pale_azure'; // Pale azure - soft blue
+  if (activityLower.includes('meet') || activityLower.includes('call')) return 'bg-nyanza text-slate-900 border-nyanza'; // Nyanza - soft green
+  if (activityLower.includes('plan') || activityLower.includes('strat')) return 'bg-aquamarine text-slate-900 border-aquamarine'; // Aquamarine - soft green
+  if (activityLower.includes('admin')) return 'bg-sunset text-slate-900 border-sunset'; // Sunset - soft peach
+  if (activityLower.includes('pm')) return 'bg-emerald text-white border-emerald'; // Emerald - bright green
   
-  // Generate a consistent color based on the activity type
-  const color = stringToColor(activityType);
-  return `bg-[${color}] text-white border-[${color}]`;
+  // Simple hash function to generate a consistent color
+  const getColorClass = (str: string) => {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      hash = str.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const colorIndex = Math.abs(hash) % colors.length;
+    return colors[colorIndex];
+  };
+  
+  // All colors from the palette
+  const colors = [
+    'bg-emerald text-white border-emerald',
+    'bg-nyanza text-slate-900 border-nyanza',
+    'bg-sunset text-slate-900 border-sunset',
+    'bg-aquamarine text-slate-900 border-aquamarine',
+    'bg-flax text-slate-900 border-flax',
+    'bg-pale_azure text-slate-900 border-pale_azure'
+  ];
+  
+  return getColorClass(activityType);
 };
 
 const CalendarEventListView: React.FC<CalendarEventListViewProps> = ({ events }) => {

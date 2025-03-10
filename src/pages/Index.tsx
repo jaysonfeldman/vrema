@@ -16,6 +16,7 @@ const Index: React.FC = () => {
   const { authState } = useGoogleAuth();
   const { syncCalendar, lastSynced, isAuthenticated, events, projectFilters, customProjects, updateFilters } = useCalendarSync();
   const [activeTab, setActiveTab] = useState<string>("projects");
+  const [initialSyncDone, setInitialSyncDone] = useState(false);
 
   // Handle URL parameters
   useEffect(() => {
@@ -41,11 +42,26 @@ const Index: React.FC = () => {
 
   // Auto-sync calendar when authenticated and not yet synced
   useEffect(() => {
-    if (authState.isAuthenticated && (!lastSynced || events.length === 0)) {
+    if (authState.isAuthenticated && !initialSyncDone) {
       console.log("Auto-syncing calendar from Index component");
-      syncCalendar();
+      // Start with a shorter timeframe for faster initial load
+      syncCalendar(30);
+      setInitialSyncDone(true);
     }
-  }, [authState.isAuthenticated, lastSynced, syncCalendar, events.length]);
+  }, [authState.isAuthenticated, initialSyncDone, syncCalendar]);
+
+  // Force a resync if we have auth but no events
+  useEffect(() => {
+    if (authState.isAuthenticated && events.length === 0 && initialSyncDone) {
+      // Only do this once after a short delay
+      const timer = setTimeout(() => {
+        console.log("No events found after initial sync, retrying with longer timeframe");
+        syncCalendar(60);
+      }, 2000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [authState.isAuthenticated, events.length, initialSyncDone, syncCalendar]);
 
   // For debugging
   useEffect(() => {

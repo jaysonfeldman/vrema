@@ -17,11 +17,11 @@ const ActivityTag: React.FC<ActivityTagProps> = ({
   style,
   color
 }) => {
-  // Define color palette with the specified colors
+  // Define color palette with the specified colors from the user
   const getActivityColor = (activityType: string): string => {
     const activityLower = activityType.toLowerCase();
     
-    // Use the specified palette colors
+    // Use the provided palette colors
     if (activityLower.includes('design')) return '#FEF18B'; // Flax - soft yellow
     if (activityLower.includes('dev') || activityLower.includes('development')) return '#7ED3FC'; // Pale azure - soft blue
     if (activityLower.includes('meet') || activityLower.includes('call')) return '#D1FAE5'; // Nyanza - soft green
@@ -29,8 +29,22 @@ const ActivityTag: React.FC<ActivityTagProps> = ({
     if (activityLower.includes('admin')) return '#FED8AA'; // Sunset - soft peach
     if (activityLower.includes('pm')) return '#22C55F'; // Emerald - bright green
     
-    // Use provided color or fallback to a color from our palette
-    return color || '#D1FAE5'; // Default to Nyanza
+    // Use provided color or generate one based on the type string
+    // This ensures each activity type gets a consistent but unique color
+    if (color) return color;
+    
+    // Simple hash function to generate a consistent color index
+    const getColorIndex = (str: string) => {
+      let hash = 0;
+      for (let i = 0; i < str.length; i++) {
+        hash = str.charCodeAt(i) + ((hash << 5) - hash);
+      }
+      return Math.abs(hash) % colors.length;
+    };
+    
+    // All colors from the palette
+    const colors = ['#22C55F', '#D1FAE5', '#FED8AA', '#6EE7B7', '#FEF18B', '#7ED3FC'];
+    return colors[getColorIndex(activityType)];
   };
   
   // Generate or use provided color

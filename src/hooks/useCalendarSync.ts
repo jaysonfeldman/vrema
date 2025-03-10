@@ -47,11 +47,15 @@ export function useCalendarSync() {
     getProjectById
   } = useProjectManagement(getProjectColor);
 
-  // Sync projects when events change
+  // Sync projects when events change - with higher priority
   useEffect(() => {
     if (events.length > 0) {
-      updateProjectStats(events);
-      identifyProjectsFromEvents(events);
+      console.log(`useCalendarSync - Processing ${events.length} events`);
+      // Run immediately without batching to ensure projects appear quickly
+      setTimeout(() => {
+        updateProjectStats(events);
+        identifyProjectsFromEvents(events);
+      }, 0);
     }
   }, [events, updateProjectStats, identifyProjectsFromEvents]);
 
@@ -59,7 +63,10 @@ export function useCalendarSync() {
   useEffect(() => {
     if (events.length > 0 && Object.keys(projectFilters).length > 0) {
       console.log("Updating custom projects based on events and filters");
-      updateCustomProjects(events, projectFilters);
+      // Run with slight delay to ensure project filters are fully processed
+      setTimeout(() => {
+        updateCustomProjects(events, projectFilters);
+      }, 100);
     }
   }, [events, projectFilters, updateCustomProjects]);
 
