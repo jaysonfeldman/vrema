@@ -84,12 +84,9 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
     // Navigate to the Calendar Events tab
     if (location.pathname === '/') {
       // If we're already on the index page, just change the tab
-      const tabsElement = document.querySelector('[data-state="active"][data-radix-collection-item]');
-      if (tabsElement) {
-        const eventsTab = document.querySelector('[value="events"]') as HTMLElement;
-        if (eventsTab) {
-          eventsTab.click();
-        }
+      const eventsTab = document.querySelector('[value="events"]') as HTMLElement;
+      if (eventsTab) {
+        eventsTab.click();
       }
     } else {
       // Navigate to index page with events tab
