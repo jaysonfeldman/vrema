@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Project } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import ProjectCardMenu from './project/ProjectCardMenu';
@@ -11,6 +11,7 @@ import ProjectTeam from './project/ProjectTeam';
 import ProjectActivities from './project/ProjectActivities';
 import ProjectHeader from './project/ProjectHeader';
 import { getProjectTag } from './project/ProjectUtils';
+import { useCalendarSync } from '@/hooks/useCalendarSync';
 
 interface ProjectCardProps {
   project: Project;
@@ -28,6 +29,8 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
   onDeleteProject
 }) => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { updateFilters } = useCalendarSync();
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
   const [editedProject, setEditedProject] = useState<Project>({...project});
@@ -74,7 +77,24 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
         (e.target as HTMLElement).closest('[role="menu"]')) {
       return;
     }
-    navigate(`/projects/${project.id}`);
+    
+    // First, update the filters to show only this project's events
+    updateFilters({ project: project.name });
+    
+    // Navigate to the Calendar Events tab
+    if (location.pathname === '/') {
+      // If we're already on the index page, just change the tab
+      const tabsElement = document.querySelector('[data-state="active"][data-radix-collection-item]');
+      if (tabsElement) {
+        const eventsTab = document.querySelector('[value="events"]') as HTMLElement;
+        if (eventsTab) {
+          eventsTab.click();
+        }
+      }
+    } else {
+      // Navigate to index page with events tab
+      navigate('/?tab=events&project=' + encodeURIComponent(project.name));
+    }
   };
 
   return (

@@ -1,21 +1,43 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import GoogleCalendarSync from '@/components/GoogleCalendarSync';
 import ProjectsOverview from '@/components/ProjectsOverview';
 import TotalHoursView from '@/components/TotalHoursView';
-import ProjectView from '@/components/ProjectView';
 import CalendarEventsTable from '@/components/CalendarEventsTable';
 import { useCalendarSync } from '@/hooks/useCalendarSync';
 import { useGoogleAuth } from '@/providers/GoogleAuthProvider';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
-import { Eye } from "lucide-react";
 
 const Index: React.FC = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
   const { authState } = useGoogleAuth();
-  const { syncCalendar, lastSynced, isAuthenticated, events, projectFilters, customProjects } = useCalendarSync();
+  const { syncCalendar, lastSynced, isAuthenticated, events, projectFilters, customProjects, updateFilters } = useCalendarSync();
+  const [activeTab, setActiveTab] = useState<string>("projects");
+
+  // Handle URL parameters
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const tabParam = params.get('tab');
+    const projectParam = params.get('project');
+    
+    // Set active tab based on URL parameter
+    if (tabParam && (tabParam === 'projects' || tabParam === 'events')) {
+      setActiveTab(tabParam);
+    }
+    
+    // Set project filter based on URL parameter
+    if (projectParam) {
+      updateFilters({ project: projectParam });
+    }
+    
+    // Clean URL after processing parameters
+    if (tabParam || projectParam) {
+      navigate('/', { replace: true });
+    }
+  }, [location, navigate, updateFilters]);
 
   // Auto-sync calendar when authenticated and not yet synced
   useEffect(() => {
@@ -40,19 +62,14 @@ const Index: React.FC = () => {
         <div className="space-y-8 pt-4">
           <TotalHoursView />
           
-          <Tabs defaultValue="projects" className="w-full">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="mb-4">
               <TabsTrigger value="projects">Project Cards</TabsTrigger>
-              <TabsTrigger value="views">Project Views</TabsTrigger>
               <TabsTrigger value="events">Calendar Events</TabsTrigger>
             </TabsList>
             
             <TabsContent value="projects">
               <ProjectsOverview />
-            </TabsContent>
-            
-            <TabsContent value="views">
-              <ProjectView />
             </TabsContent>
             
             <TabsContent value="events">
