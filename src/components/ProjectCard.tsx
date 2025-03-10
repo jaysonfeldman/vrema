@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Project } from '@/lib/types';
@@ -37,8 +38,8 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
     console.log(`Rendering ProjectCard for ${project.name} (ID: ${project.id})`);
   }, [project]);
 
-  const handleSaveSettings = async (updatedProject: Project) => {
-    await onUpdateProject(updatedProject);
+  const handleSaveSettings = (updatedProject: Project) => {
+    onUpdateProject(updatedProject);
     setShowSettings(false);
   };
 
