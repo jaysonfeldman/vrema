@@ -1,3 +1,4 @@
+
 export type ActivityType = string;
 
 export interface Activity {
@@ -63,7 +64,6 @@ export interface GoogleCalendarEvent {
   updated?: string;
   status?: string;
   htmlLink?: string;
-  projectId?: string; // Add this to associate events with projects
 }
 
 export interface GoogleAuthState {

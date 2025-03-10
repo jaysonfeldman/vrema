@@ -1,4 +1,5 @@
-import { GoogleCalendarEvent, Project } from '@/lib/types';
+
+import { GoogleCalendarEvent } from '@/lib/types';
 import { addDays, format, parseISO } from 'date-fns';
 
 export const fetchCalendarEvents = async (token: string, days = 30): Promise<GoogleCalendarEvent[]> => {
@@ -25,9 +26,9 @@ export const fetchCalendarEvents = async (token: string, days = 30): Promise<Goo
       console.error('Google Calendar API error:', errorText);
       
       if (response.status === 401) {
-        throw new Error('Authentication expired - please reconnect your Google Calendar');
+        throw new Error('Authentication failed - please reconnect your Google Calendar');
       } else if (response.status === 403) {
-        throw new Error('Permission denied - make sure to allow Calendar access when connecting');
+        throw new Error('Permission denied - check Google Calendar access permissions');
       } else {
         throw new Error(`Failed to fetch calendar events: ${response.status} ${response.statusText}`);
       }
@@ -75,64 +76,34 @@ export const fetchCalendarEvents = async (token: string, days = 30): Promise<Goo
 export const parseEventTitle = (title: string): { 
   projectName: string; 
   activityType: string; 
-  description: string;
-  projectId?: string;
+  description: string 
 } => {
+  // Make project names case-insensitive by normalizing to lowercase
   let projectName = 'Other';
-  let activityType = 'other';
+  let activityType = 'other'; // Default to 'other' instead of 'meetings'
   let description = title;
-  let projectId = undefined;
-
-  if (!title) {
-    return { projectName, activityType, description, projectId };
-  }
 
   if (title.includes('#')) {
-    const parts = title.split('#');
+    const [projectPart, rest] = title.split('#', 2);
+    // Store project name in original case for display, but we'll use lowercase for comparison later
+    projectName = projectPart.trim();
     
-    if (parts.length >= 1 && parts[0].trim() !== '') {
-      projectName = parts[0].trim();
-    }
+    const activityAndDescription = rest;
     
-    if (parts.length >= 2) {
-      const activityPart = parts[1].trim();
+    if (activityAndDescription) {
+      const firstSpaceIndex = activityAndDescription.indexOf(' ');
       
-      if (activityPart.indexOf(' ') > 0) {
-        activityType = activityPart.substring(0, activityPart.indexOf(' ')).trim();
-        description = activityPart.substring(activityPart.indexOf(' ') + 1).trim();
+      if (firstSpaceIndex > 0) {
+        activityType = activityAndDescription.substring(0, firstSpaceIndex).trim();
+        description = activityAndDescription.substring(firstSpaceIndex + 1).trim();
       } else {
-        activityType = activityPart;
+        activityType = activityAndDescription.trim();
         description = '';
       }
     }
   }
   
-  return { projectName, activityType, description, projectId };
-};
-
-export const associateEventsWithProjects = (events: GoogleCalendarEvent[], projects: Project[]): GoogleCalendarEvent[] => {
-  return events.map(event => {
-    const { projectName } = parseEventTitle(event.summary || '');
-    
-    // Find matching project by name or filter term
-    const matchingProject = projects.find(project => {
-      const projectNameMatch = project.name.toLowerCase() === projectName.toLowerCase();
-      const filterTermMatch = project.filterTerm && 
-        event.summary?.toLowerCase().includes(project.filterTerm.toLowerCase());
-      
-      return projectNameMatch || filterTermMatch;
-    });
-    
-    if (matchingProject) {
-      console.log(`Associated event "${event.summary}" with project ${matchingProject.name} (${matchingProject.id})`);
-      return {
-        ...event,
-        projectId: matchingProject.id
-      };
-    }
-    
-    return event;
-  });
+  return { projectName, activityType, description };
 };
 
 export const convertEventsToActivities = (events: GoogleCalendarEvent[]): { 
@@ -167,10 +138,9 @@ export const convertEventsToActivities = (events: GoogleCalendarEvent[]): {
     
     totalValidEvents++;
     
+    // Get project name but normalize to lowercase for case-insensitivity
     const { projectName, activityType } = parseEventTitle(event.summary);
-    
-    console.log(`Event: "${event.summary}" -> Project: "${projectName}", Activity: "${activityType}", Duration: ${durationHours.toFixed(2)}h`);
-    
+    // Normalize projectName to lowercase to ensure case-insensitivity
     const normalizedProjectName = projectName.toLowerCase();
     
     projectMap[normalizedProjectName] = (projectMap[normalizedProjectName] || 0) + durationHours;
@@ -179,9 +149,7 @@ export const convertEventsToActivities = (events: GoogleCalendarEvent[]): {
       activityMap[normalizedProjectName] = [];
     }
     
-    const existingActivityIndex = activityMap[normalizedProjectName].findIndex(a => 
-      a.type.toLowerCase() === activityType.toLowerCase()
-    );
+    const existingActivityIndex = activityMap[normalizedProjectName].findIndex(a => a.type === activityType);
     
     if (existingActivityIndex >= 0) {
       activityMap[normalizedProjectName][existingActivityIndex].hours += durationHours;

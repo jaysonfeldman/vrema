@@ -2,7 +2,6 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
-import { RefreshCw } from 'lucide-react';
 
 interface CalendarSyncStatusProps {
   lastSynced: Date | null;
@@ -26,14 +25,7 @@ const CalendarSyncStatus: React.FC<CalendarSyncStatusProps> = ({
         onClick={onSync}
         disabled={isLoading}
       >
-        {isLoading ? (
-          <>
-            <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-            Syncing...
-          </>
-        ) : (
-          'Sync Now'
-        )}
+        {isLoading ? 'Syncing...' : 'Sync Now'}
       </Button>
     </div>
   );
