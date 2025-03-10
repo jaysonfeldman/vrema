@@ -76,6 +76,68 @@ export const fetchCalendarEvents = async (token: string, days = 30): Promise<Goo
   }
 };
 
+// Parse event title to extract project, activity type, and description
+// Format: "projectName#activityType description"
+export const parseEventTitle = (title: string): { 
+  projectName: string; 
+  activityType: string; 
+  description: string 
+} => {
+  // Default values
+  let projectName = 'Other';
+  let activityType = 'meetings';
+  let description = title;
+
+  // Check if title contains # (our activity delimiter)
+  if (title.includes('#')) {
+    const [projectPart, rest] = title.split('#', 2);
+    projectName = projectPart.trim();
+    
+    // Get the activity type and description
+    const activityAndDescription = rest;
+    
+    if (activityAndDescription) {
+      // Find the first space to separate activity from description
+      const firstSpaceIndex = activityAndDescription.indexOf(' ');
+      
+      if (firstSpaceIndex > 0) {
+        // We have both activity and description
+        activityType = activityAndDescription.substring(0, firstSpaceIndex).trim();
+        description = activityAndDescription.substring(firstSpaceIndex + 1).trim();
+      } else {
+        // Only activity, no description
+        activityType = activityAndDescription.trim();
+        description = '';
+      }
+    }
+  }
+  
+  // Map common activity types to our standard types
+  const normalizedActivityType = normalizeActivityType(activityType);
+  
+  return { projectName, activityType: normalizedActivityType, description };
+};
+
+// Normalize activity types to match our system
+const normalizeActivityType = (activityType: string): string => {
+  activityType = activityType.toLowerCase();
+  
+  if (activityType.includes('design') || activityType === 'ui' || activityType === 'ux') {
+    return 'design';
+  } else if (activityType.includes('dev') || activityType.includes('code') || activityType === 'programming') {
+    return 'dev';
+  } else if (activityType.includes('strategy') || activityType.includes('plan')) {
+    return 'strategy';
+  } else if (activityType.includes('admin') || activityType === 'management') {
+    return 'admin';
+  } else if (activityType.includes('meeting') || activityType.includes('call') || activityType === 'discuss') {
+    return 'meetings';
+  }
+  
+  // Default to meetings if no match
+  return 'meetings';
+};
+
 export const convertEventsToActivities = (events: GoogleCalendarEvent[]): { 
   projectMap: Record<string, number>,
   activityMap: Record<string, { type: string, hours: number }[]>
@@ -109,29 +171,8 @@ export const convertEventsToActivities = (events: GoogleCalendarEvent[]): {
     
     totalValidEvents++;
     
-    // Extract project name from event summary (assuming format: "Project: Task")
-    const projectName = event.summary.includes(':') 
-      ? event.summary.split(':')[0].trim() 
-      : 'Other'; // Default project name if no colon is found
-    
-    // Default activity type
-    let activityType: string = 'meetings';
-    
-    // Try to determine activity type from description or summary
-    const lowerSummary = event.summary.toLowerCase();
-    const lowerDescription = (event.description || '').toLowerCase();
-    
-    if (lowerSummary.includes('design') || lowerDescription.includes('design')) {
-      activityType = 'design';
-    } else if (lowerSummary.includes('dev') || lowerDescription.includes('dev') || 
-               lowerSummary.includes('code') || lowerDescription.includes('code')) {
-      activityType = 'dev';
-    } else if (lowerSummary.includes('strategy') || lowerDescription.includes('strategy') ||
-               lowerSummary.includes('planning') || lowerDescription.includes('planning')) {
-      activityType = 'strategy';
-    } else if (lowerSummary.includes('admin') || lowerDescription.includes('admin')) {
-      activityType = 'admin';
-    }
+    // Parse the event title to extract project, activity, and description
+    const { projectName, activityType } = parseEventTitle(event.summary);
     
     // Add hours to project
     projectMap[projectName] = (projectMap[projectName] || 0) + durationHours;

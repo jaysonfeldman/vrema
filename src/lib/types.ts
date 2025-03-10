@@ -1,3 +1,4 @@
+
 export type ActivityType = 'design' | 'strategy' | 'dev' | 'meetings' | 'admin';
 
 export interface Activity {
@@ -75,4 +76,10 @@ export interface FilterOptions {
   searchTerm: string;
   project: string;
   dateRange: number;
+}
+
+export interface ParsedEvent {
+  projectName: string;
+  activityType: ActivityType;
+  description: string;
 }

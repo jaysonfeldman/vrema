@@ -66,7 +66,10 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, className, style }) 
         'rounded-lg overflow-hidden animate-fade-in',
         className
       )}
-      style={style}
+      style={{
+        ...style,
+        borderLeft: project.color ? `4px solid ${project.color}` : undefined
+      }}
     >
       <div className="p-6">
         <div className="flex items-start justify-between mb-6">
@@ -142,6 +145,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, className, style }) 
                     activity.type === 'meetings' ? 'rgb(234, 179, 8)' :
                     'rgb(239, 68, 68)'
                 }}
+                title={activity.description || undefined}
               >
                 {formatTime(activity.hours)} #{activity.type}
               </div>

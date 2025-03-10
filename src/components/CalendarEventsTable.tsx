@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { useCalendarSync } from '@/hooks/useCalendarSync';
 import { Input } from '@/components/ui/input';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
@@ -7,7 +7,12 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { formatEventDate, getDayOfWeek, calculateDuration } from '@/services/googleCalendarService';
+import { 
+  formatEventDate, 
+  getDayOfWeek, 
+  calculateDuration, 
+  parseEventTitle 
+} from '@/services/googleCalendarService';
 import { Search, Calendar, Clock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
@@ -116,10 +121,10 @@ const CalendarEventsTable: React.FC = () => {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Event</TableHead>
                       <TableHead>Project</TableHead>
+                      <TableHead>Activity</TableHead>
+                      <TableHead>Description</TableHead>
                       <TableHead>Start</TableHead>
-                      <TableHead>End</TableHead>
                       <TableHead>Duration</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -132,22 +137,26 @@ const CalendarEventsTable: React.FC = () => {
                       </TableRow>
                     ) : (
                       filteredEvents.map((event) => {
-                        const projectName = event.summary.includes(':') 
-                          ? event.summary.split(':')[0].trim() 
-                          : 'Other';
+                        const { projectName, activityType, description } = parseEventTitle(event.summary);
                         
-                        const eventName = event.summary.includes(':') 
-                          ? event.summary.split(':').slice(1).join(':').trim() 
-                          : event.summary;
-                          
                         return (
                           <TableRow key={event.id}>
-                            <TableCell className="font-medium">{eventName}</TableCell>
                             <TableCell>
                               <Badge variant="outline">{projectName}</Badge>
                             </TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className={
+                                activityType === 'design' ? 'bg-green-500 text-white border-green-400' :
+                                activityType === 'strategy' ? 'bg-blue-500 text-white border-blue-400' :
+                                activityType === 'dev' ? 'bg-purple-500 text-white border-purple-400' :
+                                activityType === 'meetings' ? 'bg-yellow-500 text-white border-yellow-400' :
+                                'bg-red-500 text-white border-red-400'
+                              }>
+                                #{activityType}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="font-medium">{description || '(No description)'}</TableCell>
                             <TableCell>{formatEventDate(event.start.dateTime)}</TableCell>
-                            <TableCell>{formatEventDate(event.end.dateTime)}</TableCell>
                             <TableCell>
                               <div className="flex items-center gap-2">
                                 <Clock className="h-3 w-3 text-muted-foreground" />
@@ -192,13 +201,7 @@ const CalendarEventsTable: React.FC = () => {
                           {dayEvents
                             .sort((a, b) => new Date(a.start.dateTime).getTime() - new Date(b.start.dateTime).getTime())
                             .map((event) => {
-                              const projectName = event.summary.includes(':') 
-                                ? event.summary.split(':')[0].trim() 
-                                : 'Other';
-                              
-                              const eventName = event.summary.includes(':') 
-                                ? event.summary.split(':').slice(1).join(':').trim() 
-                                : event.summary;
+                              const { projectName, activityType, description } = parseEventTitle(event.summary);
                                 
                               return (
                                 <div 
@@ -207,13 +210,22 @@ const CalendarEventsTable: React.FC = () => {
                                 >
                                   <div className="flex justify-between items-start">
                                     <div>
-                                      <div className="font-medium">{eventName}</div>
+                                      <div className="font-medium">{description || '(No description)'}</div>
                                       <div className="text-sm text-muted-foreground">
                                         {format(new Date(event.start.dateTime), 'h:mm a')} - {format(new Date(event.end.dateTime), 'h:mm a')}
                                       </div>
                                     </div>
                                     <div className="flex items-center gap-2">
                                       <Badge variant="outline">{projectName}</Badge>
+                                      <Badge className={
+                                        activityType === 'design' ? 'bg-green-500 text-white' :
+                                        activityType === 'strategy' ? 'bg-blue-500 text-white' :
+                                        activityType === 'dev' ? 'bg-purple-500 text-white' :
+                                        activityType === 'meetings' ? 'bg-yellow-500 text-white' :
+                                        'bg-red-500 text-white'
+                                      }>
+                                        #{activityType}
+                                      </Badge>
                                       <span className="text-sm flex items-center gap-1">
                                         <Clock className="h-3 w-3 text-muted-foreground" />
                                         {calculateDuration(event.start.dateTime, event.end.dateTime)}
