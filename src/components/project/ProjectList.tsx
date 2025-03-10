@@ -34,9 +34,7 @@ const ProjectList: React.FC<ProjectListProps> = ({
     return (
       <div className="bg-zinc-50 border border-zinc-200 rounded-lg p-8 text-center">
         <p className="text-zinc-500 mb-4">No projects found. Connect to Google Calendar to import your projects.</p>
-        <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <div>No projects found</div>
-        </div>
+        <p className="text-zinc-400 text-sm">Create calendar events with the format "ProjectName#ActivityType Description" to track time.</p>
       </div>
     );
   }

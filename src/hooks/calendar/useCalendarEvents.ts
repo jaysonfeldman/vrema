@@ -7,7 +7,6 @@ import {
 } from '@/services/googleCalendarService';
 import { toast } from '@/components/ui/use-toast';
 import { GoogleCalendarEvent, FilterOptions } from '@/lib/types';
-import { addDays } from 'date-fns';
 
 export function useCalendarEvents() {
   const { authState, refreshToken } = useGoogleAuth();
