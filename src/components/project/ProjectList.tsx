@@ -35,14 +35,15 @@ const ProjectList: React.FC<ProjectListProps> = ({
         : "space-y-4"
     )}>
       {projects.map((project, index) => (
-        <ProjectCard
-          key={project.id}
-          project={project}
-          className="bg-zinc-900 text-white"
-          style={{ animationDelay: `${index * 100}ms` }}
-          onUpdateProject={onUpdateProject}
-          onDeleteProject={onDeleteProject}
-        />
+        <div key={project.id} id={`project-card-${project.id}`}>
+          <ProjectCard
+            project={project}
+            className="bg-zinc-900 text-white"
+            style={{ animationDelay: `${index * 100}ms` }}
+            onUpdateProject={onUpdateProject}
+            onDeleteProject={onDeleteProject}
+          />
+        </div>
       ))}
     </div>
   );

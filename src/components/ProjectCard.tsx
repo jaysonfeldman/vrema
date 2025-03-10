@@ -87,6 +87,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
               <ProjectTeam members={project.teamMembers} />
               
               <ProjectCardMenu 
+                projectName={project.name}
                 onEdit={() => setShowEditDialog(true)}
                 onSettings={() => setShowSettingsDialog(true)}
                 onDelete={handleDeleteProject}

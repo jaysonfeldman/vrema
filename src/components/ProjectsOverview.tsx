@@ -10,6 +10,15 @@ import ProjectSearch from './project/ProjectSearch';
 import ProjectList from './project/ProjectList';
 import NewProjectDialog from './project/NewProjectDialog';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Trash2 } from 'lucide-react';
 
 const ProjectsOverview: React.FC = () => {
   const { 
@@ -24,6 +33,7 @@ const ProjectsOverview: React.FC = () => {
   } = useCalendarSync();
   
   const [showAddProject, setShowAddProject] = useState(false);
+  const [showManageProjects, setShowManageProjects] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
   const [newProjectFilter, setNewProjectFilter] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -149,17 +159,25 @@ const ProjectsOverview: React.FC = () => {
 
   const handleDeleteProject = (projectId: string) => {
     const projectToDelete = filteredProjects.find(p => p.id === projectId);
-    const projectName = projectToDelete ? projectToDelete.name : projectId;
+    if (!projectToDelete) return;
     
+    const projectName = projectToDelete.name;
+    
+    console.log("Deleting project:", projectId, projectName);
+    
+    // Remove from saved projects
     setSavedProjects(prev => prev.filter(p => p.id !== projectId));
     
-    removeProjectFilter(projectId);
-    
-    syncCalendar();
+    // Remove from custom projects (if it's a filter-based project)
+    if (projectFilters[projectId]) {
+      removeProjectFilter(projectId);
+      syncCalendar();
+    }
     
     toast({
       title: "Project deleted",
       description: `Removed "${projectName}" project`,
+      variant: "default"
     });
   };
 
@@ -200,7 +218,10 @@ const ProjectsOverview: React.FC = () => {
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Projects</h2>
         <div className="flex items-center gap-2">
-          <ProjectFilters onAddProject={() => setShowAddProject(true)} />
+          <ProjectFilters 
+            onAddProject={() => setShowAddProject(true)} 
+            onManageProjects={() => setShowManageProjects(true)}
+          />
           <ProjectSortOptions sortBy={sortBy} onSortChange={setSortBy} />
           <ViewToggle viewMode={viewMode} onViewChange={setViewMode} />
         </div>
@@ -221,6 +242,72 @@ const ProjectsOverview: React.FC = () => {
         onAddProject={handleAddProject}
         onAddManualProject={handleAddManualProject}
       />
+      
+      <Dialog open={showManageProjects} onOpenChange={setShowManageProjects}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Manage Projects</DialogTitle>
+            <DialogDescription>
+              You can edit or delete your projects here.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-2">
+            {filteredProjects.length > 0 ? (
+              filteredProjects.map(project => (
+                <div key={project.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-md border">
+                  <div>
+                    <h3 className="font-medium">{project.name}</h3>
+                    <p className="text-sm text-gray-500">{project.totalHours.toFixed(1)} hours tracked</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => {
+                        const projectToEdit = filteredProjects.find(p => p.id === project.id);
+                        if (projectToEdit) {
+                          const card = document.getElementById(`project-card-${project.id}`);
+                          if (card) {
+                            card.scrollIntoView({ behavior: 'smooth' });
+                            setTimeout(() => {
+                              const editButton = card.querySelector('[data-edit-button]');
+                              if (editButton instanceof HTMLElement) {
+                                editButton.click();
+                              }
+                            }, 300);
+                          }
+                          setShowManageProjects(false);
+                        }
+                      }}
+                    >
+                      Edit
+                    </Button>
+                    <Button 
+                      variant="destructive" 
+                      size="sm"
+                      onClick={() => handleDeleteProject(project.id)}
+                    >
+                      <Trash2 className="h-4 w-4 mr-1" />
+                      Delete
+                    </Button>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-center p-4">
+                <p>No projects found. Create a new project first.</p>
+              </div>
+            )}
+          </div>
+          
+          <DialogFooter>
+            <Button type="button" onClick={() => setShowManageProjects(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       
       {filteredProjects.length > 0 ? (
         <ProjectList
