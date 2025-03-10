@@ -18,7 +18,7 @@ const ProjectDetail: React.FC = () => {
   const { toast } = useToast();
   const { 
     isLoading, 
-    getProjectById, 
+    customProjects,
     events, 
     filteredEvents,
     filters,
@@ -40,8 +40,12 @@ const ProjectDetail: React.FC = () => {
   
   // Load project and filter events
   useEffect(() => {
-    if (projectId) {
-      const foundProject = getProjectById(projectId);
+    if (projectId && customProjects.length > 0) {
+      // Find the project directly from customProjects
+      const foundProject = customProjects.find(p => p.id === projectId) || null;
+      console.log(`Looking for project with ID: ${projectId}`, foundProject ? 'Found' : 'Not found');
+      console.log('Available projects:', customProjects.map(p => ({ id: p.id, name: p.name })));
+      
       setProject(foundProject);
       
       if (foundProject) {
@@ -59,7 +63,7 @@ const ProjectDetail: React.FC = () => {
         });
       }
     }
-  }, [projectId, getProjectById, updateFilters, syncCalendar]);
+  }, [projectId, customProjects, updateFilters, syncCalendar]);
   
   // Update projectEvents when filteredEvents changes
   useEffect(() => {

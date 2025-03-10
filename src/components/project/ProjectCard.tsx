@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/components/ui/use-toast';
 import EditProjectDialog from '@/components/project/EditProjectDialog';
+import { useCalendarSync } from '@/hooks/useCalendarSync';
 
 interface ProjectCardProps {
   project: Project;
@@ -24,6 +25,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [showEditDialog, setShowEditDialog] = React.useState(false);
+  const { updateProject } = useCalendarSync();
   
   const formatHoursDisplay = (hours: number) => {
     const wholeHours = Math.floor(hours);
@@ -60,6 +62,9 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
 
   // Fix the signature to match what EditProjectDialog expects
   const handleEditComplete = (updatedProject: Project) => {
+    // Update the project in the global state
+    updateProject(updatedProject);
+    
     setShowEditDialog(false);
     toast({
       title: "Project updated",
