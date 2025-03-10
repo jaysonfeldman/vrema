@@ -13,11 +13,9 @@ export function useProjectManagement() {
   const [availableProjects, setAvailableProjects] = useState<string[]>([]);
   const [filteredProjects, setFilteredProjects] = useState<Project[]>([]);
   
-  // Using a local state for project data
-  const { customProjects, addProjectFilter, removeProjectFilter, updateProject } = 
-    typeof window !== 'undefined' 
-      ? window.__CALENDAR_SYNC_STATE || {} 
-      : { customProjects: [], addProjectFilter: () => {}, removeProjectFilter: () => {}, updateProject: () => {} };
+  // Get access to the calendar state
+  const calendarState = typeof window !== 'undefined' ? (window as any).__CALENDAR_SYNC_STATE : null;
+  const { customProjects = [], addProjectFilter, removeProjectFilter, updateProject } = calendarState || {};
 
   // Initialize project filters and available projects
   useEffect(() => {

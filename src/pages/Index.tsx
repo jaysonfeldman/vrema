@@ -14,7 +14,7 @@ const Index: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { authState } = useGoogleAuth();
-  const { syncCalendar, lastSynced, isAuthenticated, events, projectFilters, customProjects, updateFilters } = useCalendarSync();
+  const { syncCalendar, lastSynced, isAuthenticated, events, customProjects, updateFilters } = useCalendarSync();
   const [activeTab, setActiveTab] = useState<string>("projects");
   const [initialSyncDone, setInitialSyncDone] = useState(false);
 
@@ -57,23 +57,10 @@ const Index: React.FC = () => {
     if (authState.isAuthenticated && !initialSyncDone && !lastSynced) {
       console.log("Auto-syncing calendar from Index component");
       // Only sync if we haven't synced before
-      syncCalendar(30);
+      syncCalendar(90); // Show 3 months of data for better project visibility
       setInitialSyncDone(true);
     }
   }, [authState.isAuthenticated, initialSyncDone, syncCalendar, lastSynced]);
-
-  // Force a resync if we have auth but no events - but only try once
-  useEffect(() => {
-    if (authState.isAuthenticated && events.length === 0 && initialSyncDone && !lastSynced) {
-      // Only do this once after a short delay
-      const timer = setTimeout(() => {
-        console.log("No events found after initial sync, retrying with longer timeframe");
-        syncCalendar(60);
-      }, 2000);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [authState.isAuthenticated, events.length, initialSyncDone, syncCalendar, lastSynced]);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">

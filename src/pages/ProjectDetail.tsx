@@ -36,7 +36,7 @@ const ProjectDetail: React.FC = () => {
         console.log(`Loading project: ${foundProject.name} with filter: ${foundProject.filterTerm}`);
         
         // Force a calendar sync to ensure we have the latest data
-        syncCalendar(60);
+        syncCalendar(90); // Get 3 months of data
         
         // Apply project filter to show only this project's events
         updateFilters({ 

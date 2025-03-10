@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { useCalendarSync } from '@/hooks/useCalendarSync';
 import ProjectList from '@/components/project/ProjectList';
 import NewProjectDialog from '@/components/project/NewProjectDialog';
@@ -7,19 +7,15 @@ import ProjectFilterActions from '@/components/project/ProjectFilterActions';
 import EmptyProjectsState from '@/components/project/EmptyProjectsState';
 import ProjectsLoading from '@/components/project/ProjectsLoading';
 import { useProjectManagement } from '@/hooks/useProjectManagement';
-import { toast } from 'sonner';
 
 const ProjectsOverview: React.FC = () => {
   const { 
     isLoading: calendarLoading,
     syncCalendar,
-    customProjects,
     events,
     isAuthenticated,
     lastSynced
   } = useCalendarSync();
-  
-  const [calendarSyncInitiated, setCalendarSyncInitiated] = useState(false);
   
   const {
     showAddProject,
@@ -43,25 +39,19 @@ const ProjectsOverview: React.FC = () => {
   
   // Force immediate sync when component mounts if needed
   useEffect(() => {
-    if (isAuthenticated && !calendarSyncInitiated && !lastSynced) {
-      // Only sync if we haven't synced before
+    if (isAuthenticated && !lastSynced) {
       console.log('ProjectsOverview - Initial calendar sync');
       syncCalendar(30);
-      setCalendarSyncInitiated(true);
     }
-  }, [isAuthenticated, syncCalendar, calendarSyncInitiated, lastSynced]);
+  }, [isAuthenticated, syncCalendar, lastSynced]);
 
-  // Additional effect to handle case when events are already loaded but projects aren't visible
+  // Make sure to show all projects
   useEffect(() => {
-    if (events.length > 0 && customProjects.length === 0 && !calendarLoading) {
-      // Apply default settings once
-      if (!calendarSyncInitiated) {
-        console.log('ProjectsOverview - Events exist but no projects visible, applying filters');
-        setCalendarSyncInitiated(true);
-        handleMonthChange(selectedMonth || 'current');
-      }
+    if (availableProjects.length > 0 && projectFilters.length === 0) {
+      console.log('ProjectsOverview - Setting all projects to be visible');
+      setProjectFilters(availableProjects);
     }
-  }, [events.length, customProjects.length, calendarLoading, handleMonthChange, selectedMonth, calendarSyncInitiated]);
+  }, [availableProjects, projectFilters, setProjectFilters]);
 
   return (
     <div className="space-y-6">
