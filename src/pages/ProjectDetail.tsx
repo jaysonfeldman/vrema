@@ -21,7 +21,7 @@ const ProjectDetail: React.FC = () => {
   const [activitiesSummary, setActivitiesSummary] = useState<Activity[]>([]);
 
   useEffect(() => {
-    if (projectId) {
+    if (projectId && customProjects.length > 0) {
       // Try to find the project by ID
       const foundProject = getProjectById(projectId);
       
@@ -42,7 +42,7 @@ const ProjectDetail: React.FC = () => {
         setProjectEvents(filteredEvents);
         
         // Already have activities in the project object
-        setActivitiesSummary(foundProject.activities);
+        setActivitiesSummary(foundProject.activities || []);
       }
     }
   }, [projectId, customProjects, events, getProjectById]);
@@ -59,7 +59,11 @@ const ProjectDetail: React.FC = () => {
             </Button>
           </div>
           <div className="text-center py-12">
-            <p className="text-muted-foreground">Project not found with ID: {projectId}</p>
+            <p className="text-muted-foreground">
+              {customProjects.length === 0 
+                ? "Loading projects..." 
+                : `Project not found with ID: ${projectId}`}
+            </p>
           </div>
         </div>
       </div>
@@ -83,7 +87,7 @@ const ProjectDetail: React.FC = () => {
             <div className="flex items-center gap-2 mt-2">
               <Badge variant="outline" className="text-sm">
                 <Clock className="h-3 w-3 mr-1" />
-                {project.totalHours.toFixed(2)} hours
+                {(project.totalHours || 0).toFixed(2)} hours
               </Badge>
               <Badge variant="outline" className="text-sm">
                 <Calendar className="h-3 w-3 mr-1" />
@@ -103,24 +107,28 @@ const ProjectDetail: React.FC = () => {
             <CardTitle>Activities</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {activitiesSummary.map((activity) => (
-                <div key={activity.id} className="p-4 rounded-lg border">
-                  <ActivityTag 
-                    type={activity.type} 
-                    hours={activity.hours}
-                    className="mb-2" 
-                  />
-                  <p className="mt-2 text-xl font-mono font-semibold">
-                    {Math.floor(activity.hours)}:
-                    {Math.round((activity.hours - Math.floor(activity.hours)) * 60)
-                      .toString()
-                      .padStart(2, '0')}
-                  </p>
-                  <p className="text-sm text-muted-foreground">total hours</p>
-                </div>
-              ))}
-            </div>
+            {activitiesSummary.length === 0 ? (
+              <p className="text-muted-foreground text-center py-4">No activities found for this project</p>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {activitiesSummary.map((activity) => (
+                  <div key={activity.id} className="p-4 rounded-lg border">
+                    <ActivityTag 
+                      type={activity.type} 
+                      hours={activity.hours}
+                      className="mb-2" 
+                    />
+                    <p className="mt-2 text-xl font-mono font-semibold">
+                      {Math.floor(activity.hours)}:
+                      {Math.round((activity.hours - Math.floor(activity.hours)) * 60)
+                        .toString()
+                        .padStart(2, '0')}
+                    </p>
+                    <p className="text-sm text-muted-foreground">total hours</p>
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
 

@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { GoogleOAuthProvider, useGoogleLogin } from '@react-oauth/google';
 import { GoogleAuthState } from '@/lib/types';
@@ -58,20 +57,10 @@ export const GoogleAuthProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }
 
     if (isTokenExpired()) {
-      console.log('Token expired or missing, attempting to re-login');
-      try {
-        setIsLoading(true);
-        // Handle re-login if needed
-        await logout();
-        toast({
-          variant: "destructive",
-          title: "Session expired",
-          description: "Please reconnect your Google Calendar",
-        });
-        return null;
-      } finally {
-        setIsLoading(false);
-      }
+      console.log('Token expired or missing, logging out silently');
+      // Instead of showing a toast, just log out silently
+      await logout(true);
+      return null;
     }
 
     return authState.token;
@@ -143,11 +132,13 @@ export const GoogleAuthProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     googleLogin();
   };
 
-  const logout = async () => {
+  const logout = async (silent = false) => {
     setAuthState(defaultAuthState);
-    toast({
-      description: "Disconnected from Google Calendar",
-    });
+    if (!silent) {
+      toast({
+        description: "Disconnected from Google Calendar",
+      });
+    }
     return true;
   };
 
@@ -158,7 +149,6 @@ export const GoogleAuthProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   );
 };
 
-// Important: The GoogleOAuthProvider must be a separate component to avoid invalid hook call errors
 export const GoogleAuthProviderWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
     <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>

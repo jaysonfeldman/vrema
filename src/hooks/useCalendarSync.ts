@@ -1,4 +1,3 @@
-
 import { useEffect, useCallback } from 'react';
 import { useCalendarEvents } from './calendar/useCalendarEvents';
 import { useEventFilters } from './calendar/useEventFilters';
@@ -50,25 +49,13 @@ export function useCalendarSync() {
   // Sync projects when events change - with higher priority
   useEffect(() => {
     if (events.length > 0) {
-      console.log(`useCalendarSync - Processing ${events.length} events`);
       // Run immediately without batching to ensure projects appear quickly
-      setTimeout(() => {
+      queueMicrotask(() => {
         updateProjectStats(events);
         identifyProjectsFromEvents(events);
-      }, 0);
+      });
     }
   }, [events, updateProjectStats, identifyProjectsFromEvents]);
-
-  // Update custom projects when events or filters change
-  useEffect(() => {
-    if (events.length > 0 && Object.keys(projectFilters).length > 0) {
-      console.log("Updating custom projects based on events and filters");
-      // Run with slight delay to ensure project filters are fully processed
-      setTimeout(() => {
-        updateCustomProjects(events, projectFilters);
-      }, 100);
-    }
-  }, [events, projectFilters, updateCustomProjects]);
 
   // Keep filtered events in sync
   useEffect(() => {

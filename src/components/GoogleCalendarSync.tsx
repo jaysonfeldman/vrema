@@ -63,7 +63,7 @@ const GoogleCalendarSync: React.FC = () => {
               </Button>
               <Button 
                 variant="outline" 
-                onClick={logout}
+                onClick={() => logout()}
                 disabled={authLoading}
               >
                 <LogOut className="mr-2 h-4 w-4" />

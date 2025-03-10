@@ -26,9 +26,9 @@ export const fetchCalendarEvents = async (token: string, days = 30): Promise<Goo
       console.error('Google Calendar API error:', errorText);
       
       if (response.status === 401) {
-        throw new Error('Authentication failed - please reconnect your Google Calendar');
+        throw new Error('Authentication expired - please reconnect your Google Calendar');
       } else if (response.status === 403) {
-        throw new Error('Permission denied - check Google Calendar access permissions');
+        throw new Error('Permission denied - make sure to allow Calendar access when connecting');
       } else {
         throw new Error(`Failed to fetch calendar events: ${response.status} ${response.statusText}`);
       }
