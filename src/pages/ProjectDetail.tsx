@@ -4,12 +4,13 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useCalendarSync } from '@/hooks/useCalendarSync';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, Edit, Calendar, Users, Clock } from 'lucide-react';
+import { ChevronLeft, Edit, Calendar, Clock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { parseEventTitle, formatEventDate, calculateDuration } from '@/services/googleCalendarService';
-import { GoogleCalendarEvent, Project } from '@/lib/types';
+import { GoogleCalendarEvent, Project, Activity } from '@/lib/types';
+import ActivityTag from '@/components/ActivityTag';
 
 const ProjectDetail: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>();
@@ -17,17 +18,14 @@ const ProjectDetail: React.FC = () => {
   const { events, customProjects, getProjectById } = useCalendarSync();
   const [project, setProject] = useState<Project | null>(null);
   const [projectEvents, setProjectEvents] = useState<GoogleCalendarEvent[]>([]);
+  const [activitiesSummary, setActivitiesSummary] = useState<Activity[]>([]);
 
   useEffect(() => {
     if (projectId) {
-      console.log('Looking for project with ID:', projectId);
-      console.log('Available projects:', customProjects.map(p => ({ id: p.id, name: p.name, filterTerm: p.filterTerm })));
-      
-      // Try to find the project by ID first
+      // Try to find the project by ID
       const foundProject = getProjectById(projectId);
       
       if (foundProject) {
-        console.log('Found project by ID:', foundProject);
         setProject(foundProject);
         
         // Filter events for this project based on the parsed project name
@@ -41,10 +39,10 @@ const ProjectDetail: React.FC = () => {
           return projectName.toLowerCase() === foundProject.name.toLowerCase();
         });
         
-        console.log(`Found ${filteredEvents.length} events for project ${foundProject.name}`);
         setProjectEvents(filteredEvents);
-      } else {
-        console.log('Project not found with ID:', projectId);
+        
+        // Already have activities in the project object
+        setActivitiesSummary(foundProject.activities);
       }
     }
   }, [projectId, customProjects, events, getProjectById]);
@@ -87,12 +85,6 @@ const ProjectDetail: React.FC = () => {
                 <Clock className="h-3 w-3 mr-1" />
                 {project.totalHours.toFixed(2)} hours
               </Badge>
-              {project.teamMembers && project.teamMembers.length > 0 && (
-                <Badge variant="outline" className="text-sm">
-                  <Users className="h-3 w-3 mr-1" />
-                  {project.teamMembers.length} team members
-                </Badge>
-              )}
               <Badge variant="outline" className="text-sm">
                 <Calendar className="h-3 w-3 mr-1" />
                 {projectEvents.length} events
@@ -105,9 +97,39 @@ const ProjectDetail: React.FC = () => {
           </Button>
         </div>
 
+        {/* Activities Summary */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Activities</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {activitiesSummary.map((activity) => (
+                <div key={activity.id} className="p-4 rounded-lg border">
+                  <ActivityTag 
+                    type={activity.type} 
+                    hours={activity.hours}
+                    className="mb-2" 
+                  />
+                  <p className="mt-2 text-xl font-mono font-semibold">
+                    {Math.floor(activity.hours)}:
+                    {Math.round((activity.hours - Math.floor(activity.hours)) * 60)
+                      .toString()
+                      .padStart(2, '0')}
+                  </p>
+                  <p className="text-sm text-muted-foreground">total hours</p>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Events List */}
         <Card>
-          <CardContent className="pt-6">
-            <h2 className="text-xl font-semibold mb-4">Events</h2>
+          <CardHeader>
+            <CardTitle>Calendar Events</CardTitle>
+          </CardHeader>
+          <CardContent>
             <div className="rounded-md border">
               <Table>
                 <TableHeader>
@@ -131,7 +153,7 @@ const ProjectDetail: React.FC = () => {
                       return (
                         <TableRow key={event.id}>
                           <TableCell>
-                            <Badge variant="outline">#{activityType}</Badge>
+                            <ActivityTag type={activityType} />
                           </TableCell>
                           <TableCell>{description || '(No description)'}</TableCell>
                           <TableCell>{formatEventDate(event.start.dateTime)}</TableCell>

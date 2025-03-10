@@ -17,6 +17,20 @@ const ProjectActivities: React.FC<ProjectActivitiesProps> = ({ activities }) => 
   // Sort activities by hours (descending)
   const sortedActivities = [...visibleActivities].sort((a, b) => b.hours - a.hours);
   
+  // Get activity color based on type
+  const getActivityColor = (activityType: string): string => {
+    const activityLower = activityType.toLowerCase();
+    
+    if (activityLower.includes('design')) return '#FEF7CD'; // soft yellow
+    if (activityLower.includes('dev') || activityLower.includes('development')) return '#D3E4FD'; // soft blue
+    if (activityLower.includes('meet') || activityLower.includes('call')) return '#E5DEFF'; // soft purple
+    if (activityLower.includes('plan') || activityLower.includes('strat')) return '#F2FCE2'; // soft green
+    if (activityLower.includes('admin')) return '#F1F0FB'; // soft gray
+    if (activityLower.includes('pm')) return '#FDE1D3'; // soft peach
+    
+    return '#FFDEE2'; // soft pink as default
+  };
+  
   return (
     <div>
       <p className="text-sm text-gray-400 mb-3">Activities</p>
@@ -61,19 +75,6 @@ const ProjectActivities: React.FC<ProjectActivitiesProps> = ({ activities }) => 
       </div>
     </div>
   );
-};
-
-// Define activity colors
-const getActivityColor = (activityType: string): string => {
-  const activityLower = activityType.toLowerCase();
-  
-  if (activityLower.includes('design')) return '#4ade80'; // green
-  if (activityLower.includes('dev') || activityLower.includes('development')) return '#7ed3fc'; // light blue
-  if (activityLower.includes('meet') || activityLower.includes('call')) return '#6ee7b7'; // mint green
-  if (activityLower.includes('plan') || activityLower.includes('strat')) return '#22c55f'; // bright green
-  if (activityLower.includes('pm')) return '#fef18b'; // yellow
-  
-  return '#9b87f5'; // default to primary purple
 };
 
 export default ProjectActivities;

@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Project } from '@/lib/types';
 import ProjectCard from '@/components/ProjectCard';
 
@@ -16,20 +16,6 @@ const ProjectList: React.FC<ProjectListProps> = ({
   onUpdateProject, 
   onDeleteProject 
 }) => {
-  useEffect(() => {
-    // Debug logging when projects change
-    if (projects.length > 0) {
-      console.log('ProjectList received projects:', 
-        projects.map(p => ({
-          id: p.id, 
-          name: p.name, 
-          hours: p.totalHours,
-          activities: p.activities?.map(a => ({type: a.type, hours: a.hours}))
-        }))
-      );
-    }
-  }, [projects]);
-
   if (projects.length === 0) {
     return (
       <div className="bg-zinc-50 border border-zinc-200 rounded-lg p-8 text-center">
@@ -40,7 +26,7 @@ const ProjectList: React.FC<ProjectListProps> = ({
   }
   
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-slide-up">
       {projects.map((project, index) => (
         <div key={project.id} id={`project-card-${project.id}`} className="transition-all duration-300 hover:transform hover:scale-[1.02]">
           <ProjectCard

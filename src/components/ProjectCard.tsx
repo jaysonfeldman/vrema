@@ -7,7 +7,6 @@ import ProjectCardMenu from './project/ProjectCardMenu';
 import EditProjectDialog from './project/EditProjectDialog';
 import ProjectSettingsDialog from './project/ProjectSettingsDialog';
 import ProjectStatus from './project/ProjectStatus';
-import ProjectTeam from './project/ProjectTeam';
 import ProjectActivities from './project/ProjectActivities';
 import ProjectHeader from './project/ProjectHeader';
 import { getProjectTag } from './project/ProjectUtils';
@@ -35,13 +34,6 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
   const [editedProject, setEditedProject] = useState<Project>({...project});
   
   const projectTag = getProjectTag(project.name);
-
-  // Log project details for debugging
-  console.log(`Rendering ProjectCard for ${project.name} with ${project.totalHours} hours and ${project.activities?.length || 0} activities`);
-  
-  if (project.activities?.length > 0) {
-    console.log(`Activities for ${project.name}:`, project.activities.map(a => ({type: a.type, hours: a.hours})));
-  }
 
   const handleSaveChanges = async () => {
     try {
@@ -172,18 +164,9 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
       return;
     }
     
-    console.log(`Navigating to project detail page for project ID: ${project.id}`);
-    
     // Navigate to the dedicated project page
     navigate(`/projects/${project.id}`);
   };
-
-  // Get budget-related calculations
-  const hasBudget = !!project.budgetHours;
-  const isMonthlyBudget = !!project.monthlyHours;
-  const hoursUsed = isMonthlyBudget ? (project.monthlyHours || 0) : project.totalHours;
-  const budgetRemaining = hasBudget ? (project.budgetHours || 0) - hoursUsed : null;
-  const isOverBudget = hasBudget && budgetRemaining !== null && budgetRemaining < 0;
 
   return (
     <>
@@ -204,8 +187,6 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
             </div>
             
             <div className="flex items-center gap-2 project-menu">
-              <ProjectTeam members={project.teamMembers} />
-              
               <ProjectCardMenu 
                 projectName={project.name}
                 onEdit={() => setShowEditDialog(true)}
@@ -215,36 +196,11 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
             </div>
           </div>
           
-          <div className="grid grid-cols-2 gap-6 mb-6">
-            <div>
-              <p className="text-sm text-gray-400 mb-1">Time logged</p>
-              <p className="font-mono font-bold text-2xl">{formatTime(project.totalHours)}</p>
-            </div>
-            
-            {hasBudget && (
-              <div>
-                <p className="text-sm text-gray-400 mb-1">Budget left</p>
-                <p className={cn(
-                  "font-mono font-bold text-2xl",
-                  isOverBudget ? "text-red-500" : "text-amber-500"
-                )}>
-                  {formatTime(Math.abs(budgetRemaining || 0))}
-                </p>
-                <p className="text-xs text-gray-500 mt-1">
-                  {isMonthlyBudget ? "/this month" : "/in total"}
-                </p>
-              </div>
-            )}
-            
-            {!hasBudget && (
-              <div>
-                <p className="text-sm text-gray-400 mb-1">Budget</p>
-                <p className="font-mono font-bold text-2xl text-gray-500">
-                  Not set
-                </p>
-              </div>
-            )}
-          </div>
+          <ProjectStatus 
+            totalHours={project.totalHours} 
+            budgetHours={project.budgetHours}
+            monthlyHours={project.monthlyHours}
+          />
           
           <div className="mt-auto">
             <ProjectActivities activities={project.activities} />
@@ -272,14 +228,6 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
       />
     </>
   );
-};
-
-// Helper function for formatting time
-const formatTime = (hours: number): string => {
-  const h = Math.floor(hours);
-  const m = Math.round((hours - h) * 60);
-  
-  return `${h}:${m.toString().padStart(2, '0')}`;
 };
 
 export default ProjectCard;

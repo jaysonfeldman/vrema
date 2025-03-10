@@ -17,19 +17,19 @@ const ActivityTag: React.FC<ActivityTagProps> = ({
   style,
   color
 }) => {
-  // Define consistent colors for common activity types
+  // Define light pastel colors for common activity types
   const getActivityColor = (activityType: string): string => {
     const activityLower = activityType.toLowerCase();
     
-    if (activityLower.includes('design')) return '#4ade80'; // green
-    if (activityLower.includes('dev') || activityLower.includes('development')) return '#7ed3fc'; // light blue
-    if (activityLower.includes('meet') || activityLower.includes('call')) return '#6ee7b7'; // mint green
-    if (activityLower.includes('plan') || activityLower.includes('strat')) return '#22c55f'; // bright green
-    if (activityLower.includes('admin')) return '#d1fae5'; // pale green
-    if (activityLower.includes('pm')) return '#fef18b'; // yellow
+    if (activityLower.includes('design')) return '#FEF7CD'; // soft yellow
+    if (activityLower.includes('dev') || activityLower.includes('development')) return '#D3E4FD'; // soft blue
+    if (activityLower.includes('meet') || activityLower.includes('call')) return '#E5DEFF'; // soft purple
+    if (activityLower.includes('plan') || activityLower.includes('strat')) return '#F2FCE2'; // soft green
+    if (activityLower.includes('admin')) return '#F1F0FB'; // soft gray
+    if (activityLower.includes('pm')) return '#FDE1D3'; // soft peach
     
-    // Use provided color or fallback to a pleasant color
-    return color || '#9b87f5'; // default to primary purple
+    // Use provided color or fallback to a pleasant pastel color
+    return color || '#FFDEE2'; // soft pink as default
   };
   
   // Generate or use provided color
