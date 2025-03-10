@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Project } from '@/lib/types';
 import { formatTime } from '@/lib/mock-data';
@@ -46,32 +45,27 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
   const isOverBudget = project.budgetHours && project.totalHours > project.budgetHours;
   
   // Format budget info
-  const getBudgetInfo = () => {
+  const getBudgetText = () => {
     if (!project.budgetHours) return null;
     
     const diff = Math.abs(project.budgetHours - project.totalHours);
     const formattedDiff = formatTime(diff);
     
     if (isOverBudget) {
-      return { 
-        text: `-${formattedDiff}`,
-        color: 'text-red-500'
-      };
+      return `-${formattedDiff}`;
     } else {
-      return { 
-        text: `${formattedDiff}`,
-        color: 'text-amber-500'
-      };
+      return `${formattedDiff}`;
     }
   };
   
-  const budgetInfo = getBudgetInfo();
+  const budgetText = getBudgetText();
   
   // Get project tag (if any)
   const getProjectTag = () => {
     // This would be expanded in a real app
     const tagMap: Record<string, string> = {
       'umc': 'UMC',
+      'umcu': 'UMC',
       'web': 'Web',
       'design': 'Design',
       'marketing': 'MKT',
@@ -108,34 +102,33 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
     <>
       <div 
         className={cn(
-          'rounded-lg overflow-hidden animate-fade-in',
+          'rounded-lg overflow-hidden bg-zinc-900 text-white animate-fade-in',
           className
         )}
         style={{
           ...style,
-          borderLeft: project.color ? `4px solid ${project.color}` : undefined
         }}
       >
-        <div className="p-6">
+        <div className="p-5">
           <div className="flex items-start justify-between mb-6">
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <h3 className="text-xl font-semibold">{project.name}</h3>
                 {projectTag && (
-                  <Badge variant="outline" className="bg-zinc-800 text-white border-zinc-700">
+                  <Badge variant="outline" className="bg-zinc-800 text-white border-zinc-700 text-xs">
                     {projectTag}
                   </Badge>
                 )}
               </div>
             </div>
             
-            <div className="flex items-center gap-2">
+            <div className="flex items-center -space-x-2">
               {project.teamMembers.length > 0 && (
                 <div className="flex -space-x-2">
                   {project.teamMembers.slice(0, 3).map((member, index) => (
                     <div 
                       key={member.id} 
-                      className="w-8 h-8 rounded-full border-2 border-gray-800 overflow-hidden"
+                      className="w-8 h-8 rounded-full border-2 border-zinc-800 overflow-hidden"
                       style={{ zIndex: project.teamMembers.length - index }}
                     >
                       <img 
@@ -146,38 +139,19 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
                     </div>
                   ))}
                   {project.teamMembers.length > 3 && (
-                    <div className="w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center text-xs border-2 border-gray-800">
+                    <div className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-xs border-2 border-zinc-800">
                       +{project.teamMembers.length - 3}
                     </div>
                   )}
                 </div>
               )}
-              
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 p-0">
-                    <MoreVertical className="h-4 w-4" />
-                    <span className="sr-only">Open menu</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => setShowEditDialog(true)}>
-                    <Edit className="mr-2 h-4 w-4" />
-                    Edit project
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleDeleteProject} className="text-red-500">
-                    <Trash className="mr-2 h-4 w-4" />
-                    Delete project
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
             </div>
           </div>
           
           <div className="grid grid-cols-2 gap-6 mb-6">
             <div>
               <p className="text-sm text-gray-400 mb-1">Time logged</p>
-              <p className="font-bold text-2xl">{formatTime(project.totalHours)}</p>
+              <p className="font-mono font-bold text-2xl">{formatTime(project.totalHours)}</p>
               <p className="text-xs text-gray-500 mt-1">in total</p>
             </div>
             
@@ -185,13 +159,14 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
               <div>
                 <p className="text-sm text-gray-400 mb-1">Budget left</p>
                 <p className={cn(
-                  "font-bold text-2xl",
+                  "font-mono font-bold text-2xl",
                   isOverBudget ? "text-red-500" : "text-amber-500"
                 )}>
-                  {isOverBudget ? `-${formatTime(Math.abs(project.budgetHours - project.totalHours))}` : 
-                    formatTime(project.budgetHours - project.totalHours)}
+                  {budgetText}
                 </p>
-                <p className="text-xs text-gray-500 mt-1">in total</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {project.monthlyHours ? "/this month" : "in total"}
+                </p>
               </div>
             )}
           </div>
@@ -199,7 +174,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
           <div>
             <p className="text-sm text-gray-400 mb-2">Activities</p>
             <div className="flex flex-wrap gap-2">
-              {project.activities.map((activity) => (
+              {project.activities.slice(0, 3).map((activity) => (
                 <ActivityTag
                   key={activity.id}
                   type={activity.type}
@@ -211,7 +186,6 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
         </div>
       </div>
       
-      {/* Edit Project Dialog */}
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>

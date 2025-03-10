@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Filter, Grid, LayoutList, ChevronDown } from 'lucide-react';
+import { Plus, Grid, LayoutList, ChevronDown } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import ProjectCard from './ProjectCard';
 import { cn } from '@/lib/utils';
@@ -218,14 +218,14 @@ const ProjectsOverview: React.FC = () => {
             <ProjectCard
               key={project.id}
               project={project}
-              className="bg-gray-900 text-white border-0"
+              className="bg-zinc-900 text-white"
               onUpdateProject={handleUpdateProject}
               onDeleteProject={handleDeleteProject}
             />
           ))}
         </div>
       ) : (
-        <Card className="bg-gray-900 text-white p-8 text-center">
+        <Card className="bg-zinc-900 text-white p-8 text-center">
           <div className="py-6">
             <h3 className="text-lg font-medium mb-2">No project views created yet</h3>
             <p className="text-gray-400">

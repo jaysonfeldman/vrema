@@ -22,9 +22,9 @@ const ActivityTag: React.FC<ActivityTagProps> = ({ type, hours, className }) => 
       case 'dev':
         return 'bg-blue-500';
       case 'meetings':
-        return 'bg-yellow-500';
+        return 'bg-gray-300';
       case 'admin':
-        return 'bg-orange-500';
+        return 'bg-yellow-400';
       case 'pm':
         return 'bg-purple-500';
       default:
@@ -43,7 +43,7 @@ const ActivityTag: React.FC<ActivityTagProps> = ({ type, hours, className }) => 
   return (
     <div 
       className={cn(
-        'px-3 py-1 rounded-md text-white text-xs inline-flex items-center', 
+        'px-3 py-1 rounded-md text-xs inline-flex items-center', 
         getTagColor(),
         className
       )}
