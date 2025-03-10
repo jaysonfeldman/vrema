@@ -17,7 +17,8 @@ const ProjectsOverview: React.FC = () => {
     syncCalendar,
     filters,
     updateFilters,
-    getProjects
+    getProjects,
+    addProjectFilter,
   } = useCalendarSync();
   
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -26,6 +27,10 @@ const ProjectsOverview: React.FC = () => {
   const [projectFilters, setProjectFilters] = useState<string[]>([]);
   const [filteredProjects, setFilteredProjects] = useState<Project[]>([]);
   const [showHiddenProjects, setShowHiddenProjects] = useState(false);
+  
+  // New state for new project dialog
+  const [newProjectName, setNewProjectName] = useState('');
+  const [newProjectFilter, setNewProjectFilter] = useState('');
   
   // Sync calendar when component mounts to ensure we have project data
   useEffect(() => {
@@ -65,6 +70,11 @@ const ProjectsOverview: React.FC = () => {
   
   const handleOpenChange = (open: boolean) => {
     setShowAddProject(open);
+    if (!open) {
+      // Reset form when dialog closes
+      setNewProjectName('');
+      setNewProjectFilter('');
+    }
   };
   
   const handleViewModeChange = (mode: 'grid' | 'list') => {
@@ -125,6 +135,37 @@ const ProjectsOverview: React.FC = () => {
   };
 
   const availableProjects = customProjects.map(project => project.name);
+  
+  // Handle adding new project with filter
+  const handleAddProject = () => {
+    if (newProjectName && newProjectFilter) {
+      // Convert to lowercase for case-insensitive comparison
+      const normalizedName = newProjectName.toLowerCase();
+      
+      // Check if project already exists (case-insensitive)
+      const projectExists = customProjects.some(
+        p => p.name.toLowerCase() === normalizedName
+      );
+      
+      if (!projectExists) {
+        addProjectFilter(normalizedName, newProjectFilter);
+        toast({
+          title: "Project created",
+          description: `Created new project "${newProjectName}"`
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Project already exists",
+          description: `A project with the name "${newProjectName}" already exists`
+        });
+      }
+      
+      setShowAddProject(false);
+      setNewProjectName('');
+      setNewProjectFilter('');
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -178,6 +219,12 @@ const ProjectsOverview: React.FC = () => {
       <NewProjectDialog 
         open={showAddProject} 
         onOpenChange={handleOpenChange}
+        newProjectName={newProjectName}
+        onProjectNameChange={setNewProjectName}
+        newProjectFilter={newProjectFilter}
+        onProjectFilterChange={setNewProjectFilter}
+        onAddProject={handleAddProject}
+        existingProjects={availableProjects}
       />
     </div>
   );

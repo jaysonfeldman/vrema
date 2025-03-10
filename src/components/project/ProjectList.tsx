@@ -27,6 +27,41 @@ const ProjectList: React.FC<ProjectListProps> = ({
       </div>
     );
   }
+  
+  // Create a map of unique projects (case-insensitive)
+  const uniqueProjects = new Map<string, Project>();
+  
+  // Group projects by lowercase name to handle case insensitivity
+  projects.forEach(project => {
+    const normalizedName = project.id.toLowerCase();
+    if (uniqueProjects.has(normalizedName)) {
+      // If we already have this project (case-insensitively), merge hours and activities
+      const existingProject = uniqueProjects.get(normalizedName)!;
+      existingProject.totalHours += project.totalHours;
+      
+      // Merge activities
+      project.activities.forEach(activity => {
+        const existingActivity = existingProject.activities.find(a => a.type.toLowerCase() === activity.type.toLowerCase());
+        if (existingActivity) {
+          existingActivity.hours += activity.hours;
+        } else {
+          existingProject.activities.push(activity);
+        }
+      });
+      
+      // Update monthly hours if present
+      if (project.monthlyHours) {
+        existingProject.monthlyHours = (existingProject.monthlyHours || 0) + project.monthlyHours;
+      }
+    } else {
+      // First time seeing this project name
+      uniqueProjects.set(normalizedName, {...project});
+    }
+  });
+  
+  // Convert map back to array
+  const dedupedProjects = Array.from(uniqueProjects.values());
+  console.log(`Showing ${dedupedProjects.length} unique projects after deduplication (original: ${projects.length})`);
 
   return (
     <div className={cn(
@@ -34,7 +69,7 @@ const ProjectList: React.FC<ProjectListProps> = ({
         ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4" 
         : "space-y-4"
     )}>
-      {projects.map((project, index) => (
+      {dedupedProjects.map((project, index) => (
         <div key={project.id} id={`project-card-${project.id}`}>
           <ProjectCard
             project={project}

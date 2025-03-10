@@ -85,7 +85,7 @@ export const parseEventTitle = (title: string): {
 
   if (title.includes('#')) {
     const [projectPart, rest] = title.split('#', 2);
-    // Normalize project name to lowercase for case-insensitivity
+    // Store project name in original case for display, but we'll use lowercase for comparison later
     projectName = projectPart.trim();
     
     const activityAndDescription = rest;
