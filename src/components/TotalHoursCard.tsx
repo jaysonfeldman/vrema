@@ -21,7 +21,7 @@ const TotalHoursCard: React.FC<TotalHoursCardProps> = ({
   activities
 }) => {
   return (
-    <div className="p-6 bg-[#272729] rounded-lg shadow-md">
+    <div className="p-6 bg-gray-900 rounded-lg shadow-md">
       <div className="flex flex-col lg:flex-row justify-between items-start gap-6">
         {/* Total Hours */}
         <div>

@@ -21,7 +21,7 @@ const ActivityTag: React.FC<ActivityTagProps> = ({
   const getActivityColor = (activityType: string): string => {
     const activityLower = activityType.toLowerCase();
     
-    // Use the specified color palette
+    // Use the new color palette
     if (activityLower.includes('design')) return '#fef18b'; // soft yellow
     if (activityLower.includes('dev') || activityLower.includes('development')) return '#7ed3fc'; // light blue
     if (activityLower.includes('meet') || activityLower.includes('call')) return '#6ee7b7'; // mint green

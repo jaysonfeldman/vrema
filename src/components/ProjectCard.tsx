@@ -11,8 +11,6 @@ import ProjectTeam from './project/ProjectTeam';
 import ProjectActivities from './project/ProjectActivities';
 import ProjectHeader from './project/ProjectHeader';
 import { getProjectTag } from './project/ProjectUtils';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/components/ui/use-toast';
 
 interface ProjectCardProps {
   project: Project;
@@ -36,106 +34,16 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
   
   const projectTag = getProjectTag(project.name);
 
-  const handleSaveChanges = async () => {
-    try {
-      // Save to Supabase
-      const { data, error } = await supabase
-        .from('projects')
-        .upsert({
-          id: editedProject.id,
-          name: editedProject.name,
-          budget_hours: editedProject.budgetHours,
-          hourly_rate: editedProject.hourlyRate,
-          total_hours: editedProject.totalHours,
-          monthly_hours: editedProject.monthlyHours,
-          filter_term: editedProject.filterTerm,
-          visible: editedProject.visible !== false
-        })
-        .select();
-
-      if (error) {
-        console.error('Error saving project:', error);
-        toast({
-          variant: "destructive",
-          title: "Error saving project",
-          description: error.message
-        });
-        return;
-      }
-
-      // Update activities if needed
-      if (editedProject.activities) {
-        for (const activity of editedProject.activities) {
-          // Upsert activity (update or insert)
-          const { error: activityError } = await supabase
-            .from('activities')
-            .upsert({
-              id: activity.id.startsWith('new-') ? undefined : activity.id,
-              project_id: editedProject.id,
-              type: activity.type,
-              hours: activity.hours,
-              hidden: activity.hidden
-            });
-
-          if (activityError) {
-            console.error('Error saving activity:', activityError);
-          }
-        }
-      }
-
-      if (onUpdateProject) {
-        onUpdateProject(editedProject);
-      }
-
-      toast({
-        title: "Project saved",
-        description: "Your changes have been saved successfully."
-      });
-
-      setShowEditDialog(false);
-    } catch (error) {
-      console.error('Error in saving project:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to save project. Please try again."
-      });
+  const handleSaveChanges = () => {
+    if (onUpdateProject) {
+      onUpdateProject(editedProject);
     }
+    setShowEditDialog(false);
   };
 
-  const handleDeleteProject = async () => {
-    try {
-      // Delete from Supabase
-      const { error } = await supabase
-        .from('projects')
-        .delete()
-        .eq('id', project.id);
-
-      if (error) {
-        console.error('Error deleting project:', error);
-        toast({
-          variant: "destructive",
-          title: "Error deleting project",
-          description: error.message
-        });
-        return;
-      }
-
-      if (onDeleteProject) {
-        onDeleteProject(project.id);
-      }
-
-      toast({
-        title: "Project deleted",
-        description: "The project has been deleted successfully."
-      });
-    } catch (error) {
-      console.error('Error in deleting project:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to delete project. Please try again."
-      });
+  const handleDeleteProject = () => {
+    if (onDeleteProject) {
+      onDeleteProject(project.id);
     }
   };
 
@@ -153,8 +61,10 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
     });
   };
 
-  const handleSaveSettings = async () => {
-    await handleSaveChanges();
+  const handleSaveSettings = () => {
+    if (onUpdateProject) {
+      onUpdateProject(editedProject);
+    }
     setShowSettingsDialog(false);
   };
 
@@ -191,7 +101,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
     <>
       <div 
         className={cn(
-          'rounded-lg overflow-hidden bg-[#272729] text-white animate-fade-in cursor-pointer h-full',
+          'rounded-lg overflow-hidden bg-zinc-900 text-white animate-fade-in cursor-pointer',
           className
         )}
         style={{
@@ -199,7 +109,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
         }}
         onClick={handleCardClick}
       >
-        <div className="p-5 h-full flex flex-col">
+        <div className="p-5">
           <div className="flex items-start justify-between mb-6">
             <div>
               <ProjectHeader name={project.name} projectTag={projectTag} />
@@ -240,44 +150,18 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
                 </div>
               )}
               
-              {!hasBudget && (
-                <div>
-                  <p className="text-sm text-gray-400 mb-1">Budget</p>
-                  <p className="font-mono font-bold text-2xl text-gray-500">
-                    Not set
-                  </p>
-                  <p className="text-xs text-gray-500 mt-1">
-                    &nbsp;
-                  </p>
-                </div>
-              )}
-            </div>
-            
-            <div className="grid grid-cols-2 gap-6 mt-4">
-              {projectEarnings !== null ? (
+              {projectEarnings !== null && (
                 <div>
                   <p className="text-sm text-gray-400 mb-1">Earnings</p>
                   <p className="font-mono font-bold text-2xl text-amber-500">
                     €{projectEarnings.toFixed(2)}
                   </p>
                 </div>
-              ) : (
-                <div>
-                  <p className="text-sm text-gray-400 mb-1">Hourly rate</p>
-                  <p className="font-mono font-bold text-2xl text-gray-500">
-                    Not set
-                  </p>
-                </div>
               )}
-              
-              {/* Empty div to maintain grid alignment when no earnings */}
-              <div></div>
             </div>
           </div>
           
-          <div className="mt-auto">
-            <ProjectActivities activities={project.activities} />
-          </div>
+          <ProjectActivities activities={project.activities} />
         </div>
       </div>
       
