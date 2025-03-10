@@ -1,10 +1,10 @@
-
 import { useEffect, useCallback } from 'react';
 import { useCalendarEvents } from './calendar/useCalendarEvents';
 import { useEventFilters } from './calendar/useEventFilters';
 import { useProjectStats } from './calendar/useProjectStats';
 import { useProjectManagement } from './calendar/useProjectManagement';
 import { FilterOptions, Project, ActivityType } from '@/lib/types';
+import { useProjectLookup } from './project/useProjectLookup';
 
 export function useCalendarSync() {
   const {
@@ -45,11 +45,9 @@ export function useCalendarSync() {
     identifyProjectsFromEvents,
     updateCustomProjects
   } = useProjectManagement(getProjectColor);
-
-  // Get project by ID helper function
-  const getProjectById = useCallback((projectId: string) => {
-    return customProjects.find(p => p.id === projectId) || null;
-  }, [customProjects]);
+  
+  // Use the project lookup hook
+  const { getProjectById } = useProjectLookup(customProjects);
 
   // Sync projects when events change - with higher priority
   useEffect(() => {

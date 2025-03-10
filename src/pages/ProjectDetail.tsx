@@ -24,7 +24,8 @@ const ProjectDetail: React.FC = () => {
     filters,
     updateFilters,
     syncCalendar,
-    updateProject
+    updateProject,
+    getProjectById
   } = useCalendarSync();
   
   const [project, setProject] = useState<Project | null>(null);
@@ -40,30 +41,30 @@ const ProjectDetail: React.FC = () => {
   
   // Load project and filter events
   useEffect(() => {
-    if (projectId && customProjects.length > 0) {
-      // Find the project directly from customProjects
-      const foundProject = customProjects.find(p => p.id === projectId) || null;
-      console.log(`Looking for project with ID: ${projectId}`, foundProject ? 'Found' : 'Not found');
-      console.log('Available projects:', customProjects.map(p => ({ id: p.id, name: p.name })));
-      
+    if (!projectId) return;
+    
+    // Find the project using the getProjectById function
+    const foundProject = getProjectById(projectId);
+    console.log(`Looking for project with ID: ${projectId}`, foundProject ? 'Found' : 'Not found');
+    
+    if (foundProject) {
       setProject(foundProject);
+      console.log(`Loading project: ${foundProject.name} with filter: ${foundProject.filterTerm}`);
       
-      if (foundProject) {
-        console.log(`Loading project: ${foundProject.name} with filter: ${foundProject.filterTerm}`);
-        
-        // Force a calendar sync to ensure we have the latest data
-        syncCalendar(90); // Get 3 months of data
-        
-        // Apply project filter to show only this project's events
-        updateFilters({ 
-          project: foundProject.name,
-          searchTerm: foundProject.filterTerm || '',
-          dateRange: 90, // Show more history for project details
-          selectedProjects: [foundProject.name]
-        });
-      }
+      // Force a calendar sync to ensure we have the latest data
+      syncCalendar(90); // Get 3 months of data
+      
+      // Apply project filter to show only this project's events
+      updateFilters({ 
+        project: foundProject.name,
+        searchTerm: foundProject.filterTerm || foundProject.name,
+        dateRange: 90, // Show more history for project details
+        selectedProjects: [foundProject.name]
+      });
+    } else {
+      console.error('Project not found with ID:', projectId);
     }
-  }, [projectId, customProjects, updateFilters, syncCalendar]);
+  }, [projectId, getProjectById, updateFilters, syncCalendar]);
   
   // Update projectEvents when filteredEvents changes
   useEffect(() => {
@@ -155,7 +156,7 @@ const ProjectDetail: React.FC = () => {
             </CardContent>
           </Card>
           
-          {earnedValue && (
+          {project.hourlyRate && (
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="flex items-center gap-2 text-lg">
@@ -164,7 +165,9 @@ const ProjectDetail: React.FC = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold">${earnedValue}</div>
+                <div className="text-3xl font-bold">
+                  ${(project.totalHours * project.hourlyRate).toFixed(2)}
+                </div>
                 <div className="text-sm text-muted-foreground">
                   Rate: ${project.hourlyRate}/hr
                 </div>
@@ -182,7 +185,7 @@ const ProjectDetail: React.FC = () => {
             <CardContent>
               <div className="text-3xl font-bold">{projectEvents.length}</div>
               <div className="text-sm text-muted-foreground">
-                Filter: {project.filterTerm || 'None'}
+                Filter: {project.filterTerm || project.name}
               </div>
             </CardContent>
           </Card>
@@ -204,6 +207,12 @@ const ProjectDetail: React.FC = () => {
                 <p className="text-sm text-muted-foreground mt-2">
                   Try changing the filter term in project settings or syncing more calendar data.
                 </p>
+                <Button 
+                  onClick={() => syncCalendar(90)} 
+                  className="mt-4"
+                >
+                  Sync Calendar Data
+                </Button>
               </div>
             )}
           </CardContent>
