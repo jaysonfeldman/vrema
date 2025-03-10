@@ -21,12 +21,12 @@ const TotalHoursCard: React.FC<TotalHoursCardProps> = ({
   activities
 }) => {
   return (
-    <div className="p-6">
+    <div className="p-6 bg-gray-900 rounded-lg shadow-md">
       <div className="flex justify-between items-start">
         {/* Total Hours */}
         <div>
           <h3 className="text-xl font-semibold text-white mb-2">Total hours</h3>
-          <p className="text-5xl font-mono font-bold">{formatTime(totalHours)}</p>
+          <p className="text-5xl font-mono font-bold text-white">{formatTime(totalHours)}</p>
           <p className="text-sm text-gray-400 mt-1">
             over the past {dateRange} days
             {lastSynced && (

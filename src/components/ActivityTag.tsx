@@ -2,7 +2,6 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
 import { ActivityType } from '@/lib/types';
-import { stringToColor } from '@/lib/utils';
 
 interface ActivityTagProps {
   type: ActivityType;
@@ -11,39 +10,32 @@ interface ActivityTagProps {
 }
 
 const ActivityTag: React.FC<ActivityTagProps> = ({ type, hours, className }) => {
-  // Generate a consistent color based on the activity type string
-  const getTagColor = () => {
-    // Map common activity types to specific colors for consistency
-    const colorMap: Record<string, string> = {
-      'design': 'bg-green-500',
-      'strategy': 'bg-teal-500',
-      'dev': 'bg-blue-500',
-      'meetings': 'bg-gray-300',
-      'admin': 'bg-yellow-400',
-      'pm': 'bg-purple-500',
-      'ux': 'bg-pink-500',
-      'research': 'bg-indigo-500',
-      'marketing': 'bg-orange-500',
-      'sales': 'bg-emerald-500',
-      'support': 'bg-sky-500',
-      'other': 'bg-slate-400'
-    };
-    
-    const normalizedType = type.toLowerCase();
-    if (colorMap[normalizedType]) {
-      return colorMap[normalizedType];
-    }
-    
-    // For any other activity type, generate a consistent color based on the string
-    const generatedColor = stringToColor(type);
-    return `bg-[${generatedColor}]`;
-  };
-
   // Format hours to show as "40:00" for example
   const formatHours = (hours: number) => {
     const wholeHours = Math.floor(hours);
     const minutes = Math.round((hours - wholeHours) * 60);
     return `${wholeHours}:${minutes.toString().padStart(2, '0')}`;
+  };
+
+  // Get the appropriate background color for the activity type
+  const getTagColor = () => {
+    const colorMap: Record<string, string> = {
+      'design': 'bg-[#10b981] text-white',
+      'strategy': 'bg-[#3b82f6] text-white',
+      'dev': 'bg-[#6366f1] text-white',
+      'meetings': 'bg-[#8b5cf6] text-white',
+      'admin': 'bg-[#f59e0b] text-white',
+      'pm': 'bg-[#ec4899] text-white',
+      'ux': 'bg-[#14b8a6] text-white',
+      'research': 'bg-[#8b5cf6] text-white',
+      'marketing': 'bg-[#f97316] text-white',
+      'sales': 'bg-[#06b6d4] text-white',
+      'support': 'bg-[#0ea5e9] text-white',
+      'other': 'bg-[#6b7280] text-white'
+    };
+    
+    const normalizedType = type.toLowerCase();
+    return colorMap[normalizedType] || 'bg-[#6b7280] text-white';
   };
 
   return (

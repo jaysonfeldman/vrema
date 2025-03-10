@@ -20,6 +20,52 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 
+// Sample default projects in case no projects exist
+const DEFAULT_PROJECTS: Project[] = [
+  {
+    id: 'umcu',
+    name: 'UMCU',
+    description: 'University Medical Center Utrecht projects',
+    totalHours: 24.5,
+    budgetHours: 30,
+    activities: [
+      { id: 'u1', type: 'design', hours: 8.5, date: new Date().toISOString(), description: 'UI design' },
+      { id: 'u2', type: 'dev', hours: 12, date: new Date().toISOString(), description: 'Development' },
+      { id: 'u3', type: 'meetings', hours: 4, date: new Date().toISOString(), description: 'Client meetings' }
+    ],
+    teamMembers: [],
+    status: 'active'
+  },
+  {
+    id: 'wisebrick',
+    name: 'Wisebrick',
+    description: 'Wisebrick financial platform',
+    totalHours: 18,
+    budgetHours: 20,
+    activities: [
+      { id: 'w1', type: 'strategy', hours: 5, date: new Date().toISOString(), description: 'Planning' },
+      { id: 'w2', type: 'dev', hours: 10, date: new Date().toISOString(), description: 'Frontend development' },
+      { id: 'w3', type: 'meetings', hours: 3, date: new Date().toISOString(), description: 'Status meetings' }
+    ],
+    teamMembers: [],
+    status: 'active'
+  },
+  {
+    id: 'geldfit',
+    name: 'Geldfit 3.0',
+    description: 'Financial wellness platform',
+    totalHours: 32,
+    budgetHours: 40,
+    activities: [
+      { id: 'g1', type: 'ux', hours: 8, date: new Date().toISOString(), description: 'User research' },
+      { id: 'g2', type: 'design', hours: 12, date: new Date().toISOString(), description: 'Interface design' },
+      { id: 'g3', type: 'dev', hours: 12, date: new Date().toISOString(), description: 'Implementation' }
+    ],
+    teamMembers: [],
+    status: 'active'
+  }
+];
+
 const ProjectsOverview: React.FC = () => {
   const { 
     customProjects, 
@@ -39,6 +85,36 @@ const ProjectsOverview: React.FC = () => {
   const [sortBy, setSortBy] = useState('most-tracked');
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredProjects, setFilteredProjects] = useState<Project[]>([]);
+  const [savedProjects, setSavedProjects] = useState<Project[]>([]);
+
+  // Load saved projects from localStorage
+  useEffect(() => {
+    const loadSavedProjects = () => {
+      try {
+        const saved = localStorage.getItem('saved-projects');
+        if (saved) {
+          const parsedProjects = JSON.parse(saved) as Project[];
+          setSavedProjects(parsedProjects);
+        } else if (customProjects.length === 0) {
+          // If no saved projects and no custom projects, use defaults
+          localStorage.setItem('saved-projects', JSON.stringify(DEFAULT_PROJECTS));
+          setSavedProjects(DEFAULT_PROJECTS);
+        }
+      } catch (err) {
+        console.error('Error loading saved projects:', err);
+        setSavedProjects(DEFAULT_PROJECTS);
+      }
+    };
+    
+    loadSavedProjects();
+  }, [customProjects.length]);
+
+  // Save projects to localStorage whenever they change
+  useEffect(() => {
+    if (savedProjects.length > 0) {
+      localStorage.setItem('saved-projects', JSON.stringify(savedProjects));
+    }
+  }, [savedProjects]);
 
   // Load view mode preference from localStorage
   useEffect(() => {
@@ -63,9 +139,17 @@ const ProjectsOverview: React.FC = () => {
     localStorage.setItem('projects-sort-by', sortBy);
   }, [sortBy]);
 
-  // Update filtered projects based on customProjects, sort and search
+  // Update filtered projects based on savedProjects, customProjects, sort and search
   useEffect(() => {
-    let projectsToDisplay = [...customProjects];
+    // Combine saved projects with custom projects from calendar
+    let projectsToDisplay = [...savedProjects];
+    
+    // Add custom projects not already in saved projects
+    customProjects.forEach(customProject => {
+      if (!projectsToDisplay.some(p => p.id === customProject.id)) {
+        projectsToDisplay.push(customProject);
+      }
+    });
     
     // Apply search filter if any
     if (searchTerm.trim()) {
@@ -88,7 +172,7 @@ const ProjectsOverview: React.FC = () => {
     });
     
     setFilteredProjects(projectsToDisplay);
-  }, [customProjects, searchTerm, sortBy]);
+  }, [customProjects, savedProjects, searchTerm, sortBy]);
   
   const handleAddProject = () => {
     if (newProjectName.trim() && newProjectFilter.trim()) {
@@ -112,6 +196,14 @@ const ProjectsOverview: React.FC = () => {
   };
 
   const handleUpdateProject = (updatedProject: Project) => {
+    // Update in saved projects if it exists there
+    setSavedProjects(prev => 
+      prev.map(project => 
+        project.id === updatedProject.id ? updatedProject : project
+      )
+    );
+    
+    // Also update in custom projects if necessary
     updateProject(updatedProject);
     
     toast({
@@ -122,10 +214,13 @@ const ProjectsOverview: React.FC = () => {
 
   const handleDeleteProject = (projectId: string) => {
     // Find the project name before deleting
-    const projectToDelete = customProjects.find(p => p.id === projectId);
+    const projectToDelete = filteredProjects.find(p => p.id === projectId);
     const projectName = projectToDelete ? projectToDelete.name : projectId;
     
-    // Remove the project filter
+    // Remove from saved projects
+    setSavedProjects(prev => prev.filter(p => p.id !== projectId));
+    
+    // Remove the project filter if it exists there
     removeProjectFilter(projectId);
     
     // Force a sync to update
@@ -133,8 +228,33 @@ const ProjectsOverview: React.FC = () => {
     
     toast({
       title: "Project deleted",
-      description: `Removed "${projectName}" project view`,
+      description: `Removed "${projectName}" project`,
     });
+  };
+
+  // Add a new project manually (not from calendar)
+  const handleAddManualProject = () => {
+    if (newProjectName.trim()) {
+      const newProject: Project = {
+        id: `manual-${Date.now()}`,
+        name: newProjectName.trim(),
+        description: '',
+        totalHours: 0,
+        activities: [],
+        teamMembers: [],
+        status: 'active'
+      };
+      
+      setSavedProjects(prev => [...prev, newProject]);
+      
+      toast({
+        title: "Project created",
+        description: `Created "${newProjectName}" project`,
+      });
+      
+      setNewProjectName('');
+      setShowAddProject(false);
+    }
   };
 
   return (
@@ -240,7 +360,7 @@ const ProjectsOverview: React.FC = () => {
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="project-filter" className="text-right">
-                Filter Term
+                Filter Term (Optional)
               </Label>
               <Input
                 id="project-filter"
@@ -251,7 +371,7 @@ const ProjectsOverview: React.FC = () => {
               />
             </div>
             <p className="text-xs text-muted-foreground col-start-2 col-span-3">
-              This will create a view of all events with titles containing this text
+              If provided, this will create a view of all events with titles containing this text
             </p>
           </div>
           <DialogFooter>
@@ -260,13 +380,23 @@ const ProjectsOverview: React.FC = () => {
                 Cancel
               </Button>
             </DialogClose>
-            <Button 
-              type="button" 
-              onClick={handleAddProject}
-              disabled={!newProjectName || !newProjectFilter}
-            >
-              Create Project
-            </Button>
+            {newProjectFilter ? (
+              <Button 
+                type="button" 
+                onClick={handleAddProject}
+                disabled={!newProjectName}
+              >
+                Create Calendar Project
+              </Button>
+            ) : (
+              <Button 
+                type="button" 
+                onClick={handleAddManualProject}
+                disabled={!newProjectName}
+              >
+                Create Manual Project
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
