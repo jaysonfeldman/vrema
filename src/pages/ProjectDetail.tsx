@@ -4,16 +4,20 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useCalendarSync } from '@/hooks/useCalendarSync';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, Clock, Calendar, Folder, Tag, Search } from 'lucide-react';
+import { ChevronLeft, Edit, Calendar, Clock, Users, Download, FileText } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { GoogleCalendarEvent, Project } from '@/lib/types';
 import { parseEventTitle, formatEventDate, calculateDuration } from '@/services/googleCalendarService';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/components/ui/use-toast';
 import ActivityTag from '@/components/ActivityTag';
+import { formatTime } from '@/lib/mock-data';
+import ProjectHeader from '@/components/project/ProjectHeader';
+import ProjectStatus from '@/components/project/ProjectStatus';
+import ProjectActivities from '@/components/project/ProjectActivities';
 
 const ProjectDetail: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>();
@@ -32,6 +36,7 @@ const ProjectDetail: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [filteredEvents, setFilteredEvents] = useState<GoogleCalendarEvent[]>([]);
   const [selectedActivity, setSelectedActivity] = useState<string>('All');
+  const [selectedMonth, setSelectedMonth] = useState<string>('October 2023');
   
   // Find the project based on projectId
   useEffect(() => {
@@ -121,12 +126,17 @@ const ProjectDetail: React.FC = () => {
     return Array.from(activityTypes);
   };
   
+  // Calculate billable hours (example calculation - 90% of total)
+  const calculateBillableHours = (totalHours: number): number => {
+    return totalHours * 0.9;
+  };
+  
   // Wait for calendar sync if projects are not loaded yet
   if (customProjects.length === 0 && isLoading) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Header />
-        <div className="max-w-7xl mx-auto px-8 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
           <div className="flex items-center mb-8">
             <Button 
               variant="ghost" 
@@ -153,7 +163,7 @@ const ProjectDetail: React.FC = () => {
     return (
       <div className="min-h-screen bg-gray-50">
         <Header />
-        <div className="max-w-7xl mx-auto px-8 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
           <div className="flex items-center mb-8">
             <Button 
               variant="ghost" 
@@ -181,86 +191,155 @@ const ProjectDetail: React.FC = () => {
     );
   }
 
+  // Calculate values for display
+  const totalHours = project.totalHours;
+  const billableHours = calculateBillableHours(totalHours);
+  const budgetLeft = project.budgetHours ? project.budgetHours - totalHours : 0;
+  const billableRate = 95; // Example value for design
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
-      <div className="max-w-7xl mx-auto px-8 py-8">
-        <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
-          <div className="flex items-center">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+        {/* Project Header */}
+        <div className="flex flex-wrap justify-between items-center mb-6">
+          <div className="flex items-center gap-4">
             <Button 
               variant="ghost" 
               onClick={() => navigate('/')}
-              className="mr-4"
+              className="p-2 h-auto"
             >
-              <ChevronLeft className="h-4 w-4 mr-1" /> Back to Projects
+              <ChevronLeft className="h-5 w-5" />
+              <span className="ml-1">back</span>
             </Button>
-            <h1 className="text-3xl font-bold">{project.name}</h1>
-            <Badge variant="outline" className="ml-4">
-              {project.totalHours.toFixed(1)} hours logged
-            </Badge>
+            
+            <div>
+              <h1 className="text-4xl font-bold">{project.name}</h1>
+              {project.filterTerm && (
+                <Badge variant="outline" className="bg-zinc-200 text-zinc-800 text-xs mt-1">
+                  {project.filterTerm}
+                </Badge>
+              )}
+            </div>
           </div>
           
-          <div className="flex flex-wrap gap-2">
-            {project.activities.slice(0, 3).map(activity => (
-              <ActivityTag
-                key={activity.id}
-                type={activity.type}
-                hours={activity.hours}
-              />
-            ))}
-            {project.activities.length > 3 && (
-              <Badge variant="outline" className="bg-slate-700 text-white">
-                +{project.activities.length - 3} more
-              </Badge>
-            )}
+          <div className="mt-4 sm:mt-0 flex items-center gap-2">
+            <Button variant="outline" className="h-10">
+              <Edit className="h-4 w-4 mr-2" />
+              Edit project
+            </Button>
           </div>
         </div>
         
-        <Card className="mb-8">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xl flex items-center">
-              <Folder className="mr-2 h-5 w-5" />
-              Project Details
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-              <div>
-                <h3 className="text-sm font-medium text-muted-foreground mb-1">Total Hours</h3>
-                <p className="text-2xl font-bold">{project.totalHours.toFixed(1)}</p>
-              </div>
-              {project.budgetHours && (
-                <div>
-                  <h3 className="text-sm font-medium text-muted-foreground mb-1">Budget Hours</h3>
-                  <p className="text-2xl font-bold">{project.budgetHours.toFixed(1)}</p>
-                </div>
-              )}
-              {project.monthlyHours !== undefined && (
-                <div>
-                  <h3 className="text-sm font-medium text-muted-foreground mb-1">Monthly Hours</h3>
-                  <p className="text-2xl font-bold">{project.monthlyHours.toFixed(1)}</p>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+        {/* Project Filter Controls */}
+        <div className="flex flex-wrap gap-3 mb-6">
+          <Button variant="outline" className="h-10 bg-white">
+            <Calendar className="h-4 w-4 mr-2" />
+            {selectedMonth}
+          </Button>
+          
+          <Button variant="outline" className="h-10 bg-white">
+            All projects
+          </Button>
+          
+          <Button variant="outline" className="h-10 bg-white">
+            All activities
+          </Button>
+          
+          <Button variant="outline" className="h-10 bg-white">
+            <Users className="h-4 w-4 mr-2" />
+            3 members
+          </Button>
+        </div>
         
+        {/* Metrics Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
+          {/* Total Value Card */}
+          <Card className="bg-zinc-900 text-white md:col-span-1">
+            <CardContent className="p-6">
+              <p className="text-sm text-gray-400 mb-2">Total value</p>
+              <p className="text-3xl font-mono font-bold text-green-400">€5.200</p>
+            </CardContent>
+          </Card>
+          
+          {/* Hours Logged Card */}
+          <Card className="bg-zinc-900 text-white md:col-span-1">
+            <CardContent className="p-6">
+              <p className="text-sm text-gray-400 mb-2">Hours logged</p>
+              <p className="text-3xl font-mono font-bold">{formatTime(totalHours)}</p>
+            </CardContent>
+          </Card>
+          
+          {/* Billable Hours Card */}
+          <Card className="bg-zinc-900 text-white md:col-span-1">
+            <CardContent className="p-6">
+              <p className="text-sm text-gray-400 mb-2">Billable hours</p>
+              <p className="text-3xl font-mono font-bold">{formatTime(billableHours)}</p>
+            </CardContent>
+          </Card>
+          
+          {/* Budget Left Card */}
+          <Card className="bg-zinc-900 text-white md:col-span-1">
+            <CardContent className="p-6">
+              <p className="text-sm text-gray-400 mb-2">Budget left</p>
+              <p className="text-3xl font-mono font-bold text-amber-500">
+                {formatTime(budgetLeft)}
+                <span className="text-xs text-gray-500 ml-1 block">/this month</span>
+              </p>
+            </CardContent>
+          </Card>
+          
+          {/* Billable Rate Card */}
+          <Card className="bg-zinc-900 text-white md:col-span-1">
+            <CardContent className="p-6">
+              <p className="text-sm text-gray-400 mb-2">Billable rate</p>
+              <p className="text-3xl font-mono font-bold">{billableRate}%</p>
+            </CardContent>
+          </Card>
+        </div>
+        
+        {/* Activities Section */}
+        <div className="mb-8">
+          <p className="text-lg font-medium mb-4">Activities</p>
+          <div className="flex flex-wrap gap-2">
+            {project.activities
+              .sort((a, b) => b.hours - a.hours)
+              .map(activity => (
+                <div key={activity.id} className="bg-green-500 text-white rounded-md px-3 py-1 text-sm">
+                  {formatTime(activity.hours)} #{activity.type}
+                </div>
+              ))}
+          </div>
+        </div>
+        
+        {/* Action Buttons */}
+        <div className="flex justify-between mb-8">
+          <div></div> {/* Spacer */}
+          <div className="flex gap-3">
+            <Button variant="outline">
+              <Download className="h-4 w-4 mr-2" />
+              Export hours
+            </Button>
+            <Button className="bg-zinc-900 text-white hover:bg-zinc-800">
+              <FileText className="h-4 w-4 mr-2" />
+              Create invoice
+            </Button>
+          </div>
+        </div>
+        
+        {/* Events Table */}
         <Card>
-          <CardHeader className="pb-4">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <CardTitle className="flex items-center">
-                <Tag className="mr-2 h-5 w-5" />
-                Project Events
-              </CardTitle>
+          <CardContent className="pt-6">
+            <div className="flex flex-col md:flex-row justify-between gap-4 mb-6">
+              <h2 className="text-2xl font-bold">Activity log</h2>
               
               <div className="flex flex-col sm:flex-row gap-4">
                 {/* Search filter */}
                 <div className="relative flex-1 min-w-[200px]">
-                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
                     type="text"
                     placeholder="Search events..."
-                    className="pl-8"
+                    className="pl-3"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                   />
@@ -293,8 +372,7 @@ const ProjectDetail: React.FC = () => {
                 </Button>
               </div>
             </div>
-          </CardHeader>
-          <CardContent>
+            
             {filteredEvents.length === 0 ? (
               <div className="py-8 text-center text-gray-500">
                 <p>No events found for this project.</p>
