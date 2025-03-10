@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useCalendarSync } from '@/hooks/useCalendarSync';
 import { Card } from '@/components/ui/card';
@@ -5,7 +6,7 @@ import TotalHoursCard from './TotalHoursCard';
 import { Activity } from '@/lib/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from './ui/button';
-import { Calendar, Download, FileText, BarChart } from 'lucide-react';
+import { Calendar } from 'lucide-react';
 
 const TotalHoursView: React.FC = () => {
   const { 
@@ -66,6 +67,21 @@ const TotalHoursView: React.FC = () => {
       }
     }
   }, [filteredEvents, events, getActivitiesFromEvents]);
+
+  // Initial setup to select all projects except "Other" by default
+  useEffect(() => {
+    const projects = getProjects();
+    if (projects.length > 0) {
+      // Filter out "Other" and "All" from the default selection
+      const defaultSelected = projects.filter(p => p !== 'Other' && p !== 'All');
+      if (defaultSelected.length > 0) {
+        updateFilters({ 
+          project: defaultSelected.length === 1 ? defaultSelected[0] : 'All',
+          selectedProjects: defaultSelected 
+        });
+      }
+    }
+  }, [getProjects, updateFilters]);
 
   const handleProjectChange = (value: string) => {
     setSelectedProject(value);
@@ -161,20 +177,7 @@ const TotalHoursView: React.FC = () => {
           </Select>
         </div>
         
-        <div className="flex gap-2">
-          <Button variant="outline" className="bg-white">
-            <Download className="h-4 w-4 mr-2" />
-            Export hours
-          </Button>
-          <Button variant="outline" className="bg-white">
-            <BarChart className="h-4 w-4 mr-2" />
-            View reports
-          </Button>
-          <Button className="bg-zinc-900">
-            <FileText className="h-4 w-4 mr-2" />
-            Create invoice
-          </Button>
-        </div>
+        {/* Removed Export hours, View reports and Create invoice buttons */}
       </div>
       
       <Card className="bg-zinc-900 text-white border-0">

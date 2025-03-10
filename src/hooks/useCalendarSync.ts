@@ -28,7 +28,8 @@ export function useCalendarSync() {
     searchTerm: '',
     project: 'All',
     dateRange: 30,
-    activity: 'All'
+    activity: 'All',
+    selectedProjects: []
   });
   
   const [projectFilters, setProjectFilters] = useState<{[key: string]: string}>({});
@@ -384,7 +385,14 @@ export function useCalendarSync() {
       );
     }
     
-    if (filters.project !== 'All') {
+    if (filters.selectedProjects && filters.selectedProjects.length > 0) {
+      filtered = filtered.filter(event => {
+        const projectName = getProjectNameFromEvent(event);
+        return filters.selectedProjects.some(
+          selectedProject => projectName.toLowerCase() === selectedProject.toLowerCase()
+        );
+      });
+    } else if (filters.project !== 'All') {
       filtered = filtered.filter(event => {
         const projectName = getProjectNameFromEvent(event);
         return projectName === filters.project;
