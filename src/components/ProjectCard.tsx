@@ -37,6 +37,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
     console.log(`Rendering ProjectCard for ${project.name} (ID: ${project.id})`);
   }, [project]);
 
+  // Fixed the type mismatch by making sure the function accepts a Project parameter
   const handleSaveSettings = (updatedProject: Project) => {
     onUpdateProject(updatedProject);
     setShowSettings(false);
