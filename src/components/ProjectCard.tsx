@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Project } from '@/lib/types';
@@ -14,6 +13,7 @@ import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import ProjectSettingsDialog from './project/ProjectSettingsDialog';
+import EditProjectDialog from './project/EditProjectDialog';
 
 interface ProjectCardProps {
   project: Project;
@@ -32,15 +32,20 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
 }) => {
   const navigate = useNavigate();
   const [showSettings, setShowSettings] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
 
   useEffect(() => {
     console.log(`Rendering ProjectCard for ${project.name} (ID: ${project.id})`);
   }, [project]);
 
-  // Fixed the type mismatch by ensuring the function accepts a Project parameter
   const handleSaveSettings = (updatedProject: Project) => {
     onUpdateProject(updatedProject);
     setShowSettings(false);
+  };
+
+  const handleEditComplete = (updatedProject: Project) => {
+    onUpdateProject(updatedProject);
+    setShowEditDialog(false);
   };
 
   const handleCardClick = (e: React.MouseEvent) => {
@@ -68,7 +73,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
         <div className="project-card-action">
           <ProjectCardMenu 
             project={project} 
-            onEdit={() => setShowSettings(true)} 
+            onEdit={() => setShowEditDialog(true)} 
             onDelete={() => onDeleteProject(project.id)} 
           />
         </div>
@@ -95,6 +100,15 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
             onSave={handleSaveSettings}
           />
         </div>
+      )}
+
+      {showEditDialog && (
+        <EditProjectDialog
+          project={project}
+          open={showEditDialog}
+          onOpenChange={setShowEditDialog}
+          onSave={handleEditComplete}
+        />
       )}
     </Card>
   );
