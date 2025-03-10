@@ -70,9 +70,11 @@ const ProjectDetail: React.FC = () => {
   }, [project, filteredEvents]);
 
   // Handle project update
-  const handleProjectUpdate = () => {
+  const handleProjectUpdate = (updatedProject: Project) => {
     setShowEditDialog(false);
     if (project) {
+      updateProject(updatedProject);
+      setProject(updatedProject);
       toast({
         title: "Project updated",
         description: "Project details have been updated successfully."

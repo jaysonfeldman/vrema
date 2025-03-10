@@ -58,7 +58,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
     navigate(`/project/${project.id}`);
   };
 
-  const handleEditComplete = () => {
+  const handleEditComplete = (updatedProject: Project) => {
     setShowEditDialog(false);
     toast({
       title: "Project updated",
