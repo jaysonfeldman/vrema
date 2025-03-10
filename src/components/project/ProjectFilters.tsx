@@ -1,47 +1,98 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Filter, Plus, Edit3 } from 'lucide-react';
+import { Plus, Calendar, Filter } from 'lucide-react';
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuCheckboxItem,
+  DropdownMenuSeparator
+} from '@/components/ui/dropdown-menu';
 
 interface ProjectFiltersProps {
   onAddProject: () => void;
-  onManageProjects?: () => void;
+  selectedMonth: string;
+  onMonthChange: (month: string) => void;
+  projectFilters: string[];
+  availableProjects: string[];
+  onProjectFilterChange: (projects: string[]) => void;
 }
 
-const ProjectFilters: React.FC<ProjectFiltersProps> = ({ onAddProject, onManageProjects }) => {
+const ProjectFilters: React.FC<ProjectFiltersProps> = ({
+  onAddProject,
+  selectedMonth,
+  onMonthChange,
+  projectFilters,
+  availableProjects,
+  onProjectFilterChange
+}) => {
+  const handleSelectAll = () => {
+    onProjectFilterChange([...availableProjects]);
+  };
+  
+  const handleSelectNone = () => {
+    onProjectFilterChange([]);
+  };
+  
+  const handleToggleProject = (project: string) => {
+    if (projectFilters.includes(project)) {
+      onProjectFilterChange(projectFilters.filter(p => p !== project));
+    } else {
+      onProjectFilterChange([...projectFilters, project]);
+    }
+  };
+  
   return (
-    <div className="flex items-center gap-2">
-      <Button 
-        variant="outline" 
+    <>
+      <Button
+        variant="outline"
         size="sm"
-        className="text-primary border-primary hover:bg-primary/10"
-        onClick={onAddProject}
+        className="h-9"
+        onClick={() => onMonthChange(selectedMonth === 'current' ? 'previous' : 'current')}
       >
-        <Plus className="h-4 w-4 mr-1" />
-        Add project
+        <Calendar className="h-4 w-4 mr-2" />
+        {selectedMonth === 'current' ? 'This Month' : 'Last Month'}
       </Button>
       
-      {onManageProjects && (
-        <Button 
-          variant="outline" 
-          size="sm"
-          className="text-gray-700 border-gray-300 hover:bg-gray-100"
-          onClick={onManageProjects}
-        >
-          <Edit3 className="h-4 w-4 mr-1" />
-          Manage projects
-        </Button>
-      )}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" size="sm" className="h-9">
+            <Filter className="h-4 w-4 mr-2" />
+            Filter
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent className="w-56" align="end">
+          <DropdownMenuGroup>
+            <DropdownMenuItem onClick={handleSelectAll}>
+              Select All
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={handleSelectNone}>
+              Select None
+            </DropdownMenuItem>
+          </DropdownMenuGroup>
+          <DropdownMenuSeparator />
+          <DropdownMenuGroup>
+            {availableProjects.map(project => (
+              <DropdownMenuCheckboxItem
+                key={project}
+                checked={projectFilters.includes(project)}
+                onCheckedChange={() => handleToggleProject(project)}
+              >
+                {project}
+              </DropdownMenuCheckboxItem>
+            ))}
+          </DropdownMenuGroup>
+        </DropdownMenuContent>
+      </DropdownMenu>
       
-      <Button 
-        variant="ghost" 
-        size="sm"
-        className="gap-1"
-      >
-        <Filter className="h-4 w-4" />
-        All projects
+      <Button variant="default" size="sm" className="h-9" onClick={onAddProject}>
+        <Plus className="h-4 w-4 mr-2" />
+        Add Project
       </Button>
-    </div>
+    </>
   );
 };
 

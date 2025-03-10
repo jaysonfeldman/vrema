@@ -1,3 +1,4 @@
+
 export type ActivityType = string;
 
 export interface Activity {
@@ -15,6 +16,7 @@ export interface Project {
   name: string;
   totalHours: number;
   budgetHours?: number;
+  hourlyRate?: number;
   activities: Activity[];
   teamMembers: TeamMember[];
   color?: string;
@@ -79,7 +81,9 @@ export interface FilterOptions {
   searchTerm: string;
   project: string;
   dateRange: number;
-  activity?: string; // Added activity filter
+  activity: string;
+  selectedProjects?: string[];
+  selectedActivities?: string[]; // Added for multi-select activities
 }
 
 export interface ParsedEvent {

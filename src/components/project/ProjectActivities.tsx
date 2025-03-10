@@ -2,7 +2,6 @@
 import React from 'react';
 import { Activity } from '@/lib/types';
 import ActivityTag from '@/components/ActivityTag';
-import { getActivityColor } from '@/lib/mock-data';
 import { Badge } from '@/components/ui/badge';
 
 interface ProjectActivitiesProps {
@@ -23,7 +22,6 @@ const ProjectActivities: React.FC<ProjectActivitiesProps> = ({ activities }) => 
               key={activity.id}
               type={activity.type}
               hours={activity.hours}
-              color={getActivityColor(activity.type)}
             />
         ))}
         {visibleActivities.length > 3 && (

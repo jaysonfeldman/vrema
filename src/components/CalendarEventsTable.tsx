@@ -1,43 +1,13 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useCalendarSync } from '@/hooks/useCalendarSync';
-import { Input } from '@/components/ui/input';
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { 
-  formatEventDate, 
-  getDayOfWeek, 
-  calculateDuration, 
-  parseEventTitle 
-} from '@/services/googleCalendarService';
-import { Search, Calendar, Clock } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import { format } from 'date-fns';
-import { stringToColor } from '@/lib/utils';
-
-// Helper function to get activity color
-const getActivityColor = (activityType: string): string => {
-  // Map common activity types to specific colors for consistency
-  switch (activityType.toLowerCase()) {
-    case 'design':
-      return 'bg-green-500 text-white border-green-400';
-    case 'strategy':
-      return 'bg-blue-500 text-white border-blue-400';
-    case 'dev':
-      return 'bg-purple-500 text-white border-purple-400';
-    case 'meetings':
-      return 'bg-yellow-500 text-white border-yellow-400';
-    case 'admin':
-      return 'bg-red-500 text-white border-red-400';
-    default:
-      // Generate a consistent color based on the activity type
-      const color = stringToColor(activityType);
-      return `bg-[${color}] text-white border-[${color}]`;
-  }
-};
+import { ActivityType } from '@/lib/types';
+import CalendarEventFilters from './calendar/CalendarEventFilters';
+import CalendarEventListView from './calendar/CalendarEventListView';
+import CalendarEventDayView from './calendar/CalendarEventDayView';
+import CalendarSyncStatus from './calendar/CalendarSyncStatus';
 
 const CalendarEventsTable: React.FC = () => {
   const { 
@@ -48,8 +18,20 @@ const CalendarEventsTable: React.FC = () => {
     isAuthenticated, 
     syncCalendar,
     lastSynced,
-    isLoading 
+    isLoading,
+    getActivitiesFromEvents
   } = useCalendarSync();
+
+  const [activityTypes, setActivityTypes] = useState<ActivityType[]>([]);
+
+  useEffect(() => {
+    if (filteredEvents.length > 0) {
+      // Extract unique activity types from events
+      const activities = getActivitiesFromEvents(filteredEvents);
+      const uniqueTypes = Array.from(new Set(activities.map(a => a.type)));
+      setActivityTypes(uniqueTypes as ActivityType[]);
+    }
+  }, [filteredEvents, getActivitiesFromEvents]);
 
   if (!isAuthenticated) {
     return null;
@@ -62,75 +44,31 @@ const CalendarEventsTable: React.FC = () => {
       <CardHeader>
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <CardTitle>Calendar Events</CardTitle>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            {lastSynced && (
-              <span>Last synced: {format(lastSynced, 'MMM d, h:mm a')}</span>
-            )}
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => syncCalendar(filters.dateRange)}
-              disabled={isLoading}
-            >
-              {isLoading ? 'Syncing...' : 'Sync Now'}
-            </Button>
-          </div>
+          <CalendarSyncStatus 
+            lastSynced={lastSynced}
+            isLoading={isLoading}
+            onSync={() => syncCalendar(filters.dateRange)}
+          />
         </div>
       </CardHeader>
 
       <CardContent>
         <div className="space-y-4">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="text"
-                placeholder="Search events..."
-                className="pl-8"
-                value={filters.searchTerm}
-                onChange={(e) => updateFilters({ searchTerm: e.target.value })}
-              />
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4 sm:flex sm:items-center">
-              <Select
-                value={filters.project}
-                onValueChange={(value) => updateFilters({ project: value })}
-              >
-                <SelectTrigger className="w-[160px]">
-                  <SelectValue placeholder="Project" />
-                </SelectTrigger>
-                <SelectContent>
-                  {projects.map((project) => (
-                    <SelectItem key={project} value={project}>
-                      {project}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Select
-                value={filters.dateRange.toString()}
-                onValueChange={(value) => {
-                  const days = parseInt(value);
-                  updateFilters({ dateRange: days });
-                  syncCalendar(days);
-                }}
-              >
-                <SelectTrigger className="w-[160px]">
-                  <SelectValue placeholder="Time range" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="7">Last 7 days</SelectItem>
-                  <SelectItem value="14">Last 14 days</SelectItem>
-                  <SelectItem value="30">Last 30 days</SelectItem>
-                  <SelectItem value="90">Last 90 days</SelectItem>
-                  <SelectItem value="180">Last 6 months</SelectItem>
-                  <SelectItem value="365">Last year</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+          <CalendarEventFilters 
+            searchTerm={filters.searchTerm}
+            onSearchChange={(value) => updateFilters({ searchTerm: value })}
+            project={filters.project}
+            projects={projects}
+            onProjectChange={(value) => updateFilters({ project: value })}
+            dateRange={filters.dateRange}
+            onDateRangeChange={(days) => {
+              updateFilters({ dateRange: days });
+              syncCalendar(days);
+            }}
+            activity={filters.activity}
+            onActivityChange={(value) => updateFilters({ activity: value })}
+            activities={activityTypes}
+          />
 
           <Tabs defaultValue="list">
             <TabsList>
@@ -139,122 +77,11 @@ const CalendarEventsTable: React.FC = () => {
             </TabsList>
             
             <TabsContent value="list" className="mt-4">
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Project</TableHead>
-                      <TableHead>Activity</TableHead>
-                      <TableHead>Description</TableHead>
-                      <TableHead>Start</TableHead>
-                      <TableHead>Duration</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredEvents.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
-                          No events found. Try adjusting your filters or sync your calendar.
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      filteredEvents.map((event) => {
-                        const { projectName, activityType, description } = parseEventTitle(event.summary);
-                        
-                        return (
-                          <TableRow key={event.id}>
-                            <TableCell>
-                              <Badge variant="outline">{projectName}</Badge>
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant="outline" className={getActivityColor(activityType)}>
-                                #{activityType}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="font-medium">{description || '(No description)'}</TableCell>
-                            <TableCell>{formatEventDate(event.start.dateTime)}</TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-2">
-                                <Clock className="h-3 w-3 text-muted-foreground" />
-                                {calculateDuration(event.start.dateTime, event.end.dateTime)}
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
+              <CalendarEventListView events={filteredEvents} />
             </TabsContent>
             
             <TabsContent value="day" className="mt-4">
-              <div className="space-y-8">
-                {filteredEvents.length === 0 ? (
-                  <div className="text-center py-12 text-muted-foreground">
-                    No events found. Try adjusting your filters or sync your calendar.
-                  </div>
-                ) : (
-                  Object.entries(
-                    filteredEvents.reduce((acc, event) => {
-                      const day = event.start.dateTime.split('T')[0];
-                      if (!acc[day]) acc[day] = [];
-                      acc[day].push(event);
-                      return acc;
-                    }, {} as Record<string, typeof filteredEvents>)
-                  )
-                    .sort(([dayA], [dayB]) => dayB.localeCompare(dayA))
-                    .map(([day, dayEvents]) => (
-                      <div key={day} className="space-y-2">
-                        <div className="sticky top-0 bg-background pt-2 pb-1 z-10">
-                          <h3 className="text-lg font-semibold flex items-center gap-2">
-                            <Calendar className="h-4 w-4" />
-                            {format(new Date(day), 'EEEE, MMMM d, yyyy')}
-                          </h3>
-                        </div>
-                        
-                        <div className="grid gap-2">
-                          {dayEvents
-                            .sort((a, b) => new Date(a.start.dateTime).getTime() - new Date(b.start.dateTime).getTime())
-                            .map((event) => {
-                              const { projectName, activityType, description } = parseEventTitle(event.summary);
-                                
-                              return (
-                                <div 
-                                  key={event.id} 
-                                  className="rounded-md border p-4 hover:bg-muted/50 transition-colors"
-                                >
-                                  <div className="flex justify-between items-start">
-                                    <div>
-                                      <div className="font-medium">{description || '(No description)'}</div>
-                                      <div className="text-sm text-muted-foreground">
-                                        {format(new Date(event.start.dateTime), 'h:mm a')} - {format(new Date(event.end.dateTime), 'h:mm a')}
-                                      </div>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                      <Badge variant="outline">{projectName}</Badge>
-                                      <Badge className={getActivityColor(activityType).split(' ')[0]}>
-                                        #{activityType}
-                                      </Badge>
-                                      <span className="text-sm flex items-center gap-1">
-                                        <Clock className="h-3 w-3 text-muted-foreground" />
-                                        {calculateDuration(event.start.dateTime, event.end.dateTime)}
-                                      </span>
-                                    </div>
-                                  </div>
-                                  {event.description && (
-                                    <div className="mt-2 text-sm text-muted-foreground">
-                                      {event.description}
-                                    </div>
-                                  )}
-                                </div>
-                              );
-                            })}
-                        </div>
-                      </div>
-                    ))
-                )}
-              </div>
+              <CalendarEventDayView events={filteredEvents} />
             </TabsContent>
           </Tabs>
         </div>
