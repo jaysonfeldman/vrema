@@ -10,6 +10,7 @@ import ProjectsLoading from '@/components/project/ProjectsLoading';
 import ProjectDetailHeader from '@/components/project/ProjectDetailHeader';
 import ProjectStatsCards from '@/components/project/ProjectStatsCards';
 import ProjectEventsCard from '@/components/project/ProjectEventsCard';
+import { formatEventDate, calculateDuration } from '@/services/googleCalendarService';
 
 const ProjectDetail: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>();
@@ -44,25 +45,18 @@ const ProjectDetail: React.FC = () => {
       console.log("Project found:", foundProject.name);
       setProject(foundProject);
       
+      // Get project events and update state
+      const events = getProjectEvents(projectId);
+      console.log(`Found ${events.length} events for project ${foundProject.name}`);
+      setProjectEvents(events);
+      
       // Force a calendar sync to ensure we have the latest data
-      console.log("Syncing calendar data...");
       syncCalendar(90); // Get 3 months of data
     } else {
-      // If project not found, navigate back to home
       console.error('Project not found with ID:', projectId);
       navigate('/');
     }
-  }, [projectId, customProjects, syncCalendar, getProjectById, navigate]);
-  
-  // Update projectEvents when project changes or when calendar is synced
-  useEffect(() => {
-    if (!project || !projectId) return;
-    
-    console.log(`Getting events for project: ${project.name} (${projectId})`);
-    const events = getProjectEvents(projectId);
-    console.log(`Found ${events.length} events for project ${project.name}`);
-    setProjectEvents(events);
-  }, [project, projectId, getProjectEvents]);
+  }, [projectId, customProjects, getProjectById, getProjectEvents, navigate, syncCalendar]);
 
   // Handle project update
   const handleProjectUpdate = (updatedProject: Project) => {
@@ -82,9 +76,16 @@ const ProjectDetail: React.FC = () => {
   }
   
   if (!project) {
-    // Return the loading state instead of project not found
     return <ProjectsLoading />;
   }
+  
+  // Calculate total hours for this project
+  const totalProjectHours = projectEvents.reduce((total, event) => {
+    if (!event.start?.dateTime || !event.end?.dateTime) return total;
+    const duration = calculateDuration(event.start.dateTime, event.end.dateTime);
+    const hours = parseFloat(duration.split(':')[0]) + parseFloat(duration.split(':')[1]) / 60;
+    return total + hours;
+  }, 0);
   
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">

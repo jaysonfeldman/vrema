@@ -112,22 +112,19 @@ export const parseEventTitle = (title: string): {
 
 export const associateEventsWithProjects = (events: GoogleCalendarEvent[], projects: Project[]): GoogleCalendarEvent[] => {
   return events.map(event => {
-    if (!event.summary) return event;
+    const { projectName } = parseEventTitle(event.summary || '');
     
-    const { projectName } = parseEventTitle(event.summary);
-    const normalizedProjectName = projectName.toLowerCase();
-    
+    // Find matching project by name or filter term
     const matchingProject = projects.find(project => {
-      if (project.name.toLowerCase() === normalizedProjectName) return true;
+      const projectNameMatch = project.name.toLowerCase() === projectName.toLowerCase();
+      const filterTermMatch = project.filterTerm && 
+        event.summary?.toLowerCase().includes(project.filterTerm.toLowerCase());
       
-      if (project.filterTerm && event.summary.toLowerCase().includes(project.filterTerm.toLowerCase())) {
-        return true;
-      }
-      
-      return false;
+      return projectNameMatch || filterTermMatch;
     });
     
     if (matchingProject) {
+      console.log(`Associated event "${event.summary}" with project ${matchingProject.name} (${matchingProject.id})`);
       return {
         ...event,
         projectId: matchingProject.id
