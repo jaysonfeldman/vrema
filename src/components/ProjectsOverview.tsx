@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useCalendarSync } from '@/hooks/useCalendarSync';
 import { Project } from '@/lib/types';
@@ -95,7 +96,7 @@ const ProjectsOverview: React.FC = () => {
           />
           <ViewToggle 
             viewMode={viewMode} 
-            onViewModeChange={handleViewModeChange} 
+            onViewChange={handleViewModeChange} 
           />
         </div>
       </div>

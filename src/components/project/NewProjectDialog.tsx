@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,24 +15,66 @@ import {
 interface NewProjectDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  newProjectName: string;
-  onProjectNameChange: (value: string) => void;
-  newProjectFilter: string;
-  onProjectFilterChange: (value: string) => void;
-  onAddProject: () => void;
-  onAddManualProject: () => void;
+  newProjectName?: string;
+  onProjectNameChange?: (value: string) => void;
+  newProjectFilter?: string;
+  onProjectFilterChange?: (value: string) => void;
+  onAddProject?: () => void;
+  onAddManualProject?: () => void;
 }
 
 const NewProjectDialog: React.FC<NewProjectDialogProps> = ({
   open,
   onOpenChange,
-  newProjectName,
-  onProjectNameChange,
-  newProjectFilter,
-  onProjectFilterChange,
+  newProjectName: externalProjectName,
+  onProjectNameChange: externalProjectNameChange,
+  newProjectFilter: externalProjectFilter,
+  onProjectFilterChange: externalProjectFilterChange,
   onAddProject,
   onAddManualProject
 }) => {
+  // Local state to make the component work without all props
+  const [localProjectName, setLocalProjectName] = useState('');
+  const [localProjectFilter, setLocalProjectFilter] = useState('');
+  
+  // Use external state if provided, otherwise use local state
+  const projectName = externalProjectName !== undefined ? externalProjectName : localProjectName;
+  const projectFilter = externalProjectFilter !== undefined ? externalProjectFilter : localProjectFilter;
+  
+  const handleProjectNameChange = (value: string) => {
+    if (externalProjectNameChange) {
+      externalProjectNameChange(value);
+    } else {
+      setLocalProjectName(value);
+    }
+  };
+  
+  const handleProjectFilterChange = (value: string) => {
+    if (externalProjectFilterChange) {
+      externalProjectFilterChange(value);
+    } else {
+      setLocalProjectFilter(value);
+    }
+  };
+  
+  const handleAddProject = () => {
+    if (onAddProject) {
+      onAddProject();
+    } else {
+      console.log('Add project with filter', projectName, projectFilter);
+      onOpenChange(false);
+    }
+  };
+  
+  const handleAddManualProject = () => {
+    if (onAddManualProject) {
+      onAddManualProject();
+    } else {
+      console.log('Add manual project', projectName);
+      onOpenChange(false);
+    }
+  };
+  
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
@@ -46,8 +88,8 @@ const NewProjectDialog: React.FC<NewProjectDialogProps> = ({
             </Label>
             <Input
               id="project-name"
-              value={newProjectName}
-              onChange={(e) => onProjectNameChange(e.target.value)}
+              value={projectName}
+              onChange={(e) => handleProjectNameChange(e.target.value)}
               className="col-span-3"
               placeholder="e.g., Marketing Project"
             />
@@ -58,8 +100,8 @@ const NewProjectDialog: React.FC<NewProjectDialogProps> = ({
             </Label>
             <Input
               id="project-filter"
-              value={newProjectFilter}
-              onChange={(e) => onProjectFilterChange(e.target.value)}
+              value={projectFilter}
+              onChange={(e) => handleProjectFilterChange(e.target.value)}
               className="col-span-3"
               placeholder="e.g., Marketing"
             />
@@ -74,19 +116,19 @@ const NewProjectDialog: React.FC<NewProjectDialogProps> = ({
               Cancel
             </Button>
           </DialogClose>
-          {newProjectFilter ? (
+          {projectFilter ? (
             <Button 
               type="button" 
-              onClick={onAddProject}
-              disabled={!newProjectName}
+              onClick={handleAddProject}
+              disabled={!projectName}
             >
               Create Calendar Project
             </Button>
           ) : (
             <Button 
               type="button" 
-              onClick={onAddManualProject}
-              disabled={!newProjectName}
+              onClick={handleAddManualProject}
+              disabled={!projectName}
             >
               Create Manual Project
             </Button>
