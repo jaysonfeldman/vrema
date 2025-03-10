@@ -1,3 +1,4 @@
+
 export type ActivityType = string;
 
 export interface Activity {
@@ -82,6 +83,7 @@ export interface FilterOptions {
   dateRange: number;
   activity: string;
   selectedProjects?: string[];
+  selectedActivities?: string[]; // Added for multi-select activities
 }
 
 export interface ParsedEvent {

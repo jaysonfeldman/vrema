@@ -11,6 +11,7 @@ import ProjectTeam from './project/ProjectTeam';
 import ProjectActivities from './project/ProjectActivities';
 import ProjectHeader from './project/ProjectHeader';
 import { getProjectTag } from './project/ProjectUtils';
+import { Coins } from 'lucide-react';
 
 interface ProjectCardProps {
   project: Project;
@@ -79,6 +80,16 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
     navigate(`/projects/${project.id}`);
   };
 
+  // Calculate project earnings if hourly rate is set
+  const getProjectEarnings = () => {
+    if (project.hourlyRate) {
+      return project.totalHours * project.hourlyRate;
+    }
+    return null;
+  };
+
+  const projectEarnings = getProjectEarnings();
+
   return (
     <>
       <div 
@@ -114,6 +125,18 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
             budgetHours={project.budgetHours}
             monthlyHours={project.monthlyHours}
           />
+          
+          {projectEarnings !== null && (
+            <div className="mb-6 p-3 bg-zinc-800 rounded-md flex items-center">
+              <Coins className="h-5 w-5 text-amber-500 mr-3" />
+              <div>
+                <p className="text-sm text-gray-400">Earnings</p>
+                <p className="font-mono font-bold text-2xl text-amber-500">
+                  €{projectEarnings.toFixed(2)}
+                </p>
+              </div>
+            </div>
+          )}
           
           <ProjectActivities activities={project.activities} />
         </div>

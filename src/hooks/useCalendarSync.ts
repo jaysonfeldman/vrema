@@ -29,7 +29,8 @@ export function useCalendarSync() {
     project: 'All',
     dateRange: 30,
     activity: 'All',
-    selectedProjects: []
+    selectedProjects: [],
+    selectedActivities: []
   });
   
   const [projectFilters, setProjectFilters] = useState<{[key: string]: string}>({});
@@ -399,7 +400,14 @@ export function useCalendarSync() {
       });
     }
 
-    if (filters.activity && filters.activity !== 'All') {
+    if (filters.selectedActivities && filters.selectedActivities.length > 0) {
+      filtered = filtered.filter(event => {
+        const activityType = determineActivityType(event);
+        return filters.selectedActivities.some(
+          selectedActivity => activityType.toLowerCase() === selectedActivity.toLowerCase()
+        );
+      });
+    } else if (filters.activity && filters.activity !== 'All') {
       filtered = filtered.filter(event => {
         const activityType = determineActivityType(event);
         return activityType === filters.activity;
