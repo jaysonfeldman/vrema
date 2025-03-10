@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import ProjectCard from './ProjectCard';
+import ProjectCard from '@/components/project/ProjectCard';
 import Timeline from './Timeline';
 import ActivityTag from './ActivityTag';
 import { Calendar, FileDown, FileUp } from 'lucide-react';
