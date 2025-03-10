@@ -1,9 +1,10 @@
+
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useCalendarSync } from '@/hooks/useCalendarSync';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, Edit, Calendar, Users } from 'lucide-react';
+import { ChevronLeft, Edit, Calendar, Users, Clock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent } from '@/components/ui/card';

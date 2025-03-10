@@ -88,6 +88,14 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
   };
 
   const projectEarnings = getProjectEarnings();
+  
+  // Get budget-related calculations
+  const hasBudget = !!project.budgetHours;
+  const isMonthlyBudget = !!project.monthlyHours;
+  const hoursUsed = isMonthlyBudget ? (project.monthlyHours || 0) : project.totalHours;
+  const budgetRemaining = hasBudget ? (project.budgetHours || 0) - hoursUsed : null;
+  const isOverBudget = hasBudget && budgetRemaining !== null && budgetRemaining < 0;
+  const budgetText = hasBudget ? formatTime(Math.abs(budgetRemaining || 0)) : '';
 
   return (
     <>
@@ -127,7 +135,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
                 <p className="text-xs text-gray-500 mt-1">in total</p>
               </div>
               
-              {budgetHours && (
+              {hasBudget && (
                 <div>
                   <p className="text-sm text-gray-400 mb-1">Budget left</p>
                   <p className={cn(
@@ -137,7 +145,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
                     {budgetText}
                   </p>
                   <p className="text-xs text-gray-500 mt-1">
-                    {monthlyHours ? "/this month" : "in total"}
+                    {isMonthlyBudget ? "/this month" : "in total"}
                   </p>
                 </div>
               )}
