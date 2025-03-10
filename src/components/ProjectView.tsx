@@ -6,8 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { PlusCircle, Calendar, Clock, AlertTriangle } from 'lucide-react';
+import { PlusCircle, Calendar, Clock } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import ProjectCard from './ProjectCard';
 
@@ -17,7 +16,8 @@ const ProjectView: React.FC = () => {
     addProjectFilter, 
     removeProjectFilter, 
     projectFilters,
-    events
+    events,
+    syncCalendar
   } = useCalendarSync();
   
   const [newProjectName, setNewProjectName] = useState('');
@@ -28,6 +28,10 @@ const ProjectView: React.FC = () => {
     if (newProjectName.trim() && newProjectFilter.trim()) {
       console.log("Adding new project filter:", newProjectName, newProjectFilter);
       addProjectFilter(newProjectName.trim(), newProjectFilter.trim());
+      
+      // Trigger a sync to update projects immediately
+      syncCalendar();
+      
       toast({
         title: "Project view created",
         description: `Created "${newProjectName}" view for events containing "${newProjectFilter}"`,

@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -20,12 +20,18 @@ const CalendarProjectsList: React.FC = () => {
     addProjectFilter,
     projectFilters,
     removeProjectFilter,
-    customProjects
+    customProjects,
+    syncCalendar
   } = useCalendarSync();
   
   const [showAddProject, setShowAddProject] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
   const [newProjectFilter, setNewProjectFilter] = useState('');
+  
+  // For debugging custom projects
+  useEffect(() => {
+    console.log("CalendarProjectsList - customProjects updated:", customProjects);
+  }, [customProjects]);
   
   if (!isAuthenticated) {
     return null;
@@ -38,6 +44,10 @@ const CalendarProjectsList: React.FC = () => {
     if (newProjectName && newProjectFilter) {
       console.log("Dashboard: Adding new project filter:", newProjectName, newProjectFilter);
       addProjectFilter(newProjectName.trim(), newProjectFilter.trim());
+      
+      // Trigger a sync to update projects immediately
+      syncCalendar();
+      
       toast({
         title: "Project view created",
         description: `Created "${newProjectName}" view for events containing "${newProjectFilter}"`,

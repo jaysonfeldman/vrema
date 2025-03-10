@@ -208,6 +208,9 @@ export function useCalendarSync() {
         description: `Found ${validEvents.length} events from your Google Calendar`,
       });
       
+      // Force regeneration of custom projects
+      updateCustomProjects(validEvents, projectFilters);
+      
       return { events: validEvents, stats };
     } catch (error) {
       console.error('Error syncing calendar:', error);
@@ -219,7 +222,7 @@ export function useCalendarSync() {
     } finally {
       setIsLoading(false);
     }
-  }, [authState.isAuthenticated, authState.token]);
+  }, [authState.isAuthenticated, authState.token, projectFilters]);
 
   // Effect to apply filters whenever events or filters change
   useEffect(() => {
@@ -260,14 +263,14 @@ export function useCalendarSync() {
     setFilteredEvents(filtered);
   }, [events, filters, getProjectNameFromEvent]);
 
-  // Create custom projects when events or project filters change
-  useEffect(() => {
-    if (events.length === 0) {
+  // Helper function to update custom projects
+  const updateCustomProjects = useCallback((eventsList: GoogleCalendarEvent[], filters: {[key: string]: string}) => {
+    if (eventsList.length === 0) {
       console.log("No events available to create custom projects");
       return;
     }
     
-    console.log("Generating custom projects based on filters:", projectFilters);
+    console.log("Generating custom projects based on filters:", filters);
     
     const newCustomProjects: Project[] = [];
     const today = new Date();
@@ -275,10 +278,10 @@ export function useCalendarSync() {
     const endOfCurrentMonth = endOfMonth(today);
 
     // For each project filter, create a custom project
-    Object.entries(projectFilters).forEach(([projectId, filterTerm]) => {
+    Object.entries(filters).forEach(([projectId, filterTerm]) => {
       console.log(`Creating project "${projectId}" with filter "${filterTerm}"`);
       
-      const filteredEvents = events.filter(event => 
+      const filteredEvents = eventsList.filter(event => 
         event.summary.toLowerCase().includes(filterTerm.toLowerCase())
       );
       
@@ -341,7 +344,12 @@ export function useCalendarSync() {
     
     console.log(`Generated ${newCustomProjects.length} custom projects`);
     setCustomProjects(newCustomProjects);
-  }, [events, projectFilters, determineActivityType]);
+  }, [determineActivityType]);
+
+  // Create custom projects when events or project filters change
+  useEffect(() => {
+    updateCustomProjects(events, projectFilters);
+  }, [events, projectFilters, updateCustomProjects]);
 
   return {
     syncCalendar,
