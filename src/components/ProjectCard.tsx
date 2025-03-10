@@ -1,24 +1,26 @@
-
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Project } from '@/lib/types';
+import { stringToColor } from '@/lib/utils';
+import { MoreVertical, Edit, Trash2 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import ProjectCardMenu from './project/ProjectCardMenu';
-import EditProjectDialog from './project/EditProjectDialog';
-import ProjectSettingsDialog from './project/ProjectSettingsDialog';
-import ProjectStatus from './project/ProjectStatus';
-import ProjectActivities from './project/ProjectActivities';
-import ProjectHeader from './project/ProjectHeader';
-import { getProjectTag } from './project/ProjectUtils';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from 'sonner';
+import { useProjectManagement } from '@/hooks/useProjectManagement';
+import { ProjectSettingsDialog } from './project/ProjectSettingsDialog';
 
 interface ProjectCardProps {
   project: Project;
   className?: string;
   style?: React.CSSProperties;
-  onUpdateProject?: (updatedProject: Project) => void;
-  onDeleteProject?: (projectId: string) => void;
+  onUpdateProject: (updatedProject: Project) => void;
+  onDeleteProject: (projectId: string) => void;
 }
 
 const ProjectCard: React.FC<ProjectCardProps> = ({ 
@@ -29,204 +31,100 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
   onDeleteProject
 }) => {
   const navigate = useNavigate();
-  const [showEditDialog, setShowEditDialog] = useState(false);
-  const [showSettingsDialog, setShowSettingsDialog] = useState(false);
-  const [editedProject, setEditedProject] = useState<Project>({...project});
-  
-  const projectTag = getProjectTag(project.name);
+  const [showSettings, setShowSettings] = useState(false);
 
-  const handleSaveChanges = async () => {
-    try {
-      // Save to Supabase
-      const { data, error } = await supabase
-        .from('projects')
-        .upsert({
-          id: editedProject.id,
-          name: editedProject.name,
-          budget_hours: editedProject.budgetHours,
-          hourly_rate: editedProject.hourlyRate,
-          total_hours: editedProject.totalHours,
-          monthly_hours: editedProject.monthlyHours,
-          filter_term: editedProject.filterTerm,
-          visible: editedProject.visible !== false
-        })
-        .select();
+  useEffect(() => {
+    console.log(`Rendering ProjectCard for ${project.name} (ID: ${project.id})`);
+  }, [project]);
 
-      if (error) {
-        console.error('Error saving project:', error);
-        toast({
-          variant: "destructive",
-          title: "Error saving project",
-          description: error.message
-        });
-        return;
-      }
-
-      // Update activities if needed
-      if (editedProject.activities) {
-        for (const activity of editedProject.activities) {
-          // Upsert activity (update or insert)
-          const { error: activityError } = await supabase
-            .from('activities')
-            .upsert({
-              id: activity.id.startsWith('new-') ? undefined : activity.id,
-              project_id: editedProject.id,
-              type: activity.type,
-              hours: activity.hours,
-              hidden: activity.hidden
-            });
-
-          if (activityError) {
-            console.error('Error saving activity:', activityError);
-          }
-        }
-      }
-
-      if (onUpdateProject) {
-        onUpdateProject(editedProject);
-      }
-
-      toast({
-        title: "Project saved",
-        description: "Your changes have been saved successfully."
-      });
-
-      setShowEditDialog(false);
-    } catch (error) {
-      console.error('Error in saving project:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to save project. Please try again."
-      });
-    }
-  };
-
-  const handleDeleteProject = async () => {
-    try {
-      // Delete from Supabase
-      const { error } = await supabase
-        .from('projects')
-        .delete()
-        .eq('id', project.id);
-
-      if (error) {
-        console.error('Error deleting project:', error);
-        toast({
-          variant: "destructive",
-          title: "Error deleting project",
-          description: error.message
-        });
-        return;
-      }
-
-      if (onDeleteProject) {
-        onDeleteProject(project.id);
-      }
-
-      toast({
-        title: "Project deleted",
-        description: "The project has been deleted successfully."
-      });
-    } catch (error) {
-      console.error('Error in deleting project:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to delete project. Please try again."
-      });
-    }
-  };
-
-  const handleActivityVisibilityChange = (activityId: string, isVisible: boolean) => {
-    const updatedActivities = editedProject.activities.map(activity => {
-      if (activity.id === activityId) {
-        return { ...activity, hidden: !isVisible };
-      }
-      return activity;
-    });
-
-    setEditedProject({
-      ...editedProject,
-      activities: updatedActivities
-    });
-  };
-
-  const handleSaveSettings = async () => {
-    await handleSaveChanges();
-    setShowSettingsDialog(false);
+  const handleSaveSettings = async (updatedProject: Project) => {
+    await onUpdateProject(updatedProject);
+    setShowSettings(false);
   };
 
   const handleCardClick = (e: React.MouseEvent) => {
-    // Don't navigate if user clicked on menu or within dropdown
-    if ((e.target as HTMLElement).closest('.project-menu') || 
-        (e.target as HTMLElement).closest('[role="menu"]')) {
+    // Only navigate if we didn't click the menu or other interactive elements
+    if ((e.target as HTMLElement).closest('.project-card-action')) {
       return;
     }
-    
-    // Navigate to the dedicated project page
-    navigate(`/projects/${project.id}`);
+    navigate(`/project/${project.id}`);
   };
 
   return (
-    <>
-      <div 
-        className={cn(
-          'rounded-lg overflow-hidden bg-[#272729] text-white animate-fade-in cursor-pointer h-full',
-          className
-        )}
-        style={{
-          ...style,
-        }}
-        onClick={handleCardClick}
-      >
-        <div className="p-5 h-full flex flex-col">
-          <div className="flex items-start justify-between mb-4">
-            <div>
-              <ProjectHeader name={project.name} projectTag={projectTag} />
-            </div>
-            
-            <div className="flex items-center gap-2 project-menu">
-              <ProjectCardMenu 
-                projectName={project.name}
-                onEdit={() => setShowEditDialog(true)}
-                onSettings={() => setShowSettingsDialog(true)}
-                onDelete={handleDeleteProject}
-              />
-            </div>
-          </div>
-          
-          <ProjectStatus 
-            totalHours={project.totalHours} 
-            budgetHours={project.budgetHours}
-            monthlyHours={project.monthlyHours}
-          />
-          
-          <div className="mt-auto">
-            <ProjectActivities activities={project.activities} />
-          </div>
+    <Card 
+      className={cn("relative overflow-hidden flex flex-col pb-4", className)} 
+      style={style}
+      onClick={handleCardClick}
+    >
+      <CardHeader className="flex flex-row items-center gap-2 pb-2">
+        <div className="flex-1">
+          <CardTitle>{project.name}</CardTitle>
+          {!!project.budgetHours && (
+            <CardDescription className="text-xs mt-1">
+              Budget: {project.budgetHours} hours
+            </CardDescription>
+          )}
         </div>
-      </div>
-      
-      <EditProjectDialog 
-        open={showEditDialog}
-        onOpenChange={setShowEditDialog}
-        project={project}
-        editedProject={editedProject}
-        setEditedProject={setEditedProject}
-        onSave={handleSaveChanges}
-      />
+        <div className="project-card-action">
+          <ProjectCardMenu 
+            project={project} 
+            onEdit={() => setShowSettings(true)} 
+            onDelete={() => onDeleteProject(project.id)} 
+          />
+        </div>
+      </CardHeader>
 
-      <ProjectSettingsDialog 
-        open={showSettingsDialog}
-        onOpenChange={setShowSettingsDialog}
-        project={project}
-        editedProject={editedProject}
-        setEditedProject={setEditedProject}
-        onActivityVisibilityChange={handleActivityVisibilityChange}
-        onSave={handleSaveSettings}
-      />
-    </>
+      <CardContent className="grid gap-4">
+        <div className="text-sm font-medium leading-none">Total Hours: {project.totalHours?.toFixed(1) || '0'}</div>
+        <div className="flex items-center">
+          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none" className="mr-2">
+            <circle cx="8" cy="8" r="8" fill={stringToColor(project.name)} />
+          </svg>
+          <span className="text-sm text-muted-foreground">
+            {project.filterTerm}
+          </span>
+        </div>
+      </CardContent>
+      
+      {showSettings && (
+        <div className="project-card-action">
+          <ProjectSettingsDialog 
+            project={project}
+            open={showSettings}
+            onOpenChange={setShowSettings}
+            onSave={handleSaveSettings}
+          />
+        </div>
+      )}
+    </Card>
+  );
+};
+
+interface ProjectCardMenuProps {
+  project: Project;
+  onEdit: () => void;
+  onDelete: () => void;
+}
+
+const ProjectCardMenu: React.FC<ProjectCardMenuProps> = ({ project, onEdit, onDelete }) => {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button className="p-2 rounded-md hover:bg-secondary">
+          <MoreVertical className="h-4 w-4" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-40">
+        <DropdownMenuItem onClick={onEdit}>
+          <Edit className="mr-2 h-4 w-4" />
+          <span>Edit Project</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={onDelete} className="text-red-500 focus:text-red-500">
+          <Trash2 className="mr-2 h-4 w-4" />
+          <span>Delete Project</span>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 };
 

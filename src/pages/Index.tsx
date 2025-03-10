@@ -42,17 +42,17 @@ const Index: React.FC = () => {
 
   // Auto-sync calendar when authenticated and not yet synced
   useEffect(() => {
-    if (authState.isAuthenticated && !initialSyncDone) {
+    if (authState.isAuthenticated && !initialSyncDone && !lastSynced) {
       console.log("Auto-syncing calendar from Index component");
-      // Start with a shorter timeframe for faster initial load
+      // Only sync if we haven't synced before
       syncCalendar(30);
       setInitialSyncDone(true);
     }
-  }, [authState.isAuthenticated, initialSyncDone, syncCalendar]);
+  }, [authState.isAuthenticated, initialSyncDone, syncCalendar, lastSynced]);
 
-  // Force a resync if we have auth but no events
+  // Force a resync if we have auth but no events - but only try once
   useEffect(() => {
-    if (authState.isAuthenticated && events.length === 0 && initialSyncDone) {
+    if (authState.isAuthenticated && events.length === 0 && initialSyncDone && !lastSynced) {
       // Only do this once after a short delay
       const timer = setTimeout(() => {
         console.log("No events found after initial sync, retrying with longer timeframe");
@@ -61,13 +61,7 @@ const Index: React.FC = () => {
       
       return () => clearTimeout(timer);
     }
-  }, [authState.isAuthenticated, events.length, initialSyncDone, syncCalendar]);
-
-  // For debugging
-  useEffect(() => {
-    console.log("Index - Current project filters:", projectFilters);
-    console.log("Index - Custom projects count:", customProjects.length);
-  }, [projectFilters, customProjects]);
+  }, [authState.isAuthenticated, events.length, initialSyncDone, syncCalendar, lastSynced]);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">

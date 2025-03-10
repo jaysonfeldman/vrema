@@ -1,3 +1,4 @@
+
 import { useEffect, useCallback } from 'react';
 import { useCalendarEvents } from './calendar/useCalendarEvents';
 import { useEventFilters } from './calendar/useEventFilters';
@@ -49,11 +50,14 @@ export function useCalendarSync() {
   // Sync projects when events change - with higher priority
   useEffect(() => {
     if (events.length > 0) {
-      // Run immediately without batching to ensure projects appear quickly
-      queueMicrotask(() => {
+      // Use a single update to reduce multiple renders
+      const updateData = () => {
         updateProjectStats(events);
         identifyProjectsFromEvents(events);
-      });
+      };
+      
+      // Run immediately but as a single update
+      queueMicrotask(updateData);
     }
   }, [events, updateProjectStats, identifyProjectsFromEvents]);
 
@@ -87,8 +91,9 @@ export function useCalendarSync() {
     updateProject,
     
     // Stats and calculations
-    getTotalHours: () => getTotalHours(filteredEvents),
-    getActivityHours: (activityType: ActivityType) => getActivityHours(filteredEvents, activityType),
+    getTotalHours: useCallback(() => getTotalHours(filteredEvents), [filteredEvents, getTotalHours]),
+    getActivityHours: useCallback((activityType: ActivityType) => 
+      getActivityHours(filteredEvents, activityType), [filteredEvents, getActivityHours]),
     getActivitiesFromEvents,
     getProjectById
   };

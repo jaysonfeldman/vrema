@@ -5,7 +5,7 @@ import {
   fetchCalendarEvents, 
   parseEventTitle 
 } from '@/services/googleCalendarService';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from 'sonner';
 import { GoogleCalendarEvent, FilterOptions } from '@/lib/types';
 
 export function useCalendarEvents() {
@@ -15,28 +15,29 @@ export function useCalendarEvents() {
   const [isLoading, setIsLoading] = useState(false);
   const [lastSynced, setLastSynced] = useState<Date | null>(null);
   const [syncError, setSyncError] = useState<string | null>(null);
+  const [syncInProgress, setSyncInProgress] = useState(false);
   
   const syncCalendar = useCallback(async (days = 30) => {
     setSyncError(null);
     
+    // Prevent multiple sync operations at once
+    if (syncInProgress) {
+      console.log('Sync already in progress, skipping');
+      return;
+    }
+    
     if (!authState.isAuthenticated) {
-      toast({
-        variant: "destructive",
-        title: "Not authenticated",
-        description: "Please connect to Google Calendar first",
-      });
+      console.log('Not authenticated, skipping sync');
       return;
     }
 
     setIsLoading(true);
+    setSyncInProgress(true);
+    
     try {
       const token = await refreshToken();
       if (!token) {
-        toast({
-          variant: "destructive",
-          title: "Authentication failed",
-          description: "Please reconnect your Google Calendar",
-        });
+        console.log('No valid token available, skipping sync');
         return;
       }
       
@@ -56,42 +57,44 @@ export function useCalendarEvents() {
       
       console.log(`${validEvents.length} events have valid start/end times`);
       
-      // Log the first 5 events for debugging
-      validEvents.slice(0, 5).forEach(event => {
-        console.log(`Event: ${event.summary}, Start: ${event.start.dateTime}, End: ${event.end.dateTime}`);
-        const { projectName, activityType } = parseEventTitle(event.summary);
-        console.log(`  Parsed as Project: "${projectName}", Activity: "${activityType}"`);
-      });
-      
-      if (validEvents.length === 0) {
-        toast({
-          variant: "destructive",
-          title: "No valid events found",
-          description: "Could not find any events with start and end times",
-        });
-      }
-      
       setEvents(validEvents);
       setFilteredEvents(validEvents);
       setLastSynced(new Date());
       
-      toast({
-        title: "Calendar synced",
-        description: `Found ${validEvents.length} events from your Google Calendar`,
-      });
+      if (validEvents.length > 0) {
+        toast.success(`Calendar synced`, {
+          description: `Found ${validEvents.length} events`
+        });
+      } else {
+        toast.info('No events found', { 
+          description: 'No calendar events found in the selected time period'
+        });
+      }
       
       return { events: validEvents };
     } catch (error) {
       console.error('Error syncing calendar:', error);
       const errorMessage = error instanceof Error ? error.message : 'Could not sync with Google Calendar';
       setSyncError(errorMessage);
-      toast({
-        variant: "destructive",
-        title: "Sync failed",
-        description: errorMessage,
-      });
+      
+      const errorLower = errorMessage.toLowerCase();
+      
+      if (errorLower.includes('permission') || errorLower.includes('scope')) {
+        toast.error('Permission denied', {
+          description: 'Check Google Calendar access permissions'
+        });
+      } else if (errorLower.includes('authentication') || errorLower.includes('token')) {
+        toast.error('Authentication error', {
+          description: 'Please try reconnecting your Google Calendar'
+        });
+      } else {
+        toast.error('Sync failed', {
+          description: errorMessage
+        });
+      }
     } finally {
       setIsLoading(false);
+      setSyncInProgress(false);
     }
   }, [authState.isAuthenticated, refreshToken]);
 
