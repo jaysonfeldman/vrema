@@ -68,7 +68,7 @@ export function getActivityHours(type: ActivityType): number {
     case 'meetings': return 12;
     case 'dev': return 5;
     case 'admin': return 3;
-    case 'ux': return 8;  // Added to match the image
+    case 'ux': return 8;
     default: return 0;
   }
 }

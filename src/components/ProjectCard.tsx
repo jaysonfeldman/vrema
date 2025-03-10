@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Project } from '@/lib/types';
 import { formatTime } from '@/lib/mock-data';
@@ -63,25 +62,19 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
   
   // Get project tag (if any)
   const getProjectTag = () => {
-    // This would be expanded in a real app
-    const tagMap: Record<string, string> = {
-      'umc': 'UMC',
-      'umcu': 'UMC',
-      'web': 'Web',
-      'design': 'Design',
-      'marketing': 'MKT',
-      'geldfit': 'gf3',
-      'wisebrick': 'wb/cs'
-    };
+    // Use a simpler approach to generate a tag from the first word or acronym
+    const name = project.name.trim();
     
-    // Look for a match in the project name (simplified approach)
-    const nameWords = project.name.toLowerCase().split(' ');
-    for (const word of nameWords) {
-      if (tagMap[word]) {
-        return tagMap[word];
-      }
-    }
-    return null;
+    if (!name) return null;
+    
+    // Get first two characters of the project name for a tag
+    if (name.length <= 3) return name.toUpperCase();
+    
+    // Check if it's an acronym (all caps)
+    if (name === name.toUpperCase() && name.length <= 5) return name;
+    
+    // Otherwise, get first 2-3 characters
+    return name.substring(0, 3).toUpperCase();
   };
   
   const projectTag = getProjectTag();
