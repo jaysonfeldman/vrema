@@ -14,24 +14,32 @@ import { GoogleCalendarEvent, Project } from '@/lib/types';
 const ProjectDetail: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
-  const { getProjectById, events } = useCalendarSync();
+  const { events, customProjects } = useCalendarSync();
   const [project, setProject] = useState<Project | null>(null);
   const [projectEvents, setProjectEvents] = useState<GoogleCalendarEvent[]>([]);
 
   useEffect(() => {
-    if (projectId) {
-      const foundProject = getProjectById(projectId);
+    if (projectId && customProjects.length > 0) {
+      const foundProject = customProjects.find(p => p.id === projectId);
+      
       if (foundProject) {
+        console.log('Found project:', foundProject);
         setProject(foundProject);
+        
         // Filter events for this project
         const filteredEvents = events.filter(event => {
           const { projectName } = parseEventTitle(event.summary);
           return projectName.toLowerCase() === foundProject.name.toLowerCase();
         });
+        
+        console.log(`Found ${filteredEvents.length} events for project ${foundProject.name}`);
         setProjectEvents(filteredEvents);
+      } else {
+        console.log('Project not found with ID:', projectId);
+        console.log('Available projects:', customProjects.map(p => ({ id: p.id, name: p.name })));
       }
     }
-  }, [projectId, getProjectById, events]);
+  }, [projectId, customProjects, events]);
 
   if (!project) {
     return (

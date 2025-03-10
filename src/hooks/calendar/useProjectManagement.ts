@@ -163,9 +163,11 @@ export function useProjectManagement(getProjectColor: (projectName: string) => s
     const savedSettings = loadSavedProjectSettings();
     console.log("Loaded saved project settings:", savedSettings);
 
+    // Process each project filter
     Object.entries(filters).forEach(([projectKey, filterTerm]) => {
       console.log(`Creating project "${projectKey}" with filter "${filterTerm}"`);
       
+      // Match events that have project name matching the filter term (case-insensitive)
       const filteredEvents = eventsList.filter(event => {
         const { projectName } = parseEventTitle(event.summary);
         return projectName.toLowerCase() === filterTerm.toLowerCase();
@@ -178,7 +180,9 @@ export function useProjectManagement(getProjectColor: (projectName: string) => s
       let totalHours = 0;
       let thisMonthHours = 0;
       const activities: any[] = [];
+      const teamMembers = new Set<string>();
       
+      // Process each event to calculate hours and extract activities
       filteredEvents.forEach(event => {
         if (!event.start?.dateTime || !event.end?.dateTime) return;
         
@@ -196,8 +200,13 @@ export function useProjectManagement(getProjectColor: (projectName: string) => s
         
         const { activityType, description } = parseEventTitle(event.summary);
         
+        // Add creator to team members if available
+        if (event.creator?.email) {
+          teamMembers.add(event.creator.email);
+        }
+        
         if (activityType) {
-          const existingActivity = activities.find(a => a.type === activityType);
+          const existingActivity = activities.find(a => a.type.toLowerCase() === activityType.toLowerCase());
           if (existingActivity) {
             existingActivity.hours += durationHours;
           } else {
@@ -221,13 +230,14 @@ export function useProjectManagement(getProjectColor: (projectName: string) => s
           id: projectKey,
           name: projectSettings.name || filterTerm,
           totalHours: totalHours,
-          budgetHours: projectSettings.budgetHours || 120,
-          hourlyRate: projectSettings.hourlyRate || 95,
+          budgetHours: projectSettings.budgetHours || undefined,
+          hourlyRate: projectSettings.hourlyRate || undefined,
           activities: activities,
-          teamMembers: [],
+          teamMembers: Array.from(teamMembers).map(email => ({ email })),
           monthlyHours: thisMonthHours,
           color: getProjectColor(projectKey),
-          visible: projectSettings.visible !== false
+          visible: projectSettings.visible !== false,
+          filterTerm: filterTerm
         });
       }
     });

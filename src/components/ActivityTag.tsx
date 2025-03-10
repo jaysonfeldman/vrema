@@ -21,7 +21,7 @@ const ActivityTag: React.FC<ActivityTagProps> = ({
   const getActivityColor = (activityType: string): string => {
     const activityLower = activityType.toLowerCase();
     
-    // Use the specified color palette
+    // Use the specified color palette - never use gray
     if (activityLower.includes('design')) return '#fef18b'; // soft yellow
     if (activityLower.includes('dev') || activityLower.includes('development')) return '#7ed3fc'; // light blue
     if (activityLower.includes('meet') || activityLower.includes('call')) return '#6ee7b7'; // mint green
@@ -29,9 +29,13 @@ const ActivityTag: React.FC<ActivityTagProps> = ({
     if (activityLower.includes('admin')) return '#d1fae5'; // pale green
     if (activityLower.includes('review')) return '#fef18b'; // soft yellow
     if (activityLower.includes('research')) return '#7ed3fc'; // light blue
+    if (activityLower.includes('qa')) return '#9b87f5'; // primary purple
+    if (activityLower.includes('test')) return '#8B5CF6'; // vivid purple
+    if (activityLower.includes('content')) return '#FEC6A1'; // soft orange
+    if (activityLower.includes('write')) return '#FEC6A1'; // soft orange
     
-    // Use provided color or fallback to a generic color
-    return color || '#6b7280'; // gray if no match
+    // Use provided color or fallback to a pleasant color
+    return color || '#9b87f5'; // default to primary purple instead of gray
   };
   
   // Generate or use provided color

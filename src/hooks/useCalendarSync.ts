@@ -1,3 +1,4 @@
+
 import { useEffect, useCallback } from 'react';
 import { useCalendarEvents } from './calendar/useCalendarEvents';
 import { useEventFilters } from './calendar/useEventFilters';
@@ -57,6 +58,7 @@ export function useCalendarSync() {
   // Update custom projects when events or filters change
   useEffect(() => {
     if (events.length > 0 && Object.keys(projectFilters).length > 0) {
+      console.log("Updating custom projects based on events and filters");
       updateCustomProjects(events, projectFilters);
     }
   }, [events, projectFilters, updateCustomProjects]);

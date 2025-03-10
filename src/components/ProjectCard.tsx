@@ -171,7 +171,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
 
   // Calculate project earnings if hourly rate is set
   const getProjectEarnings = () => {
-    if (project.hourlyRate) {
+    if (project.hourlyRate && project.hourlyRate > 0) {
       return project.totalHours * project.hourlyRate;
     }
     return null;

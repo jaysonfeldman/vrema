@@ -1,6 +1,5 @@
 
 import React from 'react';
-import { formatTime } from '@/lib/mock-data';
 import { cn } from '@/lib/utils';
 
 interface ProjectStatusProps {
@@ -57,6 +56,20 @@ const ProjectStatus: React.FC<ProjectStatusProps> = ({
       )}
     </div>
   );
+};
+
+// Helper function for formatting time
+const formatTime = (hours: number): string => {
+  const h = Math.floor(hours);
+  const m = Math.round((hours - h) * 60);
+  
+  if (h === 0) {
+    return `${m}m`;
+  } else if (m === 0) {
+    return `${h}h`;
+  } else {
+    return `${h}h ${m}m`;
+  }
 };
 
 export default ProjectStatus;
