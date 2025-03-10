@@ -77,20 +77,20 @@ const ProjectDetail: React.FC = () => {
           const formattedProject: Project = {
             id: projectData.id,
             name: projectData.name,
-            totalHours: parseFloat(projectData.total_hours),
-            budgetHours: projectData.budget_hours ? parseFloat(projectData.budget_hours) : undefined,
-            hourlyRate: projectData.hourly_rate ? parseFloat(projectData.hourly_rate) : undefined,
+            totalHours: parseFloat(projectData.total_hours.toString()),
+            budgetHours: projectData.budget_hours ? parseFloat(projectData.budget_hours.toString()) : undefined,
+            hourlyRate: projectData.hourly_rate ? parseFloat(projectData.hourly_rate.toString()) : undefined,
             filterTerm: projectData.filter_term,
-            monthlyHours: projectData.monthly_hours ? parseFloat(projectData.monthly_hours) : 0,
+            monthlyHours: projectData.monthly_hours ? parseFloat(projectData.monthly_hours.toString()) : 0,
             visible: projectData.visible,
             activities: projectData.activities.map((activity: any) => ({
               id: activity.id,
               type: activity.type,
-              hours: parseFloat(activity.hours),
+              hours: parseFloat(activity.hours.toString()),
               date: new Date()
             })),
             teamMembers: [],
-            color: '#3C3C3C'
+            color: '#222222' // Default dark color
           };
           
           setProject(formattedProject);
@@ -150,11 +150,11 @@ const ProjectDetail: React.FC = () => {
         .from('projects')
         .update({
           name: updatedProject.name,
-          total_hours: updatedProject.totalHours,
-          budget_hours: updatedProject.budgetHours,
-          hourly_rate: updatedProject.hourlyRate,
+          total_hours: updatedProject.totalHours.toString(),
+          budget_hours: updatedProject.budgetHours?.toString(),
+          hourly_rate: updatedProject.hourlyRate?.toString(),
           filter_term: updatedProject.filterTerm,
-          monthly_hours: updatedProject.monthlyHours,
+          monthly_hours: updatedProject.monthlyHours?.toString(),
           visible: updatedProject.visible
         })
         .eq('id', updatedProject.id)

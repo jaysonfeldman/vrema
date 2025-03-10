@@ -81,7 +81,10 @@ const ProjectOverview: React.FC = () => {
           {sortedProjects.map((project) => (
             <ProjectCard 
               key={project.id} 
-              project={project} 
+              project={{
+                ...project,
+                color: project.color || '#222222' // Ensure dark background color
+              }}
             />
           ))}
         </div>

@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Calendar, Clock, Filter, Search } from 'lucide-react';
+import { Calendar, Clock, Filter, Search, Tag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { GoogleCalendarEvent } from '@/lib/types';
 import { formatEventDate, calculateDuration, parseEventTitle } from '@/services/googleCalendarService';
@@ -9,6 +9,7 @@ import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { format } from 'date-fns';
+import ActivityTag from '@/components/ActivityTag';
 
 interface ProjectEventsCardProps {
   projectEvents: GoogleCalendarEvent[];
@@ -60,6 +61,16 @@ const ProjectEventsCard: React.FC<ProjectEventsCardProps> = ({
     return `${wholeHours}h ${minutes}m`;
   };
 
+  // Group events by day for better organization
+  const eventsByDay = filteredEvents.reduce((grouped, event) => {
+    const day = event.start.dateTime.split('T')[0];
+    if (!grouped[day]) {
+      grouped[day] = [];
+    }
+    grouped[day].push(event);
+    return grouped;
+  }, {} as Record<string, GoogleCalendarEvent[]>);
+
   return (
     <Card className="mb-6">
       <CardHeader>
@@ -107,56 +118,89 @@ const ProjectEventsCard: React.FC<ProjectEventsCardProps> = ({
                   variant={activityFilter === activity ? "default" : "outline"}
                   size="sm"
                   onClick={() => setActivityFilter(activity === activityFilter ? null : activity)}
+                  className="flex items-center"
                 >
+                  <Tag className="h-3 w-3 mr-1" />
                   #{activity}
                 </Button>
               ))}
             </div>
             
-            <div className="rounded-md border overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Activity</TableHead>
-                    <TableHead className="hidden md:table-cell">Description</TableHead>
-                    <TableHead>Duration</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredEvents.map((event) => {
-                    const { activityType, description } = parseEventTitle(event.summary || '');
-                    const duration = calculateDuration(event.start.dateTime, event.end.dateTime);
+            <div className="space-y-6">
+              {Object.entries(eventsByDay)
+                .sort(([dayA], [dayB]) => dayB.localeCompare(dayA)) // Sort days in descending order
+                .map(([day, dayEvents]) => (
+                  <div key={day} className="space-y-2">
+                    <h3 className="text-sm font-medium text-muted-foreground flex items-center gap-2 border-b pb-1">
+                      <Calendar className="h-4 w-4" />
+                      {format(new Date(day), 'EEEE, MMMM d, yyyy')}
+                    </h3>
                     
-                    return (
-                      <TableRow key={event.id} className="group hover:bg-muted/50">
-                        <TableCell>
-                          <div className="font-medium">
-                            {format(new Date(event.start.dateTime), 'MMM d')}
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            {format(new Date(event.start.dateTime), 'h:mm a')}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="font-mono">
-                            #{activityType}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="hidden md:table-cell max-w-[300px] truncate">
-                          {description || '(No description)'}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2 font-mono">
-                            <Clock className="h-3 w-3 text-muted-foreground" />
-                            {duration}
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
+                    <div className="rounded-md border">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Time</TableHead>
+                            <TableHead>Description</TableHead>
+                            <TableHead>Activity</TableHead>
+                            <TableHead className="text-right">Duration</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {dayEvents
+                            .sort((a, b) => new Date(a.start.dateTime).getTime() - new Date(b.start.dateTime).getTime())
+                            .map((event) => {
+                              const { activityType, description } = parseEventTitle(event.summary || '');
+                              const startTime = new Date(event.start.dateTime);
+                              const endTime = new Date(event.end.dateTime);
+                              const durationInHours = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
+                              
+                              return (
+                                <TableRow key={event.id} className="group hover:bg-muted/50">
+                                  <TableCell>
+                                    <div className="font-medium">
+                                      {format(startTime, 'h:mm a')}
+                                    </div>
+                                    <div className="text-xs text-muted-foreground">
+                                      to {format(endTime, 'h:mm a')}
+                                    </div>
+                                  </TableCell>
+                                  <TableCell className="max-w-[300px]">
+                                    <div className="font-medium truncate">
+                                      {description || '(No description)'}
+                                    </div>
+                                    {event.description && (
+                                      <div className="text-xs text-muted-foreground truncate">
+                                        {event.description}
+                                      </div>
+                                    )}
+                                  </TableCell>
+                                  <TableCell>
+                                    <ActivityTag type={activityType} />
+                                  </TableCell>
+                                  <TableCell className="text-right">
+                                    <div className="flex items-center justify-end gap-2 font-mono">
+                                      <Clock className="h-3 w-3 text-muted-foreground" />
+                                      {formatTotalHours(durationInHours)}
+                                    </div>
+                                  </TableCell>
+                                </TableRow>
+                              );
+                            })}
+                            
+                            <TableRow>
+                              <TableCell colSpan={3} className="text-right font-medium">
+                                Day total:
+                              </TableCell>
+                              <TableCell className="text-right font-mono font-bold">
+                                {formatTotalHours(getTotalHours(dayEvents))}
+                              </TableCell>
+                            </TableRow>
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </div>
+                ))}
             </div>
           </div>
         ) : (

@@ -75,12 +75,15 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
     });
   };
 
+  // Default dark background color if none is specified
+  const projectColor = project.color || '#222222';
+
   return (
     <Card 
       className={`overflow-hidden hover:shadow-md transition-shadow cursor-pointer ${className}`}
       onClick={handleCardClick}
       style={{ 
-        backgroundColor: project.color || '#3C3C3C', 
+        backgroundColor: projectColor,
         color: 'white', 
         ...style 
       }}
