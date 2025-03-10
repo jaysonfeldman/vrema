@@ -8,8 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { PlusCircle, Calendar, Clock, AlertTriangle } from 'lucide-react';
-import { format } from 'date-fns';
-import { formatTime } from '@/lib/mock-data';
+import { toast } from '@/components/ui/use-toast';
 import ProjectCard from './ProjectCard';
 
 const ProjectView: React.FC = () => {
@@ -27,7 +26,12 @@ const ProjectView: React.FC = () => {
 
   const handleAddProject = () => {
     if (newProjectName.trim() && newProjectFilter.trim()) {
+      console.log("Adding new project filter:", newProjectName, newProjectFilter);
       addProjectFilter(newProjectName.trim(), newProjectFilter.trim());
+      toast({
+        title: "Project view created",
+        description: `Created "${newProjectName}" view for events containing "${newProjectFilter}"`,
+      });
       setNewProjectName('');
       setNewProjectFilter('');
       setIsAddingProject(false);
@@ -43,7 +47,7 @@ const ProjectView: React.FC = () => {
             {events.length} events available
           </Badge>
           <Button onClick={() => setIsAddingProject(!isAddingProject)}>
-            <PlusCircle className="mr-2 h-4 w-4" />
+            <PlusCircle className="h-4 w-4 mr-2" />
             {isAddingProject ? 'Cancel' : 'Add Project View'}
           </Button>
         </div>
@@ -87,6 +91,7 @@ const ProjectView: React.FC = () => {
         </Card>
       )}
 
+      {/* Project cards display */}
       {customProjects.length === 0 ? (
         <Card className="p-6">
           <div className="flex flex-col items-center justify-center text-center space-y-2 py-8">

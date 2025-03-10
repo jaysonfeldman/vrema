@@ -3,7 +3,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { useGoogleAuth } from '@/providers/GoogleAuthProvider';
 import { fetchCalendarEvents, convertEventsToActivities } from '@/services/googleCalendarService';
 import { toast } from '@/components/ui/use-toast';
-import { GoogleCalendarEvent, FilterOptions, Project } from '@/lib/types';
+import { GoogleCalendarEvent, FilterOptions, Project, ActivityType } from '@/lib/types';
 import { addDays, format, parseISO, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 
 export function useCalendarSync() {
@@ -36,7 +36,7 @@ export function useCalendarSync() {
       : 'Other';
   }, []);
 
-  const determineActivityType = useCallback((event: GoogleCalendarEvent): 'design' | 'strategy' | 'dev' | 'meetings' | 'admin' => {
+  const determineActivityType = useCallback((event: GoogleCalendarEvent): ActivityType => {
     const lowerSummary = event.summary.toLowerCase();
     const lowerDescription = (event.description || '').toLowerCase();
     
@@ -72,10 +72,15 @@ export function useCalendarSync() {
 
   // Add a new project filter
   const addProjectFilter = useCallback((projectId: string, filterTerm: string) => {
-    setProjectFilters(prev => ({
-      ...prev,
-      [projectId]: filterTerm
-    }));
+    console.log(`Adding project filter: ${projectId} with term "${filterTerm}"`);
+    setProjectFilters(prev => {
+      const newFilters = {
+        ...prev,
+        [projectId]: filterTerm
+      };
+      console.log("Updated project filters:", newFilters);
+      return newFilters;
+    });
   }, []);
 
   // Remove a project filter
@@ -126,7 +131,7 @@ export function useCalendarSync() {
   }, [filteredEvents]);
 
   // Get hours by activity type
-  const getActivityHours = useCallback((activityType: 'design' | 'strategy' | 'dev' | 'meetings' | 'admin') => {
+  const getActivityHours = useCallback((activityType: ActivityType) => {
     if (!filteredEvents.length) return 0;
     
     let activityHours = 0;
@@ -257,7 +262,12 @@ export function useCalendarSync() {
 
   // Create custom projects when events or project filters change
   useEffect(() => {
-    if (events.length === 0) return;
+    if (events.length === 0) {
+      console.log("No events available to create custom projects");
+      return;
+    }
+    
+    console.log("Generating custom projects based on filters:", projectFilters);
     
     const newCustomProjects: Project[] = [];
     const today = new Date();
@@ -266,9 +276,13 @@ export function useCalendarSync() {
 
     // For each project filter, create a custom project
     Object.entries(projectFilters).forEach(([projectId, filterTerm]) => {
+      console.log(`Creating project "${projectId}" with filter "${filterTerm}"`);
+      
       const filteredEvents = events.filter(event => 
         event.summary.toLowerCase().includes(filterTerm.toLowerCase())
       );
+      
+      console.log(`Found ${filteredEvents.length} events matching filter "${filterTerm}"`);
       
       if (filteredEvents.length === 0) return;
       
@@ -295,7 +309,7 @@ export function useCalendarSync() {
         }
         
         // Determine activity type
-        let activityType = determineActivityType(event);
+        const activityType = determineActivityType(event);
         
         // Add to activities
         const existingActivity = activities.find(a => a.type === activityType);
@@ -312,6 +326,7 @@ export function useCalendarSync() {
       });
       
       if (totalHours > 0) {
+        console.log(`Adding project "${projectId}" with ${totalHours.toFixed(2)} hours and ${activities.length} activities`);
         newCustomProjects.push({
           id: projectId,
           name: projectId,
@@ -324,6 +339,7 @@ export function useCalendarSync() {
       }
     });
     
+    console.log(`Generated ${newCustomProjects.length} custom projects`);
     setCustomProjects(newCustomProjects);
   }, [events, projectFilters, determineActivityType]);
 

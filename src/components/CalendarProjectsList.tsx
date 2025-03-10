@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input'; 
 import { Plus, Filter, X } from 'lucide-react';
 import { useCalendarSync } from '@/hooks/useCalendarSync';
+import { toast } from '@/components/ui/use-toast';
 import ActivityTag from './ActivityTag';
 import { ActivityType } from '@/lib/types';
 
@@ -35,7 +36,12 @@ const CalendarProjectsList: React.FC = () => {
   
   const handleAddProject = () => {
     if (newProjectName && newProjectFilter) {
+      console.log("Dashboard: Adding new project filter:", newProjectName, newProjectFilter);
       addProjectFilter(newProjectName.trim(), newProjectFilter.trim());
+      toast({
+        title: "Project view created",
+        description: `Created "${newProjectName}" view for events containing "${newProjectFilter}"`,
+      });
       setNewProjectName('');
       setNewProjectFilter('');
       setShowAddProject(false);
@@ -122,7 +128,7 @@ const CalendarProjectsList: React.FC = () => {
                     <span>
                       {project.budgetHours && project.totalHours > project.budgetHours 
                         ? `-${Math.round((project.totalHours - project.budgetHours) * 10) / 10}h` 
-                        : `${Math.round((project.budgetHours - project.totalHours) * 10) / 10}h left`}
+                        : `${Math.round((project.budgetHours ? project.budgetHours - project.totalHours : 0) * 10) / 10}h left`}
                     </span>
                   </div>
                   <Progress 
@@ -137,7 +143,7 @@ const CalendarProjectsList: React.FC = () => {
                     {project.activities.map((activity, index) => (
                       <ActivityTag 
                         key={index} 
-                        type={activity.type} 
+                        type={activity.type as ActivityType} 
                         hours={Math.round(activity.hours * 10) / 10} 
                         className="text-xs px-2 py-0.5"
                       />

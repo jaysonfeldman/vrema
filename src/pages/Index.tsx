@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const Index: React.FC = () => {
   const { authState } = useGoogleAuth();
-  const { syncCalendar, lastSynced, isAuthenticated, events } = useCalendarSync();
+  const { syncCalendar, lastSynced, isAuthenticated, events, projectFilters, customProjects } = useCalendarSync();
 
   // Auto-sync calendar when authenticated and not yet synced
   useEffect(() => {
@@ -21,6 +21,12 @@ const Index: React.FC = () => {
       syncCalendar();
     }
   }, [authState.isAuthenticated, lastSynced, syncCalendar, events.length]);
+
+  // For debugging
+  useEffect(() => {
+    console.log("Current project filters:", projectFilters);
+    console.log("Custom projects:", customProjects.length);
+  }, [projectFilters, customProjects]);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
