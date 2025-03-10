@@ -41,7 +41,10 @@ const ProjectDetail: React.FC = () => {
   
   // Load project and filter events
   useEffect(() => {
-    if (!projectId) return;
+    if (!projectId) {
+      navigate('/');
+      return;
+    }
 
     console.log("ProjectDetail: Loading project with ID:", projectId);
     
@@ -60,17 +63,18 @@ const ProjectDetail: React.FC = () => {
       const searchTerm = foundProject.filterTerm || foundProject.name;
       console.log("Setting filter for events with term:", searchTerm);
       
-      // Use the searchTerm instead of selectedProjects array to show all events matching the search
+      // Use the searchTerm to filter events
       updateFilters({ 
         searchTerm: searchTerm,
         dateRange: 90, // Show more history for project details
         selectedProjects: [] // Don't filter by project selection
       });
     } else {
+      // If project not found, navigate back to home
       console.error('Project not found with ID:', projectId);
-      console.log('Available project IDs:', customProjects.map(p => p.id));
+      navigate('/');
     }
-  }, [projectId, customProjects, updateFilters, syncCalendar, getProjectById]);
+  }, [projectId, customProjects, updateFilters, syncCalendar, getProjectById, navigate]);
   
   // Update projectEvents when filteredEvents or events change
   useEffect(() => {
@@ -111,25 +115,8 @@ const ProjectDetail: React.FC = () => {
   }
   
   if (!project) {
-    return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
-        <Header />
-        <div className="container mx-auto py-6 px-4">
-          <Card className="p-8 max-w-3xl mx-auto mt-8">
-            <div className="text-center space-y-4">
-              <h2 className="text-2xl font-bold">Project Not Found</h2>
-              <p className="text-muted-foreground">Project ID: {projectId}</p>
-              <p className="text-muted-foreground">Available Projects: {customProjects.length}</p>
-              <p className="text-muted-foreground">The project you're looking for doesn't exist or couldn't be loaded.</p>
-              <Button onClick={() => navigate('/')}>
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Back to Projects
-              </Button>
-            </div>
-          </Card>
-        </div>
-      </div>
-    );
+    // Return the loading state instead of project not found
+    return <ProjectsLoading />;
   }
 
   // Calculate earned value if hourly rate exists
