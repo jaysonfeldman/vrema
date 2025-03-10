@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useCalendarSync } from '@/hooks/useCalendarSync';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -10,6 +10,7 @@ import { Plus, Filter, Grid, LayoutList } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import ProjectCard from './ProjectCard';
 import { cn } from '@/lib/utils';
+import { Project } from '@/lib/types';
 
 const ProjectsOverview: React.FC = () => {
   const { 
@@ -18,7 +19,8 @@ const ProjectsOverview: React.FC = () => {
     removeProjectFilter, 
     projectFilters,
     events,
-    syncCalendar
+    syncCalendar,
+    updateProject
   } = useCalendarSync();
   
   const [showAddProject, setShowAddProject] = useState(false);
@@ -26,6 +28,29 @@ const ProjectsOverview: React.FC = () => {
   const [newProjectFilter, setNewProjectFilter] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [sortBy, setSortBy] = useState('most-tracked');
+
+  // Load view mode preference from localStorage
+  useEffect(() => {
+    const savedViewMode = localStorage.getItem('projects-view-mode');
+    if (savedViewMode) {
+      setViewMode(savedViewMode as 'grid' | 'list');
+    }
+    
+    const savedSortBy = localStorage.getItem('projects-sort-by');
+    if (savedSortBy) {
+      setSortBy(savedSortBy);
+    }
+  }, []);
+
+  // Save view mode preference to localStorage
+  useEffect(() => {
+    localStorage.setItem('projects-view-mode', viewMode);
+  }, [viewMode]);
+
+  // Save sort preference to localStorage
+  useEffect(() => {
+    localStorage.setItem('projects-sort-by', sortBy);
+  }, [sortBy]);
   
   const handleAddProject = () => {
     if (newProjectName.trim() && newProjectFilter.trim()) {
@@ -46,6 +71,32 @@ const ProjectsOverview: React.FC = () => {
       setNewProjectFilter('');
       setShowAddProject(false);
     }
+  };
+
+  const handleUpdateProject = (updatedProject: Project) => {
+    updateProject(updatedProject);
+    
+    toast({
+      title: "Project updated",
+      description: `Updated "${updatedProject.name}" settings`,
+    });
+  };
+
+  const handleDeleteProject = (projectId: string) => {
+    // Find the project name before deleting
+    const projectToDelete = customProjects.find(p => p.id === projectId);
+    const projectName = projectToDelete ? projectToDelete.name : projectId;
+    
+    // Remove the project filter
+    removeProjectFilter(projectId);
+    
+    // Force a sync to update
+    syncCalendar();
+    
+    toast({
+      title: "Project deleted",
+      description: `Removed "${projectName}" project view`,
+    });
   };
 
   // Sort projects by hours logged (most or least)
@@ -152,6 +203,8 @@ const ProjectsOverview: React.FC = () => {
               key={project.id}
               project={project}
               className="bg-gray-900 text-white border-0"
+              onUpdateProject={handleUpdateProject}
+              onDeleteProject={handleDeleteProject}
             />
           ))}
         </div>

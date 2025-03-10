@@ -4,6 +4,7 @@ import { useCalendarSync } from '@/hooks/useCalendarSync';
 import { Card } from '@/components/ui/card';
 import TotalHoursFilter from './TotalHoursFilter';
 import TotalHoursCard from './TotalHoursCard';
+import { Activity } from '@/lib/types';
 
 const TotalHoursView: React.FC = () => {
   const { 
@@ -15,12 +16,14 @@ const TotalHoursView: React.FC = () => {
     filteredEvents,
     lastSynced,
     syncCalendar,
-    isAuthenticated
+    isAuthenticated,
+    getActivitiesFromEvents
   } = useCalendarSync();
   
   // Title filter state
   const [titleFilter, setTitleFilter] = useState('');
   const [debouncedTitleFilter, setDebouncedTitleFilter] = useState('');
+  const [activities, setActivities] = useState<Activity[]>([]);
   
   // For debouncing the title filter
   useEffect(() => {
@@ -43,6 +46,15 @@ const TotalHoursView: React.FC = () => {
       syncCalendar();
     }
   }, [isAuthenticated, events.length, lastSynced, syncCalendar]);
+  
+  // Get activities when filtered events change
+  useEffect(() => {
+    if (filteredEvents.length > 0) {
+      const fetchedActivities = getActivitiesFromEvents(filteredEvents);
+      console.log("Fetched activities:", fetchedActivities);
+      setActivities(fetchedActivities);
+    }
+  }, [filteredEvents, getActivitiesFromEvents]);
   
   const totalHours = getTotalHours();
   console.log("TotalHoursView rendering with total hours:", totalHours);
@@ -83,6 +95,7 @@ const TotalHoursView: React.FC = () => {
           dateRange={filters.dateRange}
           lastSynced={lastSynced}
           getActivityHours={getActivityHours}
+          activities={activities}
         />
       </Card>
     </div>
