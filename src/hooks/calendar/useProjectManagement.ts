@@ -128,6 +128,8 @@ export function useProjectManagement(getProjectColor: (projectName: string) => s
     const uniqueProjects = new Map<string, string>();
     
     eventsList.forEach(event => {
+      if (!event.summary) return;
+      
       const { projectName } = parseEventTitle(event.summary);
       if (projectName && projectName !== 'Other') {
         uniqueProjects.set(projectName.toLowerCase(), projectName);
@@ -163,31 +165,54 @@ export function useProjectManagement(getProjectColor: (projectName: string) => s
     const savedSettings = loadSavedProjectSettings();
     console.log("Loaded saved project settings:", savedSettings);
 
-    // Process each project filter
-    Object.entries(filters).forEach(([projectKey, filterTerm]) => {
-      console.log(`Creating project "${projectKey}" with filter "${filterTerm}"`);
+    // First, identify all unique projects in events
+    const projectsFromEvents = new Map<string, string>(); // normalized name -> display name
+    
+    eventsList.forEach(event => {
+      if (!event.summary) return;
       
-      // Match events that have project name matching the filter term (case-insensitive)
-      const filteredEvents = eventsList.filter(event => {
+      const { projectName } = parseEventTitle(event.summary);
+      if (projectName && projectName !== 'Other') {
+        projectsFromEvents.set(projectName.toLowerCase(), projectName);
+      }
+    });
+    
+    console.log(`Found ${projectsFromEvents.size} unique projects in events`);
+    
+    // Create an array to process - both from filters and from identified events
+    const projectsToProcess = new Map<string, string>(); // normalized name -> display name
+    
+    // Add all projects from filters
+    Object.entries(filters).forEach(([normalizedName, displayName]) => {
+      projectsToProcess.set(normalizedName.toLowerCase(), displayName);
+    });
+    
+    // Add all projects from events
+    projectsFromEvents.forEach((displayName, normalizedName) => {
+      if (!projectsToProcess.has(normalizedName)) {
+        projectsToProcess.set(normalizedName, displayName);
+      }
+    });
+    
+    console.log(`Processing ${projectsToProcess.size} total projects`);
+
+    // Process each project 
+    projectsToProcess.forEach((displayName, normalizedKey) => {
+      // For each project, find matching events
+      const matchingEvents = eventsList.filter(event => {
         if (!event.summary) return false;
         
         const { projectName } = parseEventTitle(event.summary);
-        const matchesFilter = projectName && (
-          projectName.toLowerCase() === filterTerm.toLowerCase() ||
-          filterTerm.toLowerCase().includes(projectName.toLowerCase()) ||
-          projectName.toLowerCase().includes(filterTerm.toLowerCase())
-        );
+        if (!projectName) return false;
         
-        if (matchesFilter) {
-          console.log(`Event match: "${event.summary}" -> "${filterTerm}"`);
-        }
-        
-        return matchesFilter;
+        // Case insensitive matching of project names
+        const normalizedProjectName = projectName.toLowerCase();
+        return normalizedProjectName === normalizedKey;
       });
       
-      console.log(`Found ${filteredEvents.length} events matching project "${filterTerm}"`);
+      console.log(`Found ${matchingEvents.length} events for project "${displayName}"`);
       
-      if (filteredEvents.length === 0) return;
+      if (matchingEvents.length === 0) return;
       
       let totalHours = 0;
       let thisMonthHours = 0;
@@ -195,7 +220,7 @@ export function useProjectManagement(getProjectColor: (projectName: string) => s
       const teamMemberEmails = new Set<string>();
       
       // Process each event to calculate hours and extract activities
-      filteredEvents.forEach(event => {
+      matchingEvents.forEach(event => {
         if (!event.start?.dateTime || !event.end?.dateTime) return;
         
         const startTime = new Date(event.start.dateTime);
@@ -234,7 +259,7 @@ export function useProjectManagement(getProjectColor: (projectName: string) => s
             existingActivity.hours += durationHours;
           } else {
             activities.push({
-              id: `${projectKey}-${activityType}`,
+              id: `${normalizedKey}-${activityType}`,
               type: activityType,
               hours: durationHours,
               description: description,
@@ -245,7 +270,6 @@ export function useProjectManagement(getProjectColor: (projectName: string) => s
       });
       
       if (totalHours > 0) {
-        const normalizedKey = projectKey.toLowerCase();
         const projectSettings = savedSettings && savedSettings[normalizedKey] ? savedSettings[normalizedKey] : {};
         
         // Create proper TeamMember objects from the collected emails
@@ -257,19 +281,19 @@ export function useProjectManagement(getProjectColor: (projectName: string) => s
           weeklyHours: {} // Empty weekly hours object, will be populated if/when data is available
         }));
         
-        console.log(`Adding project "${projectKey}" with ${totalHours.toFixed(2)} hours and ${activities.length} activities`);
+        console.log(`Adding project "${displayName}" with ${totalHours.toFixed(2)} hours and ${activities.length} activities`);
         newCustomProjects.push({
-          id: projectKey,
-          name: projectSettings.name || filterTerm,
+          id: normalizedKey,
+          name: projectSettings.name || displayName,
           totalHours: totalHours,
           budgetHours: projectSettings.budgetHours || undefined,
           hourlyRate: projectSettings.hourlyRate || undefined,
           activities: activities,
           teamMembers: teamMembers,
           monthlyHours: thisMonthHours,
-          color: getProjectColor(projectKey),
+          color: getProjectColor(normalizedKey),
           visible: projectSettings.visible !== false,
-          filterTerm: filterTerm
+          filterTerm: displayName  // Use display name as filter term
         });
       }
     });
@@ -286,8 +310,16 @@ export function useProjectManagement(getProjectColor: (projectName: string) => s
   }, [loadSavedProjectFilters]);
 
   const getProjectById = useCallback((projectId: string): Project | null => {
-    const foundProject = customProjects.find(p => p.id === projectId);
-    return foundProject || null;
+    console.log(`Looking for project with ID: "${projectId}" among ${customProjects.length} projects`);
+    const foundProject = customProjects.find(p => p.id.toLowerCase() === projectId.toLowerCase());
+    
+    if (foundProject) {
+      console.log(`Found project by ID: ${foundProject.name}`);
+      return foundProject;
+    } else {
+      console.log(`Project not found by ID: ${projectId}`);
+      return null;
+    }
   }, [customProjects]);
 
   return {

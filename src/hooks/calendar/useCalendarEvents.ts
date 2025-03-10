@@ -90,11 +90,15 @@ export function useCalendarEvents() {
   }, [authState.isAuthenticated, refreshToken]);
 
   const getProjectNameFromEvent = useCallback((event: GoogleCalendarEvent): string => {
+    if (!event.summary) return 'Other';
+    
     const { projectName } = parseEventTitle(event.summary);
     return projectName;
   }, []);
 
   const determineActivityType = useCallback((event: GoogleCalendarEvent): string => {
+    if (!event.summary) return 'other';
+    
     const { activityType } = parseEventTitle(event.summary);
     return activityType;
   }, []);

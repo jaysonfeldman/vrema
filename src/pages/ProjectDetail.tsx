@@ -30,21 +30,18 @@ const ProjectDetail: React.FC = () => {
         console.log('Found project by ID:', foundProject);
         setProject(foundProject);
         
-        // Filter events for this project
+        // Filter events for this project based on the parsed project name
         const filteredEvents = events.filter(event => {
           if (!event.summary) return false;
           
           const { projectName } = parseEventTitle(event.summary);
-          const matchesFilter = projectName && (
-            projectName.toLowerCase() === foundProject.filterTerm.toLowerCase() ||
-            foundProject.filterTerm.toLowerCase().includes(projectName.toLowerCase()) ||
-            projectName.toLowerCase().includes(foundProject.filterTerm.toLowerCase())
-          );
+          if (!projectName) return false;
           
-          return matchesFilter;
+          // Case insensitive matching of project name
+          return projectName.toLowerCase() === foundProject.name.toLowerCase();
         });
         
-        console.log(`Found ${filteredEvents.length} events for project ${foundProject.name} using filter term "${foundProject.filterTerm}"`);
+        console.log(`Found ${filteredEvents.length} events for project ${foundProject.name}`);
         setProjectEvents(filteredEvents);
       } else {
         console.log('Project not found with ID:', projectId);
@@ -125,7 +122,7 @@ const ProjectDetail: React.FC = () => {
                   {projectEvents.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={4} className="text-center py-6 text-muted-foreground">
-                        No events found for this project.
+                        No events found for this project. Create calendar events with format "ProjectName#ActivityType Description" to track time.
                       </TableCell>
                     </TableRow>
                   ) : (
