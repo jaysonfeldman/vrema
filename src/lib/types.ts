@@ -1,4 +1,3 @@
-
 export type ActivityType = string;
 
 export interface Activity {
@@ -7,6 +6,8 @@ export interface Activity {
   hours: number;
   description?: string;
   date: Date;
+  hidden?: boolean;
+  color?: string;
 }
 
 export interface Project {
@@ -18,6 +19,8 @@ export interface Project {
   teamMembers: TeamMember[];
   color?: string;
   monthlyHours?: number; // Hours logged in the current month
+  filterTerm?: string;   // Term used to filter events for this project
+  visible?: boolean;     // Whether the project is visible in the UI
 }
 
 export interface TeamMember {

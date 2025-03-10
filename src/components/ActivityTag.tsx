@@ -1,85 +1,42 @@
+
 import React from 'react';
+import { getActivityColor } from '@/lib/mock-data';
 import { cn } from '@/lib/utils';
-import { ActivityType } from '@/lib/types';
 
 interface ActivityTagProps {
-  type: ActivityType;
-  hours: number;
+  type: string;
+  hours?: number;
   className?: string;
+  style?: React.CSSProperties;
+  color?: string;
 }
 
-const ActivityTag: React.FC<ActivityTagProps> = ({ type, hours, className }) => {
-  // Format hours to show as "40:00" for example
-  const formatHours = (hours: number) => {
-    const wholeHours = Math.floor(hours);
-    const minutes = Math.round((hours - wholeHours) * 60);
-    return `${wholeHours}:${minutes.toString().padStart(2, '0')}`;
-  };
-
-  // Get the appropriate background color for the activity type
-  const getTagColor = () => {
-    // Vibrant color map for activities
-    const colorMap: Record<string, string> = {
-      'design': 'bg-[#10b981] text-white', // Green
-      'strategy': 'bg-[#3b82f6] text-white', // Blue
-      'dev': 'bg-[#6366f1] text-white', // Indigo
-      'meetings': 'bg-[#8b5cf6] text-white', // Purple
-      'admin': 'bg-[#f59e0b] text-white', // Amber
-      'pm': 'bg-[#ec4899] text-white', // Pink
-      'ux': 'bg-[#14b8a6] text-white', // Teal
-      'research': 'bg-[#8b5cf6] text-white', // Purple
-      'marketing': 'bg-[#f97316] text-white', // Orange
-      'sales': 'bg-[#06b6d4] text-white', // Cyan
-      'support': 'bg-[#0ea5e9] text-white', // Sky blue
-      'other': 'bg-[#6b7280] text-white' // Gray
-    };
-    
-    const normalizedType = type.toLowerCase();
-    
-    // If the activity type is in our color map, use that color
-    if (colorMap[normalizedType]) {
-      return colorMap[normalizedType];
-    }
-    
-    // Otherwise, generate a vibrant color based on the activity type string
-    const vibrantColors = [
-      'bg-[#10b981] text-white', // Green
-      'bg-[#3b82f6] text-white', // Blue
-      'bg-[#6366f1] text-white', // Indigo
-      'bg-[#8b5cf6] text-white', // Purple
-      'bg-[#f59e0b] text-white', // Amber
-      'bg-[#ec4899] text-white', // Pink
-      'bg-[#14b8a6] text-white', // Teal
-      'bg-[#f97316] text-white', // Orange
-      'bg-[#06b6d4] text-white', // Cyan
-      'bg-[#0ea5e9] text-white', // Sky blue
-      'bg-[#a855f7] text-white', // Purple
-      'bg-[#d946ef] text-white'  // Fuchsia
-    ];
-    
-    // Use hash of string to pick a consistent color for the same activity type
-    const stringToHash = (str: string) => {
-      let hash = 0;
-      for (let i = 0; i < str.length; i++) {
-        hash = str.charCodeAt(i) + ((hash << 5) - hash);
-      }
-      return Math.abs(hash);
-    };
-    
-    const colorIndex = stringToHash(normalizedType) % vibrantColors.length;
-    return vibrantColors[colorIndex];
-  };
-
+const ActivityTag: React.FC<ActivityTagProps> = ({ 
+  type, 
+  hours, 
+  className,
+  style,
+  color
+}) => {
+  // Generate or use provided color
+  const tagColor = color || getActivityColor(type);
+  
   return (
     <div 
       className={cn(
-        'px-3 py-1 rounded-md text-sm inline-flex items-center justify-center shadow-sm', 
-        getTagColor(),
+        "inline-flex items-center py-1 px-2 rounded-md text-xs font-medium",
         className
       )}
+      style={{ 
+        backgroundColor: tagColor,
+        color: 'white',
+        ...style 
+      }}
     >
-      <span className="font-mono font-medium">{formatHours(hours)}</span>
-      <span className="ml-1">#{type}</span>
+      {hours && (
+        <span className="mr-1 font-mono">{hours.toFixed(0).padStart(1, '0')}:00</span>
+      )}
+      <span>#{type.toLowerCase()}</span>
     </div>
   );
 };

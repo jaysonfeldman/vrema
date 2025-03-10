@@ -1,16 +1,18 @@
+
 import React, { useState } from 'react';
-import { Project } from '@/lib/types';
-import { formatTime } from '@/lib/mock-data';
+import { Project, Activity } from '@/lib/types';
+import { formatTime, getActivityColor } from '@/lib/mock-data';
 import ActivityTag from './ActivityTag';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { MoreVertical, Edit, Trash } from 'lucide-react';
+import { MoreVertical, Edit, Trash, Settings, Palette, Eye } from 'lucide-react';
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
   DropdownMenuItem, 
-  DropdownMenuTrigger 
+  DropdownMenuTrigger,
+  DropdownMenuSeparator
 } from '@/components/ui/dropdown-menu';
 import { 
   Dialog,
@@ -22,6 +24,8 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
 
 interface ProjectCardProps {
   project: Project;
@@ -39,7 +43,9 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
   onDeleteProject
 }) => {
   const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showSettingsDialog, setShowSettingsDialog] = useState(false);
   const [editedProject, setEditedProject] = useState<Project>({...project});
+  const [activityColors, setActivityColors] = useState<Record<string, string>>({});
   
   // Is the project over budget?
   const isOverBudget = project.budgetHours && project.totalHours > project.budgetHours;
@@ -92,6 +98,27 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
     }
   };
 
+  const handleActivityVisibilityChange = (activityId: string, isVisible: boolean) => {
+    const updatedActivities = editedProject.activities.map(activity => {
+      if (activity.id === activityId) {
+        return { ...activity, hidden: !isVisible };
+      }
+      return activity;
+    });
+
+    setEditedProject({
+      ...editedProject,
+      activities: updatedActivities
+    });
+  };
+
+  const handleSaveSettings = () => {
+    if (onUpdateProject) {
+      onUpdateProject(editedProject);
+    }
+    setShowSettingsDialog(false);
+  };
+
   return (
     <>
       <div 
@@ -116,7 +143,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
               </div>
             </div>
             
-            <div className="flex items-center">
+            <div className="flex items-center gap-2">
               {project.teamMembers.length > 0 && (
                 <div className="flex -space-x-2">
                   {project.teamMembers.slice(0, 3).map((member, index) => (
@@ -139,6 +166,29 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
                   )}
                 </div>
               )}
+              
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 p-0">
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => setShowEditDialog(true)}>
+                    <Edit className="mr-2 h-4 w-4" />
+                    Edit Project
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setShowSettingsDialog(true)}>
+                    <Settings className="mr-2 h-4 w-4" />
+                    Project Settings
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleDeleteProject} className="text-red-500">
+                    <Trash className="mr-2 h-4 w-4" />
+                    Delete Project
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
           
@@ -168,18 +218,28 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
           <div>
             <p className="text-sm text-gray-400 mb-2">Activities</p>
             <div className="flex flex-wrap gap-2">
-              {project.activities.slice(0, 3).map((activity) => (
-                <ActivityTag
-                  key={activity.id}
-                  type={activity.type}
-                  hours={activity.hours}
-                />
+              {project.activities
+                .filter(activity => !activity.hidden)
+                .slice(0, 3)
+                .map((activity) => (
+                  <ActivityTag
+                    key={activity.id}
+                    type={activity.type}
+                    hours={activity.hours}
+                    color={getActivityColor(activity.type)}
+                  />
               ))}
+              {project.activities.length > 3 && (
+                <Badge variant="outline" className="bg-zinc-800 text-white border-zinc-700">
+                  +{project.activities.length - 3} more
+                </Badge>
+              )}
             </div>
           </div>
         </div>
       </div>
       
+      {/* Edit Project Dialog */}
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -221,6 +281,92 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
             </DialogClose>
             <Button type="button" onClick={handleSaveChanges}>
               Save changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Project Settings Dialog */}
+      <Dialog open={showSettingsDialog} onOpenChange={setShowSettingsDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Project Settings</DialogTitle>
+          </DialogHeader>
+          
+          <Tabs defaultValue="activities">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="activities">Activities</TabsTrigger>
+              <TabsTrigger value="filters">Filters</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="activities" className="space-y-4 mt-4">
+              <h3 className="text-sm font-medium">Activity Visibility & Colors</h3>
+              <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
+                {editedProject.activities.map((activity) => (
+                  <div key={activity.id} className="flex items-center justify-between bg-gray-50 p-2 rounded-md">
+                    <div className="flex items-center space-x-3">
+                      <div 
+                        className="w-4 h-4 rounded-full" 
+                        style={{ backgroundColor: getActivityColor(activity.type) }}
+                      />
+                      <span className="font-medium">{activity.type}</span>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      <span className="text-sm text-gray-500">{formatTime(activity.hours)}</span>
+                      <Switch 
+                        checked={!activity.hidden} 
+                        onCheckedChange={(checked) => handleActivityVisibilityChange(activity.id, checked)}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="filters" className="space-y-4 mt-4">
+              <div className="grid gap-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="filter-term" className="text-right">
+                    Filter Term
+                  </Label>
+                  <Input
+                    id="filter-term"
+                    value={editedProject.filterTerm || ""}
+                    onChange={(e) => setEditedProject({
+                      ...editedProject, 
+                      filterTerm: e.target.value
+                    })}
+                    className="col-span-3"
+                    placeholder="e.g., Marketing"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="budget-hours-setting" className="text-right">
+                    Budget (hours)
+                  </Label>
+                  <Input
+                    id="budget-hours-setting"
+                    type="number"
+                    value={editedProject.budgetHours || 0}
+                    onChange={(e) => setEditedProject({
+                      ...editedProject, 
+                      budgetHours: parseFloat(e.target.value) || undefined
+                    })}
+                    className="col-span-3"
+                  />
+                </div>
+              </div>
+            </TabsContent>
+          </Tabs>
+          
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button type="button" variant="outline">
+                Cancel
+              </Button>
+            </DialogClose>
+            <Button type="button" onClick={handleSaveSettings}>
+              Save settings
             </Button>
           </DialogFooter>
         </DialogContent>

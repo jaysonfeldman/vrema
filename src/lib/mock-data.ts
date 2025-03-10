@@ -78,3 +78,35 @@ export function formatTime(hours: number): string {
   const minutes = Math.round((hours - wholeHours) * 60);
   return `${wholeHours}:${minutes.toString().padStart(2, '0')}`;
 }
+
+// Activity color mapping
+const colorPalette = [
+  '#8B5CF6', // Vivid Purple
+  '#D946EF', // Magenta Pink
+  '#F97316', // Bright Orange
+  '#0EA5E9', // Ocean Blue
+  '#14B8A6', // Teal
+  '#22C55E', // Green
+  '#EAB308', // Yellow
+  '#EC4899', // Pink
+  '#3B82F6', // Blue
+  '#ef4444', // Red
+];
+
+const activityColors: Record<string, string> = {};
+
+export function getActivityColor(type: ActivityType): string {
+  // Normalize the type to lowercase for consistent mapping
+  const normalizedType = type.toLowerCase();
+  
+  // If we've already assigned a color, return it
+  if (activityColors[normalizedType]) {
+    return activityColors[normalizedType];
+  }
+  
+  // Assign a new color from the palette
+  const colorIndex = Object.keys(activityColors).length % colorPalette.length;
+  activityColors[normalizedType] = colorPalette[colorIndex];
+  
+  return activityColors[normalizedType];
+}
