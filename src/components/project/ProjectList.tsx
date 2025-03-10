@@ -40,12 +40,12 @@ const ProjectList: React.FC<ProjectListProps> = ({
   }
   
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {projects.map((project, index) => (
-        <div key={project.id} id={`project-card-${project.id}`}>
+        <div key={project.id} id={`project-card-${project.id}`} className="transition-all duration-300 hover:transform hover:scale-[1.02]">
           <ProjectCard
             project={project}
-            className="bg-zinc-900 text-white hover:bg-zinc-800 transition-colors"
+            className="bg-zinc-900 text-white h-full"
             style={{ animationDelay: `${index * 100}ms` }}
             onUpdateProject={onUpdateProject}
             onDeleteProject={onDeleteProject}

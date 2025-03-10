@@ -10,11 +10,11 @@ const ProjectTeam: React.FC<ProjectTeamProps> = ({ members }) => {
   if (members.length === 0) return null;
   
   return (
-    <div className="flex -space-x-2">
-      {members.slice(0, 3).map((member, index) => (
+    <div className="flex -space-x-3">
+      {members.slice(0, 4).map((member, index) => (
         <div 
           key={member.id} 
-          className="w-8 h-8 rounded-full border-2 border-zinc-800 overflow-hidden"
+          className="w-10 h-10 rounded-full border-2 border-zinc-800 overflow-hidden"
           style={{ zIndex: members.length - index }}
         >
           <img 
@@ -24,9 +24,9 @@ const ProjectTeam: React.FC<ProjectTeamProps> = ({ members }) => {
           />
         </div>
       ))}
-      {members.length > 3 && (
-        <div className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-xs border-2 border-zinc-800">
-          +{members.length - 3}
+      {members.length > 4 && (
+        <div className="w-10 h-10 rounded-full bg-zinc-700 flex items-center justify-center text-xs border-2 border-zinc-800">
+          +{members.length - 4}
         </div>
       )}
     </div>
