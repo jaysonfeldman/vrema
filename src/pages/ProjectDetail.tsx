@@ -18,13 +18,10 @@ const ProjectDetail: React.FC = () => {
   const { 
     isLoading, 
     customProjects,
-    events, 
-    filteredEvents,
-    filters,
-    updateFilters,
     syncCalendar,
     updateProject,
-    getProjectById
+    getProjectById,
+    getProjectEvents
   } = useCalendarSync();
   
   const [project, setProject] = useState<Project | null>(null);
@@ -50,44 +47,22 @@ const ProjectDetail: React.FC = () => {
       // Force a calendar sync to ensure we have the latest data
       console.log("Syncing calendar data...");
       syncCalendar(90); // Get 3 months of data
-      
-      // Apply project filter to show only this project's events
-      const searchTerm = foundProject.filterTerm || foundProject.name;
-      console.log("Setting filter for events with term:", searchTerm);
-      
-      // Use the searchTerm to filter events
-      updateFilters({ 
-        searchTerm: searchTerm,
-        dateRange: 90, // Show more history for project details
-        selectedProjects: [] // Don't filter by project selection
-      });
     } else {
       // If project not found, navigate back to home
       console.error('Project not found with ID:', projectId);
       navigate('/');
     }
-  }, [projectId, customProjects, updateFilters, syncCalendar, getProjectById, navigate]);
+  }, [projectId, customProjects, syncCalendar, getProjectById, navigate]);
   
-  // Update projectEvents when filteredEvents or events change
+  // Update projectEvents when project changes or when calendar is synced
   useEffect(() => {
-    if (!project) return;
+    if (!project || !projectId) return;
     
-    if (filteredEvents && filteredEvents.length > 0) {
-      console.log(`Found ${filteredEvents.length} filtered events for project ${project.name}`);
-      setProjectEvents(filteredEvents);
-    } else if (events && events.length > 0) {
-      // As a fallback, filter the events directly
-      const searchTerm = (project.filterTerm || project.name).toLowerCase();
-      console.log("Manually filtering events with term:", searchTerm);
-      
-      const matchingEvents = events.filter(event => 
-        event.summary && event.summary.toLowerCase().includes(searchTerm)
-      );
-      
-      console.log(`Found ${matchingEvents.length} matching events by direct search`);
-      setProjectEvents(matchingEvents);
-    }
-  }, [project, filteredEvents, events]);
+    console.log(`Getting events for project: ${project.name} (${projectId})`);
+    const events = getProjectEvents(projectId);
+    console.log(`Found ${events.length} events for project ${project.name}`);
+    setProjectEvents(events);
+  }, [project, projectId, getProjectEvents]);
 
   // Handle project update
   const handleProjectUpdate = (updatedProject: Project) => {

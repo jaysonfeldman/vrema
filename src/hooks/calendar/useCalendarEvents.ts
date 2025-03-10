@@ -3,10 +3,11 @@ import { useState, useCallback } from 'react';
 import { useGoogleAuth } from '@/providers/GoogleAuthProvider';
 import { 
   fetchCalendarEvents, 
-  parseEventTitle 
+  parseEventTitle,
+  associateEventsWithProjects
 } from '@/services/googleCalendarService';
 import { toast } from 'sonner';
-import { GoogleCalendarEvent, FilterOptions } from '@/lib/types';
+import { GoogleCalendarEvent, FilterOptions, Project } from '@/lib/types';
 
 export function useCalendarEvents() {
   const { authState, refreshToken } = useGoogleAuth();
@@ -17,7 +18,7 @@ export function useCalendarEvents() {
   const [syncError, setSyncError] = useState<string | null>(null);
   const [syncInProgress, setSyncInProgress] = useState(false);
   
-  const syncCalendar = useCallback(async (days = 30) => {
+  const syncCalendar = useCallback(async (days = 30, projects: Project[] = []) => {
     setSyncError(null);
     
     // Prevent multiple sync operations at once
@@ -57,13 +58,18 @@ export function useCalendarEvents() {
       
       console.log(`${validEvents.length} events have valid start/end times`);
       
-      setEvents(validEvents);
-      setFilteredEvents(validEvents);
+      // Associate events with projects if projects are provided
+      const eventsWithProjects = projects.length > 0 
+        ? associateEventsWithProjects(validEvents, projects)
+        : validEvents;
+      
+      setEvents(eventsWithProjects);
+      setFilteredEvents(eventsWithProjects);
       setLastSynced(new Date());
       
-      if (validEvents.length > 0) {
+      if (eventsWithProjects.length > 0) {
         toast.success(`Calendar synced`, {
-          description: `Found ${validEvents.length} events`
+          description: `Found ${eventsWithProjects.length} events`
         });
       } else {
         toast.info('No events found', { 
@@ -71,7 +77,7 @@ export function useCalendarEvents() {
         });
       }
       
-      return { events: validEvents };
+      return { events: eventsWithProjects };
     } catch (error) {
       console.error('Error syncing calendar:', error);
       const errorMessage = error instanceof Error ? error.message : 'Could not sync with Google Calendar';
