@@ -44,10 +44,9 @@ const ProjectDetail: React.FC = () => {
     if (!projectId) return;
 
     console.log("ProjectDetail: Loading project with ID:", projectId);
-    console.log("Available projects:", customProjects.map(p => ({ id: p.id, name: p.name })));
     
     // Find the project
-    const foundProject = customProjects.find(p => p.id === projectId);
+    const foundProject = getProjectById(projectId);
     
     if (foundProject) {
       console.log("Project found:", foundProject.name);
@@ -68,8 +67,9 @@ const ProjectDetail: React.FC = () => {
       });
     } else {
       console.error('Project not found with ID:', projectId);
+      console.log('Available project IDs:', customProjects.map(p => p.id));
     }
-  }, [projectId, customProjects, updateFilters, syncCalendar]);
+  }, [projectId, customProjects, updateFilters, syncCalendar, getProjectById]);
   
   // Update projectEvents when filteredEvents or events change
   useEffect(() => {

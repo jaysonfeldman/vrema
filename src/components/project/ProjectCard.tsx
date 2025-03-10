@@ -50,9 +50,11 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
     : null;
 
   const handleCardClick = (e: React.MouseEvent) => {
+    // Check if the click was on the dropdown or its children
     if ((e.target as HTMLElement).closest('.dropdown-trigger')) {
       return;
     }
+    console.log("Navigating to project details for:", project.id);
     navigate(`/project/${project.id}`);
   };
 
