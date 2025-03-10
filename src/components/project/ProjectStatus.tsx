@@ -13,21 +13,26 @@ const ProjectStatus: React.FC<ProjectStatusProps> = ({
   budgetHours,
   monthlyHours
 }) => {
+  console.log(`ProjectStatus - Total Hours: ${totalHours}, Budget Hours: ${budgetHours}, Monthly Hours: ${monthlyHours}`);
+  
+  // Is the project over budget?
+  const isOverBudget = budgetHours && totalHours > budgetHours;
+  
+  // Format budget info
+  const getBudgetText = () => {
+    if (!budgetHours) return null;
+    
+    const diff = Math.abs(budgetHours - totalHours);
+    const h = Math.floor(diff);
+    const m = Math.round((diff - h) * 60);
+    
+    return `${h}:${m.toString().padStart(2, '0')}`;
+  };
+  
+  const budgetText = getBudgetText();
+  
   // Format total hours
   const formattedTotalHours = formatTime(totalHours);
-  
-  // Calculate monthly hours remaining if budget exists
-  const monthlyBudget = monthlyHours !== undefined;
-  const hoursLeft = monthlyBudget && budgetHours 
-    ? budgetHours - (monthlyHours || 0)
-    : (budgetHours ? budgetHours - totalHours : null);
-    
-  const isOverBudget = hoursLeft !== null && hoursLeft < 0;
-  
-  // Format hours left
-  const formattedHoursLeft = hoursLeft !== null 
-    ? formatTime(Math.abs(hoursLeft)) 
-    : "Not set";
 
   return (
     <div className="grid grid-cols-2 gap-6 mb-6">
@@ -36,20 +41,29 @@ const ProjectStatus: React.FC<ProjectStatusProps> = ({
         <p className="font-mono font-bold text-2xl">{formattedTotalHours}</p>
       </div>
       
-      <div>
-        <p className="text-sm text-gray-400 mb-1">Hours left</p>
-        <p className={cn(
-          "font-mono font-bold text-2xl",
-          isOverBudget ? "text-red-400" : hoursLeft !== null ? "text-amber-400" : "text-gray-500"
-        )}>
-          {formattedHoursLeft}
-        </p>
-        {hoursLeft !== null && (
-          <p className="text-xs text-gray-500 mt-1">
-            {monthlyBudget ? "/this month" : "/in total"}
+      {budgetHours && (
+        <div>
+          <p className="text-sm text-gray-400 mb-1">Budget left</p>
+          <p className={cn(
+            "font-mono font-bold text-2xl",
+            isOverBudget ? "text-red-500" : "text-amber-500"
+          )}>
+            {budgetText}
           </p>
-        )}
-      </div>
+          <p className="text-xs text-gray-500 mt-1">
+            {monthlyHours ? "/this month" : "/in total"}
+          </p>
+        </div>
+      )}
+      
+      {!budgetHours && (
+        <div>
+          <p className="text-sm text-gray-400 mb-1">Budget</p>
+          <p className="font-mono font-bold text-2xl text-gray-500">
+            Not set
+          </p>
+        </div>
+      )}
     </div>
   );
 };

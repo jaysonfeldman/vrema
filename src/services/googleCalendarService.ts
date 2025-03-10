@@ -1,4 +1,5 @@
-import { GoogleCalendarEvent, Project } from '@/lib/types';
+
+import { GoogleCalendarEvent } from '@/lib/types';
 import { addDays, format, parseISO } from 'date-fns';
 
 export const fetchCalendarEvents = async (token: string, days = 30): Promise<GoogleCalendarEvent[]> => {
@@ -25,9 +26,9 @@ export const fetchCalendarEvents = async (token: string, days = 30): Promise<Goo
       console.error('Google Calendar API error:', errorText);
       
       if (response.status === 401) {
-        throw new Error('Authentication expired - please reconnect your Google Calendar');
+        throw new Error('Authentication failed - please reconnect your Google Calendar');
       } else if (response.status === 403) {
-        throw new Error('Permission denied - make sure to allow Calendar access when connecting');
+        throw new Error('Permission denied - check Google Calendar access permissions');
       } else {
         throw new Error(`Failed to fetch calendar events: ${response.status} ${response.statusText}`);
       }
@@ -75,18 +76,18 @@ export const fetchCalendarEvents = async (token: string, days = 30): Promise<Goo
 export const parseEventTitle = (title: string): { 
   projectName: string; 
   activityType: string; 
-  description: string;
-  projectId?: string;
+  description: string 
 } => {
+  // Default values
   let projectName = 'Other';
   let activityType = 'other';
   let description = title;
-  let projectId = undefined;
 
   if (!title) {
-    return { projectName, activityType, description, projectId };
+    return { projectName, activityType, description };
   }
 
+  // Check if title contains # to separate project and activity
   if (title.includes('#')) {
     const parts = title.split('#');
     
@@ -97,9 +98,12 @@ export const parseEventTitle = (title: string): {
     if (parts.length >= 2) {
       const activityPart = parts[1].trim();
       
-      if (activityPart.indexOf(' ') > 0) {
-        activityType = activityPart.substring(0, activityPart.indexOf(' ')).trim();
-        description = activityPart.substring(activityPart.indexOf(' ') + 1).trim();
+      // If activity has space, first word is activity type, rest is description
+      const firstSpaceIndex = activityPart.indexOf(' ');
+      
+      if (firstSpaceIndex > 0) {
+        activityType = activityPart.substring(0, firstSpaceIndex).trim();
+        description = activityPart.substring(firstSpaceIndex + 1).trim();
       } else {
         activityType = activityPart;
         description = '';
@@ -107,32 +111,7 @@ export const parseEventTitle = (title: string): {
     }
   }
   
-  return { projectName, activityType, description, projectId };
-};
-
-export const associateEventsWithProjects = (events: GoogleCalendarEvent[], projects: Project[]): GoogleCalendarEvent[] => {
-  return events.map(event => {
-    const { projectName } = parseEventTitle(event.summary || '');
-    
-    // Find matching project by name or filter term
-    const matchingProject = projects.find(project => {
-      const projectNameMatch = project.name.toLowerCase() === projectName.toLowerCase();
-      const filterTermMatch = project.filterTerm && 
-        event.summary?.toLowerCase().includes(project.filterTerm.toLowerCase());
-      
-      return projectNameMatch || filterTermMatch;
-    });
-    
-    if (matchingProject) {
-      console.log(`Associated event "${event.summary}" with project ${matchingProject.name} (${matchingProject.id})`);
-      return {
-        ...event,
-        projectId: matchingProject.id
-      };
-    }
-    
-    return event;
-  });
+  return { projectName, activityType, description };
 };
 
 export const convertEventsToActivities = (events: GoogleCalendarEvent[]): { 
@@ -171,14 +150,19 @@ export const convertEventsToActivities = (events: GoogleCalendarEvent[]): {
     
     console.log(`Event: "${event.summary}" -> Project: "${projectName}", Activity: "${activityType}", Duration: ${durationHours.toFixed(2)}h`);
     
+    // Store project name in original case for display
+    // Use lowercase for case-insensitive matching in maps
     const normalizedProjectName = projectName.toLowerCase();
     
+    // Add hours to project total
     projectMap[normalizedProjectName] = (projectMap[normalizedProjectName] || 0) + durationHours;
     
+    // Initialize project's activity array if needed
     if (!activityMap[normalizedProjectName]) {
       activityMap[normalizedProjectName] = [];
     }
     
+    // Find existing activity or add a new one
     const existingActivityIndex = activityMap[normalizedProjectName].findIndex(a => 
       a.type.toLowerCase() === activityType.toLowerCase()
     );

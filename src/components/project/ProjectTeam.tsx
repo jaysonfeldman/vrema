@@ -4,11 +4,10 @@ import { TeamMember } from '@/lib/types';
 
 interface ProjectTeamProps {
   members: TeamMember[];
-  hidden?: boolean; // New prop to hide team members display
 }
 
-const ProjectTeam: React.FC<ProjectTeamProps> = ({ members, hidden = true }) => {
-  if (members.length === 0 || hidden) return null;
+const ProjectTeam: React.FC<ProjectTeamProps> = ({ members }) => {
+  if (members.length === 0) return null;
   
   return (
     <div className="flex -space-x-3">

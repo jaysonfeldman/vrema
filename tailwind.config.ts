@@ -63,13 +63,12 @@ export default {
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
 				},
-				// Custom colors for our time tracker (using the provided palette)
-				emerald: '#22C55F',      // Bright green
-				nyanza: '#D1FAE5',       // Soft green
-				sunset: '#FED8AA',       // Soft peach
-				aquamarine: '#6EE7B7',   // Soft aqua
-				flax: '#FEF18B',         // Soft yellow
-				pale_azure: '#7ED3FC',   // Soft blue
+				// Custom colors for our time tracker
+				design: '#fef18b',  // Updated soft yellow
+				strategy: '#22c55f', // Updated bright green
+				dev: '#7ed3fc',     // Updated light blue 
+				meetings: '#6ee7b7', // Updated mint green
+				admin: '#d1fae5',   // Updated pale green
         project: {
           bg: '#1c1c1e',
           text: '#ffffff'

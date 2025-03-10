@@ -13,37 +13,23 @@ interface CalendarEventDayViewProps {
 
 // Helper function to get activity color
 const getActivityColor = (activityType: string): string => {
-  // Use the specified palette colors
-  const activityLower = activityType.toLowerCase();
-  
-  if (activityLower.includes('design')) return 'bg-flax text-slate-900 border-flax'; // Flax - soft yellow
-  if (activityLower.includes('dev') || activityLower.includes('development')) return 'bg-pale_azure text-slate-900 border-pale_azure'; // Pale azure - soft blue
-  if (activityLower.includes('meet') || activityLower.includes('call')) return 'bg-nyanza text-slate-900 border-nyanza'; // Nyanza - soft green
-  if (activityLower.includes('plan') || activityLower.includes('strat')) return 'bg-aquamarine text-slate-900 border-aquamarine'; // Aquamarine - soft green
-  if (activityLower.includes('admin')) return 'bg-sunset text-slate-900 border-sunset'; // Sunset - soft peach
-  if (activityLower.includes('pm')) return 'bg-emerald text-white border-emerald'; // Emerald - bright green
-  
-  // Simple hash function to generate a consistent color
-  const getColorClass = (str: string) => {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-      hash = str.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    const colorIndex = Math.abs(hash) % colors.length;
-    return colors[colorIndex];
-  };
-  
-  // All colors from the palette
-  const colors = [
-    'bg-emerald text-white border-emerald',
-    'bg-nyanza text-slate-900 border-nyanza', 
-    'bg-sunset text-slate-900 border-sunset',
-    'bg-aquamarine text-slate-900 border-aquamarine',
-    'bg-flax text-slate-900 border-flax',
-    'bg-pale_azure text-slate-900 border-pale_azure'
-  ];
-  
-  return getColorClass(activityType);
+  // Map common activity types to specific colors for consistency
+  switch (activityType.toLowerCase()) {
+    case 'design':
+      return 'bg-[#fef18b] text-slate-900 border-[#fef18b]';
+    case 'strategy':
+      return 'bg-[#22c55f] text-white border-[#22c55f]';
+    case 'dev':
+      return 'bg-[#7ed3fc] text-slate-900 border-[#7ed3fc]';
+    case 'meetings':
+      return 'bg-[#6ee7b7] text-slate-900 border-[#6ee7b7]';
+    case 'admin':
+      return 'bg-[#d1fae5] text-slate-900 border-[#d1fae5]';
+    default:
+      // Generate a consistent color based on the activity type
+      const color = stringToColor(activityType);
+      return `bg-[${color}] text-white border-[${color}]`;
+  }
 };
 
 const CalendarEventDayView: React.FC<CalendarEventDayViewProps> = ({ events }) => {

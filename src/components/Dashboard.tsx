@@ -1,13 +1,11 @@
 
 import React, { useEffect, useState } from 'react';
-import ProjectCard from '@/components/project/ProjectCard';
+import ProjectCard from './ProjectCard';
 import Timeline from './Timeline';
 import ActivityTag from './ActivityTag';
 import { Calendar, FileDown, FileUp } from 'lucide-react';
 import { useCalendarSync } from '@/hooks/useCalendarSync';
 import { formatTime } from '@/lib/mock-data';
-import { Project } from '@/lib/types';
-import { toast } from 'sonner';
 
 const Dashboard: React.FC = () => {
   const [isVisible, setIsVisible] = useState(false);
@@ -15,8 +13,7 @@ const Dashboard: React.FC = () => {
     customProjects, 
     getTotalHours, 
     getActivityHours,
-    getProjects,
-    updateProject
+    getProjects
   } = useCalendarSync();
   
   useEffect(() => {
@@ -27,28 +24,6 @@ const Dashboard: React.FC = () => {
     
     return () => clearTimeout(timer);
   }, []);
-
-  // Implement the required handlers for ProjectCard
-  const handleUpdateProject = async (updatedProject: Project) => {
-    try {
-      updateProject(updatedProject);
-      toast.success("Project updated successfully");
-    } catch (error) {
-      console.error("Error updating project:", error);
-      toast.error("Failed to update project");
-    }
-  };
-
-  const handleDeleteProject = async (projectId: string) => {
-    try {
-      // Since we don't have direct access to delete functionality in this component,
-      // we'll mock it with a toast notification
-      toast.success(`Project deleted (ID: ${projectId})`);
-    } catch (error) {
-      console.error("Error deleting project:", error);
-      toast.error("Failed to delete project");
-    }
-  };
   
   return (
     <div className="max-w-7xl mx-auto px-8 py-8">
@@ -88,8 +63,6 @@ const Dashboard: React.FC = () => {
               project={project} 
               className="opacity-0 animate-fade-in"
               style={{ animationDelay: `${index * 100}ms`, animationFillMode: 'forwards' }}
-              onUpdateProject={handleUpdateProject}
-              onDeleteProject={handleDeleteProject}
             />
           ))}
         </div>

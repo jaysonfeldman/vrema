@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Project } from '@/lib/types';
 import { 
   Dialog,
@@ -17,37 +17,25 @@ interface EditProjectDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   project: Project;
-  onSave: (updatedProject: Project) => void;
-  // These are now optional
-  editedProject?: Project;
-  setEditedProject?: (project: Project) => void;
+  editedProject: Project;
+  setEditedProject: (project: Project) => void;
+  onSave: () => void;
 }
 
 const EditProjectDialog: React.FC<EditProjectDialogProps> = ({
   open,
   onOpenChange,
   project,
-  onSave,
-  editedProject: externalEditedProject,
-  setEditedProject: externalSetEditedProject
+  editedProject,
+  setEditedProject,
+  onSave
 }) => {
-  // Create internal state if not provided externally
-  const [internalEditedProject, setInternalEditedProject] = useState<Project>({ ...project });
-  
-  // Use either the external state or the internal state
-  const editedProject = externalEditedProject || internalEditedProject;
-  const setEditedProject = externalSetEditedProject || setInternalEditedProject;
-
   const handleResetHourlyRate = () => {
     setEditedProject({...editedProject, hourlyRate: undefined});
   };
 
   const handleResetBudget = () => {
     setEditedProject({...editedProject, budgetHours: undefined});
-  };
-  
-  const handleSave = () => {
-    onSave(editedProject);
   };
 
   return (
@@ -131,7 +119,7 @@ const EditProjectDialog: React.FC<EditProjectDialogProps> = ({
               Cancel
             </Button>
           </DialogClose>
-          <Button type="button" onClick={handleSave}>
+          <Button type="button" onClick={onSave}>
             Save changes
           </Button>
         </DialogFooter>

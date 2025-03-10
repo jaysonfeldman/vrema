@@ -2,212 +2,150 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useCalendarSync } from '@/hooks/useCalendarSync';
-import { Project, GoogleCalendarEvent } from '@/lib/types';
 import Header from '@/components/Header';
-import { useToast } from '@/components/ui/use-toast';
-import EditProjectDialog from '@/components/project/EditProjectDialog';
-import ProjectsLoading from '@/components/project/ProjectsLoading';
-import ProjectDetailHeader from '@/components/project/ProjectDetailHeader';
-import ProjectStatsCards from '@/components/project/ProjectStatsCards';
-import ProjectEventsCard from '@/components/project/ProjectEventsCard';
-import { supabase } from '@/integrations/supabase/client';
+import { Button } from '@/components/ui/button';
+import { ChevronLeft, Edit, Calendar, Users, Clock } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Card, CardContent } from '@/components/ui/card';
+import { parseEventTitle, formatEventDate, calculateDuration } from '@/services/googleCalendarService';
+import { GoogleCalendarEvent, Project } from '@/lib/types';
 
 const ProjectDetail: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
-  const { toast } = useToast();
-  const { 
-    isLoading: syncLoading, 
-    customProjects,
-    syncCalendar,
-    updateProject,
-    getProjectById,
-    getProjectEvents,
-    events,
-  } = useCalendarSync();
-  
+  const { events, customProjects, getProjectById } = useCalendarSync();
   const [project, setProject] = useState<Project | null>(null);
   const [projectEvents, setProjectEvents] = useState<GoogleCalendarEvent[]>([]);
-  const [showEditDialog, setShowEditDialog] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  
-  // Load project and filter events
-  useEffect(() => {
-    if (!projectId) {
-      navigate('/');
-      return;
-    }
 
-    console.log("ProjectDetail: Loading project with ID:", projectId);
-    setIsLoading(true);
-    
-    // Try to get project from Supabase first
-    const fetchProjectFromSupabase = async () => {
-      try {
-        const { data: projectData, error } = await supabase
-          .from('projects')
-          .select(`
-            *,
-            activities(*)
-          `)
-          .eq('id', projectId)
-          .single();
-          
-        if (error) {
-          console.error('Error fetching project from Supabase:', error);
-          // Fallback to local data
-          const localProject = getProjectById(projectId);
-          if (localProject) {
-            setProject(localProject);
-            const projectEvents = getProjectEvents(projectId);
-            setProjectEvents(projectEvents);
-          } else {
-            console.error('Project not found with ID:', projectId);
-            toast({
-              title: "Project not found",
-              description: "The requested project could not be found.",
-              variant: "destructive"
-            });
-            navigate('/');
-          }
-        } else if (projectData) {
-          console.log('Project fetched from Supabase:', projectData);
-          
-          // Convert Supabase project to app Project format
-          const formattedProject: Project = {
-            id: projectData.id,
-            name: projectData.name,
-            totalHours: parseFloat(projectData.total_hours.toString()),
-            budgetHours: projectData.budget_hours ? parseFloat(projectData.budget_hours.toString()) : undefined,
-            hourlyRate: projectData.hourly_rate ? parseFloat(projectData.hourly_rate.toString()) : undefined,
-            filterTerm: projectData.filter_term,
-            monthlyHours: projectData.monthly_hours ? parseFloat(projectData.monthly_hours.toString()) : 0,
-            visible: projectData.visible,
-            activities: projectData.activities.map((activity: any) => ({
-              id: activity.id,
-              type: activity.type,
-              hours: parseFloat(activity.hours.toString()),
-              date: new Date()
-            })),
-            teamMembers: [],
-            color: '#222222' // Default dark color
-          };
-          
-          setProject(formattedProject);
-          
-          // Get events for this project
-          const eventsForProject = getProjectEvents(projectId);
-          setProjectEvents(eventsForProject);
-        }
-      } catch (error) {
-        console.error('Error in fetchProjectFromSupabase:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    fetchProjectFromSupabase();
-    
-    // Force a calendar sync to ensure we have the latest data
-    syncCalendar(90); // Get 3 months of data
-  }, [projectId, getProjectById, getProjectEvents, navigate, syncCalendar, toast]);
-  
-  // Update project events when events change
   useEffect(() => {
-    if (projectId && events.length > 0) {
-      const projectEvents = events.filter(event => {
-        // Check if event has projectId property matching this project
-        if ('projectId' in event && event.projectId === projectId) {
-          return true;
-        }
+    if (projectId) {
+      console.log('Looking for project with ID:', projectId);
+      console.log('Available projects:', customProjects.map(p => ({ id: p.id, name: p.name, filterTerm: p.filterTerm })));
+      
+      // Try to find the project by ID first
+      const foundProject = getProjectById(projectId);
+      
+      if (foundProject) {
+        console.log('Found project by ID:', foundProject);
+        setProject(foundProject);
         
-        // If project is loaded, check by name or filter term
-        if (project) {
-          const eventSummary = event.summary?.toLowerCase() || '';
-          const projectName = project.name.toLowerCase();
-          const filterTerm = project.filterTerm?.toLowerCase();
+        // Filter events for this project based on the parsed project name
+        const filteredEvents = events.filter(event => {
+          if (!event.summary) return false;
           
-          return eventSummary.includes(projectName) || 
-                (filterTerm && eventSummary.includes(filterTerm));
-        }
-        
-        return false;
-      });
-      
-      setProjectEvents(projectEvents);
-    }
-  }, [events, projectId, project]);
-
-  // Handle project update
-  const handleProjectUpdate = (updatedProject: Project) => {
-    setShowEditDialog(false);
-    if (project) {
-      updateProject(updatedProject);
-      setProject(updatedProject);
-      
-      // Update project in Supabase
-      supabase
-        .from('projects')
-        .update({
-          name: updatedProject.name,
-          total_hours: updatedProject.totalHours.toString(),
-          budget_hours: updatedProject.budgetHours?.toString(),
-          hourly_rate: updatedProject.hourlyRate?.toString(),
-          filter_term: updatedProject.filterTerm,
-          monthly_hours: updatedProject.monthlyHours?.toString(),
-          visible: updatedProject.visible
-        })
-        .eq('id', updatedProject.id)
-        .then(({ error }) => {
-          if (error) {
-            console.error('Error updating project in Supabase:', error);
-          }
+          const { projectName } = parseEventTitle(event.summary);
+          if (!projectName) return false;
+          
+          // Case insensitive matching of project name
+          return projectName.toLowerCase() === foundProject.name.toLowerCase();
         });
-      
-      toast({
-        title: "Project updated",
-        description: "Project details have been updated successfully."
-      });
+        
+        console.log(`Found ${filteredEvents.length} events for project ${foundProject.name}`);
+        setProjectEvents(filteredEvents);
+      } else {
+        console.log('Project not found with ID:', projectId);
+      }
     }
-  };
-  
-  if (isLoading || syncLoading) {
-    return <ProjectsLoading />;
-  }
-  
+  }, [projectId, customProjects, events, getProjectById]);
+
   if (!project) {
-    return <ProjectsLoading />;
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
+        <Header />
+        <div className="container mx-auto py-6 px-4">
+          <div className="flex items-center gap-2 mb-8">
+            <Button variant="outline" size="sm" onClick={() => navigate("/")}>
+              <ChevronLeft className="h-4 w-4 mr-2" />
+              Back to Projects
+            </Button>
+          </div>
+          <div className="text-center py-12">
+            <p className="text-muted-foreground">Project not found with ID: {projectId}</p>
+          </div>
+        </div>
+      </div>
+    );
   }
-  
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       <Header />
       <div className="container mx-auto py-6 px-4">
-        <ProjectDetailHeader 
-          projectName={project.name}
-          onEditClick={() => setShowEditDialog(true)}
-        />
-        
-        <ProjectStatsCards 
-          project={project} 
-          projectEvents={projectEvents}
-          syncCalendar={syncCalendar}
-        />
-        
-        <ProjectEventsCard 
-          projectEvents={projectEvents}
-          syncCalendar={syncCalendar}
-        />
-      </div>
+        <div className="flex items-center gap-2 mb-8">
+          <Button variant="outline" size="sm" onClick={() => navigate("/")}>
+            <ChevronLeft className="h-4 w-4 mr-2" />
+            Back to Projects
+          </Button>
+        </div>
 
-      {showEditDialog && (
-        <EditProjectDialog
-          project={project}
-          open={showEditDialog}
-          onOpenChange={setShowEditDialog}
-          onSave={handleProjectUpdate}
-        />
-      )}
+        <div className="flex flex-col md:flex-row justify-between items-start gap-4 mb-8">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">{project.name}</h1>
+            <div className="flex items-center gap-2 mt-2">
+              <Badge variant="outline" className="text-sm">
+                <Clock className="h-3 w-3 mr-1" />
+                {project.totalHours.toFixed(2)} hours
+              </Badge>
+              {project.teamMembers && project.teamMembers.length > 0 && (
+                <Badge variant="outline" className="text-sm">
+                  <Users className="h-3 w-3 mr-1" />
+                  {project.teamMembers.length} team members
+                </Badge>
+              )}
+              <Badge variant="outline" className="text-sm">
+                <Calendar className="h-3 w-3 mr-1" />
+                {projectEvents.length} events
+              </Badge>
+            </div>
+          </div>
+          <Button size="sm" onClick={() => navigate(`/projects/${project.id}/edit`)}>
+            <Edit className="h-4 w-4 mr-2" />
+            Edit Project
+          </Button>
+        </div>
+
+        <Card>
+          <CardContent className="pt-6">
+            <h2 className="text-xl font-semibold mb-4">Events</h2>
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Activity</TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Duration</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {projectEvents.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={4} className="text-center py-6 text-muted-foreground">
+                        No events found for this project. Create calendar events with format "ProjectName#ActivityType Description" to track time.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    projectEvents.map((event) => {
+                      const { activityType, description } = parseEventTitle(event.summary);
+                      return (
+                        <TableRow key={event.id}>
+                          <TableCell>
+                            <Badge variant="outline">#{activityType}</Badge>
+                          </TableCell>
+                          <TableCell>{description || '(No description)'}</TableCell>
+                          <TableCell>{formatEventDate(event.start.dateTime)}</TableCell>
+                          <TableCell>{calculateDuration(event.start.dateTime, event.end.dateTime)}</TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };

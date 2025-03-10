@@ -17,34 +17,19 @@ const ActivityTag: React.FC<ActivityTagProps> = ({
   style,
   color
 }) => {
-  // Define color palette with the specified colors from the user
+  // Define consistent colors for common activity types
   const getActivityColor = (activityType: string): string => {
     const activityLower = activityType.toLowerCase();
     
-    // Use the provided palette colors
-    if (activityLower.includes('design')) return '#FEF18B'; // Flax - soft yellow
-    if (activityLower.includes('dev') || activityLower.includes('development')) return '#7ED3FC'; // Pale azure - soft blue
-    if (activityLower.includes('meet') || activityLower.includes('call')) return '#D1FAE5'; // Nyanza - soft green
-    if (activityLower.includes('plan') || activityLower.includes('strat')) return '#6EE7B7'; // Aquamarine - soft green
-    if (activityLower.includes('admin')) return '#FED8AA'; // Sunset - soft peach
-    if (activityLower.includes('pm')) return '#22C55F'; // Emerald - bright green
+    if (activityLower.includes('design')) return '#4ade80'; // green
+    if (activityLower.includes('dev') || activityLower.includes('development')) return '#7ed3fc'; // light blue
+    if (activityLower.includes('meet') || activityLower.includes('call')) return '#6ee7b7'; // mint green
+    if (activityLower.includes('plan') || activityLower.includes('strat')) return '#22c55f'; // bright green
+    if (activityLower.includes('admin')) return '#d1fae5'; // pale green
+    if (activityLower.includes('pm')) return '#fef18b'; // yellow
     
-    // Use provided color or generate one based on the type string
-    // This ensures each activity type gets a consistent but unique color
-    if (color) return color;
-    
-    // Simple hash function to generate a consistent color index
-    const getColorIndex = (str: string) => {
-      let hash = 0;
-      for (let i = 0; i < str.length; i++) {
-        hash = str.charCodeAt(i) + ((hash << 5) - hash);
-      }
-      return Math.abs(hash) % colors.length;
-    };
-    
-    // All colors from the palette
-    const colors = ['#22C55F', '#D1FAE5', '#FED8AA', '#6EE7B7', '#FEF18B', '#7ED3FC'];
-    return colors[getColorIndex(activityType)];
+    // Use provided color or fallback to a pleasant color
+    return color || '#9b87f5'; // default to primary purple
   };
   
   // Generate or use provided color
