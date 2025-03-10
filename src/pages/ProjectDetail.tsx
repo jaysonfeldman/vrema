@@ -45,7 +45,7 @@ const ProjectDetail: React.FC = () => {
 
     console.log("ProjectDetail: Loading project with ID:", projectId);
     
-    // Find the project
+    // Find the project by ID first
     const foundProject = getProjectById(projectId);
     
     if (foundProject) {
@@ -60,10 +60,11 @@ const ProjectDetail: React.FC = () => {
       const searchTerm = foundProject.filterTerm || foundProject.name;
       console.log("Setting filter for events with term:", searchTerm);
       
+      // Use the searchTerm instead of selectedProjects array to show all events matching the search
       updateFilters({ 
         searchTerm: searchTerm,
         dateRange: 90, // Show more history for project details
-        selectedProjects: [foundProject.name]
+        selectedProjects: [] // Don't filter by project selection
       });
     } else {
       console.error('Project not found with ID:', projectId);
