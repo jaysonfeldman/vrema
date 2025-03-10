@@ -57,12 +57,6 @@ const ProjectDetail: React.FC = () => {
     console.log(`Found ${filteredEvents.length} events for project "${project.name}"`);
     setProjectEvents(filteredEvents);
   }, [events, project]);
-  
-  // Helper function to get activity color
-  const getActivityColor = (activityType: string): string => {
-    const color = stringToColor(activityType);
-    return `bg-[${color}] text-white`;
-  };
 
   if (!project) {
     return (

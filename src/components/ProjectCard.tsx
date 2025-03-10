@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Project } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import ProjectCardMenu from './project/ProjectCardMenu';
@@ -11,7 +11,6 @@ import ProjectTeam from './project/ProjectTeam';
 import ProjectActivities from './project/ProjectActivities';
 import ProjectHeader from './project/ProjectHeader';
 import { getProjectTag } from './project/ProjectUtils';
-import { useCalendarSync } from '@/hooks/useCalendarSync';
 
 interface ProjectCardProps {
   project: Project;
