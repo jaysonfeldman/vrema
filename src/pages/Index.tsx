@@ -5,6 +5,7 @@ import Header from '@/components/Header';
 import GoogleCalendarSync from '@/components/GoogleCalendarSync';
 import TotalHoursView from '@/components/TotalHoursView';
 import CalendarEventsTable from '@/components/CalendarEventsTable';
+import ProjectOverview from '@/components/project/ProjectOverview';
 import { useCalendarSync } from '@/hooks/useCalendarSync';
 import { useGoogleAuth } from '@/providers/GoogleAuthProvider';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -24,7 +25,7 @@ const Index: React.FC = () => {
     const projectParam = params.get('project');
     
     // Set active tab based on URL parameter
-    if (tabParam && tabParam === 'events') {
+    if (tabParam && (tabParam === 'events' || tabParam === 'projects')) {
       setActiveTab(tabParam);
     }
     
@@ -73,10 +74,15 @@ const Index: React.FC = () => {
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="mb-4">
               <TabsTrigger value="events">Calendar Events</TabsTrigger>
+              <TabsTrigger value="projects">Projects</TabsTrigger>
             </TabsList>
             
             <TabsContent value="events">
               <CalendarEventsTable />
+            </TabsContent>
+            
+            <TabsContent value="projects">
+              <ProjectOverview />
             </TabsContent>
           </Tabs>
         </div>

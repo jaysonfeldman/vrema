@@ -1,4 +1,3 @@
-
 import { useEffect, useCallback } from 'react';
 import { useCalendarEvents } from './calendar/useCalendarEvents';
 import { useEventFilters } from './calendar/useEventFilters';

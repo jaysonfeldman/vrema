@@ -2,6 +2,7 @@
 import React from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import Header from '@/components/Header';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 
 const ProjectsLoading: React.FC = () => {
   return (
@@ -13,10 +14,31 @@ const ProjectsLoading: React.FC = () => {
           <Skeleton className="h-8 w-[180px]" />
         </div>
         
-        <div className="space-y-6">
-          <Skeleton className="h-[200px] w-full" />
-          <Skeleton className="h-[200px] w-full" />
-          <Skeleton className="h-[200px] w-full" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1, 2, 3].map((i) => (
+            <Card key={i} className="overflow-hidden">
+              <CardHeader className="pb-2">
+                <Skeleton className="h-6 w-[70%]" />
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-2">
+                  <Skeleton className="h-4 w-[80%]" />
+                  <Skeleton className="h-4 w-[60%] ml-auto" />
+                  <Skeleton className="h-4 w-[80%]" />
+                  <Skeleton className="h-4 w-[60%] ml-auto" />
+                </div>
+                <Skeleton className="h-2 w-full" />
+                <div className="pt-2">
+                  <Skeleton className="h-4 w-[30%] mb-2" />
+                  <div className="flex gap-2">
+                    <Skeleton className="h-8 w-[80px]" />
+                    <Skeleton className="h-8 w-[80px]" />
+                    <Skeleton className="h-8 w-[80px]" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
       </div>
     </div>
