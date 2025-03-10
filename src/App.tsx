@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Index from '@/pages/Index';
@@ -5,9 +6,9 @@ import Projects from '@/pages/Projects';
 import Activities from '@/pages/Activities';
 import NotFound from '@/pages/NotFound';
 import { GoogleAuthProviderWrapper } from '@/providers/GoogleAuthProvider';
-import { ThemeProvider } from "@/components/theme-provider"
-import { QueryClient, QueryClientProvider } from 'react-query';
-import { TooltipProvider } from "@/components/ui/tooltip"
+import { ThemeProvider } from "@/components/theme-provider";
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
 import ProjectDetail from '@/pages/ProjectDetail';
 
