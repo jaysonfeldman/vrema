@@ -74,7 +74,9 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
       'umc': 'UMC',
       'web': 'Web',
       'design': 'Design',
-      'marketing': 'MKT'
+      'marketing': 'MKT',
+      'geldfit': 'gf3',
+      'wisebrick': 'wb/cs'
     };
     
     // Look for a match in the project name (simplified approach)
@@ -184,7 +186,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
                 <p className="text-sm text-gray-400 mb-1">Budget left</p>
                 <p className={cn(
                   "font-bold text-2xl",
-                  isOverBudget ? "text-red-500" : ""
+                  isOverBudget ? "text-red-500" : "text-amber-500"
                 )}>
                   {isOverBudget ? `-${formatTime(Math.abs(project.budgetHours - project.totalHours))}` : 
                     formatTime(project.budgetHours - project.totalHours)}

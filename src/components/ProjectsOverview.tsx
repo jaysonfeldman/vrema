@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Filter, Grid, LayoutList } from 'lucide-react';
+import { Plus, Filter, Grid, LayoutList, ChevronDown } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import ProjectCard from './ProjectCard';
 import { cn } from '@/lib/utils';
@@ -113,7 +113,44 @@ const ProjectsOverview: React.FC = () => {
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Projects</h2>
         <div className="flex items-center gap-2">
-          <div className="flex items-center rounded-md border bg-background p-1">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="text-gray-500"
+            onClick={() => {}}
+          >
+            all projects
+          </Button>
+          
+          <Button 
+            variant="ghost" 
+            size="sm"
+            onClick={() => setShowAddProject(!showAddProject)}
+            className="gap-1"
+          >
+            add project
+          </Button>
+
+          <div className="flex items-center ml-2">
+            <span className="text-sm mr-2">Sort by</span>
+            <Select
+              value={sortBy}
+              onValueChange={(value) => setSortBy(value)}
+            >
+              <SelectTrigger className="w-[180px] border-none bg-transparent p-0">
+                <div className="flex items-center gap-1">
+                  <span className="font-medium">Most tracked hours</span>
+                  <ChevronDown size={16} />
+                </div>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="most-tracked">Most tracked hours</SelectItem>
+                <SelectItem value="least-tracked">Least tracked hours</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="flex items-center rounded-md border bg-white p-1 ml-2">
             <Button
               variant={viewMode === 'grid' ? 'default' : 'ghost'}
               size="sm"
@@ -133,27 +170,6 @@ const ProjectsOverview: React.FC = () => {
               <span className="sr-only">List view</span>
             </Button>
           </div>
-          <Select
-            value={sortBy}
-            onValueChange={(value) => setSortBy(value)}
-          >
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Sort by" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="most-tracked">Most tracked hours</SelectItem>
-              <SelectItem value="least-tracked">Least tracked hours</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => setShowAddProject(!showAddProject)}
-            className="gap-1"
-          >
-            <Plus className="h-4 w-4" />
-            Add project
-          </Button>
         </div>
       </div>
       

@@ -9,13 +9,19 @@ interface TotalHoursFilterProps {
   onDateRangeChange: (value: string) => void;
   titleFilter: string;
   onTitleFilterChange: (value: string) => void;
+  activityFilter?: string;
+  onActivityFilterChange?: (value: string) => void;
+  activities?: string[];
 }
 
 const TotalHoursFilter: React.FC<TotalHoursFilterProps> = ({
   dateRange,
   onDateRangeChange,
   titleFilter,
-  onTitleFilterChange
+  onTitleFilterChange,
+  activityFilter,
+  onActivityFilterChange,
+  activities = []
 }) => {
   return (
     <div className="flex items-center gap-2">
@@ -29,6 +35,23 @@ const TotalHoursFilter: React.FC<TotalHoursFilterProps> = ({
           onChange={(e) => onTitleFilterChange(e.target.value)}
         />
       </div>
+
+      {onActivityFilterChange && (
+        <Select
+          value={activityFilter}
+          onValueChange={onActivityFilterChange}
+        >
+          <SelectTrigger className="w-[150px]">
+            <SelectValue placeholder="Activity" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All activities</SelectItem>
+            {activities.map(activity => (
+              <SelectItem key={activity} value={activity}>{activity}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      )}
 
       <Select
         value={dateRange.toString()}

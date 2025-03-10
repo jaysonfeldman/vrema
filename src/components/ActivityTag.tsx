@@ -18,13 +18,15 @@ const ActivityTag: React.FC<ActivityTagProps> = ({ type, hours, className }) => 
       case 'design':
         return 'bg-green-500';
       case 'strategy':
-        return 'bg-blue-500';
+        return 'bg-teal-500';
       case 'dev':
-        return 'bg-purple-500';
+        return 'bg-blue-500';
       case 'meetings':
         return 'bg-yellow-500';
       case 'admin':
         return 'bg-orange-500';
+      case 'pm':
+        return 'bg-purple-500';
       default:
         // For any other activity type, generate a consistent color based on the string
         return `bg-[${stringToColor(type)}]`;

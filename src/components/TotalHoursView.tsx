@@ -5,6 +5,9 @@ import { Card } from '@/components/ui/card';
 import TotalHoursFilter from './TotalHoursFilter';
 import TotalHoursCard from './TotalHoursCard';
 import { Activity } from '@/lib/types';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Calendar, ChevronDown, Filter } from 'lucide-react';
+import { Button } from './ui/button';
 
 const TotalHoursView: React.FC = () => {
   const { 
@@ -17,13 +20,17 @@ const TotalHoursView: React.FC = () => {
     lastSynced,
     syncCalendar,
     isAuthenticated,
-    getActivitiesFromEvents
+    getActivitiesFromEvents,
+    customProjects,
+    getProjects
   } = useCalendarSync();
   
   // Title filter state
   const [titleFilter, setTitleFilter] = useState('');
   const [debouncedTitleFilter, setDebouncedTitleFilter] = useState('');
   const [activities, setActivities] = useState<Activity[]>([]);
+  const [selectedProject, setSelectedProject] = useState<string>('All');
+  const [selectedActivity, setSelectedActivity] = useState<string>('All');
   
   // For debouncing the title filter
   useEffect(() => {
@@ -55,6 +62,22 @@ const TotalHoursView: React.FC = () => {
       setActivities(fetchedActivities);
     }
   }, [filteredEvents, getActivitiesFromEvents]);
+
+  // Apply project filter 
+  const handleProjectChange = (value: string) => {
+    setSelectedProject(value);
+    updateFilters({ project: value });
+    syncCalendar();
+  };
+
+  // Apply activity filter
+  const handleActivityChange = (value: string) => {
+    setSelectedActivity(value);
+    // We need to modify the useCalendarSync hook to support activity filtering
+    // This is a placeholder for now
+    updateFilters({ activity: value });
+    syncCalendar();
+  };
   
   const totalHours = getTotalHours();
   console.log("TotalHoursView rendering with total hours:", totalHours);
@@ -74,17 +97,66 @@ const TotalHoursView: React.FC = () => {
     updateFilters({ dateRange: days });
     syncCalendar(days);
   };
+
+  // Get all unique activities
+  const getAllActivities = () => {
+    const activitySet = new Set<string>();
+    activitySet.add('All');
+    
+    activities.forEach(activity => {
+      activitySet.add(activity.type);
+    });
+    
+    return Array.from(activitySet);
+  };
+
+  const projects = getProjects();
+  const allActivities = getAllActivities();
   
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col md:flex-row justify-between items-start gap-4 mb-6">
         <h2 className="text-2xl font-bold">Total hours</h2>
-        <TotalHoursFilter 
-          dateRange={filters.dateRange}
-          onDateRangeChange={handleDateRangeChange}
-          titleFilter={titleFilter}
-          onTitleFilterChange={setTitleFilter}
-        />
+        
+        <div className="flex flex-wrap gap-2 items-center">
+          <div className="flex items-center rounded-md border px-3 py-2 bg-white">
+            <Calendar className="h-4 w-4 mr-2 text-gray-500" />
+            <span className="text-sm">October 2023</span>
+          </div>
+          
+          <Select
+            value={selectedProject}
+            onValueChange={handleProjectChange}
+          >
+            <SelectTrigger className="w-[150px] bg-white">
+              <SelectValue placeholder="All projects" />
+            </SelectTrigger>
+            <SelectContent>
+              {projects.map(project => (
+                <SelectItem key={project} value={project}>{project}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          
+          <Select
+            value={selectedActivity}
+            onValueChange={handleActivityChange}
+          >
+            <SelectTrigger className="w-[150px] bg-white">
+              <SelectValue placeholder="All activities" />
+            </SelectTrigger>
+            <SelectContent>
+              {allActivities.map(activity => (
+                <SelectItem key={activity} value={activity}>{activity}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          
+          <Button variant="outline" className="bg-white">
+            <Filter className="h-4 w-4 mr-2" />
+            <span>Filter</span>
+          </Button>
+        </div>
       </div>
       
       {/* Main Total Hours Card */}

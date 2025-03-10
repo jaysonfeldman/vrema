@@ -1,3 +1,4 @@
+
 import { GoogleCalendarEvent } from '@/lib/types';
 import { addDays, format, parseISO } from 'date-fns';
 
@@ -78,7 +79,7 @@ export const parseEventTitle = (title: string): {
   description: string 
 } => {
   let projectName = 'Other';
-  let activityType = 'meetings';
+  let activityType = 'other'; // Changed from 'meetings' to 'other' as default
   let description = title;
 
   if (title.includes('#')) {

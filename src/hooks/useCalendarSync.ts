@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useEffect } from 'react';
 import { useGoogleAuth } from '@/providers/GoogleAuthProvider';
 import { 
@@ -28,18 +27,17 @@ export function useCalendarSync() {
   const [filters, setFilters] = useState<FilterOptions>({
     searchTerm: '',
     project: 'All',
-    dateRange: 30
+    dateRange: 30,
+    activity: 'All'
   });
   
   const [projectFilters, setProjectFilters] = useState<{[key: string]: string}>({});
   const [customProjects, setCustomProjects] = useState<Project[]>([]);
   const [syncError, setSyncError] = useState<string | null>(null);
   
-  // Local storage key for saving project views
   const LOCAL_STORAGE_KEY = 'calendar-project-views';
   const PROJECT_SETTINGS_KEY = 'calendar-project-settings';
 
-  // Define all callbacks first to maintain proper hook order
   const getProjectNameFromEvent = useCallback((event: GoogleCalendarEvent): string => {
     const { projectName } = parseEventTitle(event.summary);
     return projectName;
@@ -50,7 +48,6 @@ export function useCalendarSync() {
     return activityType as ActivityType;
   }, []);
 
-  // Get all unique projects from events
   const getProjects = useCallback((): string[] => {
     if (!events.length) return [];
     
@@ -65,7 +62,6 @@ export function useCalendarSync() {
     return Array.from(projectSet);
   }, [events, getProjectNameFromEvent]);
 
-  // Load saved project filters from local storage
   const loadSavedProjectFilters = useCallback(() => {
     try {
       const savedFilters = localStorage.getItem(LOCAL_STORAGE_KEY);
@@ -80,7 +76,6 @@ export function useCalendarSync() {
     return {};
   }, []);
 
-  // Load saved project settings from local storage
   const loadSavedProjectSettings = useCallback(() => {
     try {
       const savedSettings = localStorage.getItem(PROJECT_SETTINGS_KEY);
@@ -95,7 +90,6 @@ export function useCalendarSync() {
     return {};
   }, []);
 
-  // Save project filters to local storage
   const saveProjectFilters = useCallback((filters: {[key: string]: string}) => {
     try {
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(filters));
@@ -105,7 +99,6 @@ export function useCalendarSync() {
     }
   }, []);
 
-  // Save project settings to local storage
   const saveProjectSettings = useCallback((settings: {[key: string]: any}) => {
     try {
       localStorage.setItem(PROJECT_SETTINGS_KEY, JSON.stringify(settings));
@@ -115,7 +108,6 @@ export function useCalendarSync() {
     }
   }, []);
 
-  // Add a new project filter
   const addProjectFilter = useCallback((projectId: string, filterTerm: string) => {
     console.log(`Adding project filter: ${projectId} with term "${filterTerm}"`);
     setProjectFilters(prev => {
@@ -129,7 +121,6 @@ export function useCalendarSync() {
     });
   }, [saveProjectFilters]);
 
-  // Remove a project filter
   const removeProjectFilter = useCallback((projectId: string) => {
     setProjectFilters(prev => {
       const newFilters = {...prev};
@@ -138,7 +129,6 @@ export function useCalendarSync() {
       return newFilters;
     });
 
-    // Also remove any saved project settings
     const savedSettings = loadSavedProjectSettings();
     if (savedSettings && savedSettings[projectId]) {
       const newSettings = {...savedSettings};
@@ -147,25 +137,21 @@ export function useCalendarSync() {
     }
   }, [saveProjectFilters, loadSavedProjectSettings, saveProjectSettings]);
 
-  // Update a project's settings
   const updateProject = useCallback((updatedProject: Project) => {
     console.log("Updating project:", updatedProject);
     
-    // Update in the customProjects state
     setCustomProjects(prevProjects => 
       prevProjects.map(project => 
         project.id === updatedProject.id ? updatedProject : project
       )
     );
     
-    // Save the settings to local storage
     const settings = loadSavedProjectSettings();
     const updatedSettings = {
       ...settings,
       [updatedProject.id]: {
         name: updatedProject.name,
         budgetHours: updatedProject.budgetHours,
-        // Add any other settings you want to persist
       }
     };
     
@@ -173,7 +159,6 @@ export function useCalendarSync() {
     console.log("Saved updated project settings:", updatedSettings);
   }, [loadSavedProjectSettings, saveProjectSettings]);
 
-  // Get activities from events
   const getActivitiesFromEvents = useCallback((eventsList: GoogleCalendarEvent[]): Activity[] => {
     if (!eventsList.length) return [];
     
@@ -206,15 +191,11 @@ export function useCalendarSync() {
       }
     });
     
-    // Convert map to array and sort by hours (descending)
     return Array.from(activityMap.values())
       .sort((a, b) => b.hours - a.hours);
   }, []);
 
-  // Get total hours logged across all events
   const getTotalHours = useCallback(() => {
-    console.log('Calculating total hours from', filteredEvents.length, 'events');
-    
     if (!filteredEvents.length) return 0;
     
     let totalHours = 0;
@@ -233,10 +214,8 @@ export function useCalendarSync() {
         return;
       }
       
-      // Calculate duration in hours
       const durationHours = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
       
-      // Ensure we only count positive durations
       if (!isNaN(durationHours) && durationHours > 0) {
         totalHours += durationHours;
         console.log(`Added ${durationHours.toFixed(2)} hours from event: ${event.summary}`);
@@ -249,7 +228,6 @@ export function useCalendarSync() {
     return totalHours;
   }, [filteredEvents]);
 
-  // Get hours by activity type
   const getActivityHours = useCallback((activityType: ActivityType) => {
     if (!filteredEvents.length) return 0;
     
@@ -276,7 +254,6 @@ export function useCalendarSync() {
     setFilters(prev => ({...prev, ...newFilters}));
   }, []);
 
-  // Automatically identify and create projects from events
   const identifyProjectsFromEvents = useCallback((eventsList: GoogleCalendarEvent[]) => {
     if (eventsList.length === 0) {
       console.log("No events to identify projects from");
@@ -285,7 +262,6 @@ export function useCalendarSync() {
     
     console.log(`Identifying projects from ${eventsList.length} events`);
     
-    // Get unique project names from all events
     const uniqueProjects = new Set<string>();
     
     eventsList.forEach(event => {
@@ -297,7 +273,6 @@ export function useCalendarSync() {
     
     console.log(`Found ${uniqueProjects.size} unique projects in events`);
     
-    // Create filter for each unique project if it doesn't exist
     uniqueProjects.forEach(projectName => {
       if (!projectFilters[projectName]) {
         console.log(`Adding automatic project filter for "${projectName}"`);
@@ -307,7 +282,6 @@ export function useCalendarSync() {
   }, [projectFilters, addProjectFilter]);
 
   const syncCalendar = useCallback(async (days = 30) => {
-    // Reset any previous sync errors
     setSyncError(null);
     
     if (!authState.isAuthenticated) {
@@ -321,7 +295,6 @@ export function useCalendarSync() {
 
     setIsLoading(true);
     try {
-      // First, try to refresh the token if needed
       const token = await refreshToken();
       if (!token) {
         toast({
@@ -334,13 +307,10 @@ export function useCalendarSync() {
       
       console.log(`Syncing calendar data for the last ${days} days...`);
       
-      // Fetch events for the specified time range
       const fetchedEvents = await fetchCalendarEvents(token, days);
       
-      // Log for debugging
       console.log(`Fetched ${fetchedEvents.length} calendar events`);
       
-      // Filter out events without start/end dateTime
       const validEvents = fetchedEvents.filter(event => {
         const hasValidTimes = event.start?.dateTime && event.end?.dateTime;
         if (!hasValidTimes) {
@@ -373,10 +343,8 @@ export function useCalendarSync() {
         description: `Found ${validEvents.length} events from your Google Calendar`,
       });
       
-      // Automatically identify and create project filters
       identifyProjectsFromEvents(validEvents);
       
-      // Force regeneration of custom projects
       updateCustomProjects(validEvents, loadSavedProjectFilters());
       
       return { events: validEvents, stats };
@@ -394,14 +362,12 @@ export function useCalendarSync() {
     }
   }, [authState.isAuthenticated, refreshToken, identifyProjectsFromEvents, loadSavedProjectFilters]);
 
-  // Effect to apply filters whenever events or filters change
   useEffect(() => {
     if (events.length === 0) return;
     
     console.log('Applying filters to events:', filters);
     let filtered = [...events];
     
-    // Apply search filter
     if (filters.searchTerm) {
       const term = filters.searchTerm.toLowerCase();
       filtered = filtered.filter(event => 
@@ -410,15 +376,20 @@ export function useCalendarSync() {
       );
     }
     
-    // Apply project filter
     if (filters.project !== 'All') {
       filtered = filtered.filter(event => {
         const projectName = getProjectNameFromEvent(event);
         return projectName === filters.project;
       });
     }
+
+    if (filters.activity && filters.activity !== 'All') {
+      filtered = filtered.filter(event => {
+        const activityType = determineActivityType(event);
+        return activityType === filters.activity;
+      });
+    }
     
-    // Apply date range filter (convert days to date range)
     const today = new Date();
     const startDate = new Date(today);
     startDate.setDate(startDate.getDate() - filters.dateRange);
@@ -431,14 +402,12 @@ export function useCalendarSync() {
     
     console.log(`Filtered to ${filtered.length} events after applying filters`);
     setFilteredEvents(filtered);
-  }, [events, filters, getProjectNameFromEvent]);
+  }, [events, filters, getProjectNameFromEvent, determineActivityType]);
 
-  // Generate a consistent color based on project name
   const getProjectColor = useCallback((projectName: string) => {
     return stringToColor(projectName);
   }, []);
 
-  // Helper function to update custom projects
   const updateCustomProjects = useCallback((eventsList: GoogleCalendarEvent[], filters: {[key: string]: string}) => {
     if (eventsList.length === 0) {
       console.log("No events available to create custom projects");
@@ -452,15 +421,12 @@ export function useCalendarSync() {
     const startOfCurrentMonth = startOfMonth(today);
     const endOfCurrentMonth = endOfMonth(today);
     
-    // Load saved project settings
     const savedSettings = loadSavedProjectSettings();
     console.log("Loaded saved project settings:", savedSettings);
 
-    // For each project filter, create a custom project
     Object.entries(filters).forEach(([projectId, filterTerm]) => {
       console.log(`Creating project "${projectId}" with filter "${filterTerm}"`);
       
-      // Find all events that match this project name
       const filteredEvents = eventsList.filter(event => {
         const { projectName } = parseEventTitle(event.summary);
         return projectName.toLowerCase() === filterTerm.toLowerCase();
@@ -470,7 +436,6 @@ export function useCalendarSync() {
       
       if (filteredEvents.length === 0) return;
       
-      // Calculate total hours for this project
       let totalHours = 0;
       let thisMonthHours = 0;
       const activities: any[] = [];
@@ -482,36 +447,33 @@ export function useCalendarSync() {
         const endTime = new Date(event.end.dateTime);
         const durationHours = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
         
-        // Skip events with zero or negative duration
         if (durationHours <= 0) return;
         
         totalHours += durationHours;
         
-        // Check if event is in current month
         if (isWithinInterval(startTime, { start: startOfCurrentMonth, end: endOfCurrentMonth })) {
           thisMonthHours += durationHours;
         }
         
-        // Determine activity type and extract description
         const { activityType, description } = parseEventTitle(event.summary);
         
-        // Add to activities
-        const existingActivity = activities.find(a => a.type === activityType);
-        if (existingActivity) {
-          existingActivity.hours += durationHours;
-        } else {
-          activities.push({
-            id: `${projectId}-${activityType}`,
-            type: activityType,
-            hours: durationHours,
-            description: description,
-            date: startTime
-          });
+        if (activityType) {
+          const existingActivity = activities.find(a => a.type === activityType);
+          if (existingActivity) {
+            existingActivity.hours += durationHours;
+          } else {
+            activities.push({
+              id: `${projectId}-${activityType}`,
+              type: activityType,
+              hours: durationHours,
+              description: description,
+              date: startTime
+            });
+          }
         }
       });
       
       if (totalHours > 0) {
-        // Apply any saved settings for this project
         const projectSettings = savedSettings && savedSettings[projectId] ? savedSettings[projectId] : {};
         
         console.log(`Adding project "${projectId}" with ${totalHours.toFixed(2)} hours and ${activities.length} activities`);
@@ -519,11 +481,11 @@ export function useCalendarSync() {
           id: projectId,
           name: projectSettings.name || projectId,
           totalHours: totalHours,
-          budgetHours: projectSettings.budgetHours || 120, // Default budget hours
+          budgetHours: projectSettings.budgetHours || 120,
           activities: activities,
           teamMembers: [],
           monthlyHours: thisMonthHours,
-          color: getProjectColor(projectId) // Assign a consistent color
+          color: getProjectColor(projectId)
         });
       }
     });
@@ -532,16 +494,13 @@ export function useCalendarSync() {
     setCustomProjects(newCustomProjects);
   }, [loadSavedProjectSettings, getProjectColor]);
 
-  // Initialize: load saved project filters and set up listeners
   useEffect(() => {
-    // Load saved filters on mount
     const savedFilters = loadSavedProjectFilters();
     if (Object.keys(savedFilters).length > 0) {
       setProjectFilters(savedFilters);
     }
   }, [loadSavedProjectFilters]);
 
-  // Create custom projects when events or project filters change
   useEffect(() => {
     updateCustomProjects(events, projectFilters);
   }, [events, projectFilters, updateCustomProjects]);
