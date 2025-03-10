@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useCalendarSync } from '@/hooks/useCalendarSync';
 import { Project } from '@/lib/types';
@@ -20,6 +21,7 @@ export const useProjectManagement = () => {
   const [filteredProjects, setFilteredProjects] = useState<Project[]>([]);
   const [storedProjects, setStoredProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [availableProjectNames, setAvailableProjectNames] = useState<string[]>([]);
   
   // New project state
   const [newProjectName, setNewProjectName] = useState('');
@@ -47,7 +49,41 @@ export const useProjectManagement = () => {
     loadProjects();
   }, []);
   
-  // Merge stored projects with calendar projects
+  // Merge stored projects with calendar projects and extract available project names
+  useEffect(() => {
+    const allProjects = [...storedProjects];
+    const projectNames = new Set<string>();
+    
+    // Add any custom projects that aren't already in stored projects
+    for (const customProject of customProjects) {
+      const existingProject = storedProjects.find(p => 
+        p.id === customProject.id || 
+        p.name.toLowerCase() === customProject.name.toLowerCase());
+      
+      if (!existingProject) {
+        allProjects.push(customProject);
+      }
+      
+      // Add to available project names
+      projectNames.add(customProject.name);
+    }
+    
+    // Add stored project names to available project names
+    storedProjects.forEach(project => {
+      projectNames.add(project.name);
+    });
+    
+    // Update available project names
+    const namesArray = Array.from(projectNames);
+    setAvailableProjectNames(namesArray);
+    
+    // Initialize project filters with all project names if not set yet
+    if (projectFilters.length === 0 && namesArray.length > 0) {
+      setProjectFilters(namesArray);
+    }
+  }, [customProjects, storedProjects, projectFilters]);
+  
+  // Apply filtering based on project filters
   useEffect(() => {
     const allProjects = [...storedProjects];
     
@@ -60,11 +96,6 @@ export const useProjectManagement = () => {
       if (!existingProject) {
         allProjects.push(customProject);
       }
-    }
-    
-    if (projectFilters.length === 0) {
-      // Initialize project filters with all project names
-      setProjectFilters(allProjects.map(project => project.name));
     }
     
     // Apply project filters and visibility settings
