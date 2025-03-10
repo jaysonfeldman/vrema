@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { cn } from '@/lib/utils';
 import { ActivityType } from '@/lib/types';
@@ -35,7 +34,30 @@ const ActivityTag: React.FC<ActivityTagProps> = ({ type, hours, className }) => 
     };
     
     const normalizedType = type.toLowerCase();
-    return colorMap[normalizedType] || 'bg-[#6b7280] text-white';
+    
+    // If the activity type is in our color map, use that color
+    if (colorMap[normalizedType]) {
+      return colorMap[normalizedType];
+    }
+    
+    // Otherwise, generate a color based on the activity type string
+    const stringToColorCode = (str: string) => {
+      let hash = 0;
+      for (let i = 0; i < str.length; i++) {
+        hash = str.charCodeAt(i) + ((hash << 5) - hash);
+      }
+      
+      let color = '#';
+      for (let i = 0; i < 3; i++) {
+        const value = (hash >> (i * 8)) & 0xFF;
+        color += ('00' + value.toString(16)).substr(-2);
+      }
+      
+      return `${color}`;
+    };
+    
+    const dynamicColor = stringToColorCode(normalizedType);
+    return `bg-[${dynamicColor}] text-white`;
   };
 
   return (

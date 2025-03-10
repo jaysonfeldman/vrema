@@ -20,52 +20,6 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 
-// Sample default projects in case no projects exist
-const DEFAULT_PROJECTS: Project[] = [
-  {
-    id: 'umcu',
-    name: 'UMCU',
-    description: 'University Medical Center Utrecht projects',
-    totalHours: 24.5,
-    budgetHours: 30,
-    activities: [
-      { id: 'u1', type: 'design', hours: 8.5, date: new Date().toISOString(), description: 'UI design' },
-      { id: 'u2', type: 'dev', hours: 12, date: new Date().toISOString(), description: 'Development' },
-      { id: 'u3', type: 'meetings', hours: 4, date: new Date().toISOString(), description: 'Client meetings' }
-    ],
-    teamMembers: [],
-    status: 'active'
-  },
-  {
-    id: 'wisebrick',
-    name: 'Wisebrick',
-    description: 'Wisebrick financial platform',
-    totalHours: 18,
-    budgetHours: 20,
-    activities: [
-      { id: 'w1', type: 'strategy', hours: 5, date: new Date().toISOString(), description: 'Planning' },
-      { id: 'w2', type: 'dev', hours: 10, date: new Date().toISOString(), description: 'Frontend development' },
-      { id: 'w3', type: 'meetings', hours: 3, date: new Date().toISOString(), description: 'Status meetings' }
-    ],
-    teamMembers: [],
-    status: 'active'
-  },
-  {
-    id: 'geldfit',
-    name: 'Geldfit 3.0',
-    description: 'Financial wellness platform',
-    totalHours: 32,
-    budgetHours: 40,
-    activities: [
-      { id: 'g1', type: 'ux', hours: 8, date: new Date().toISOString(), description: 'User research' },
-      { id: 'g2', type: 'design', hours: 12, date: new Date().toISOString(), description: 'Interface design' },
-      { id: 'g3', type: 'dev', hours: 12, date: new Date().toISOString(), description: 'Implementation' }
-    ],
-    teamMembers: [],
-    status: 'active'
-  }
-];
-
 const ProjectsOverview: React.FC = () => {
   const { 
     customProjects, 
@@ -96,18 +50,24 @@ const ProjectsOverview: React.FC = () => {
           const parsedProjects = JSON.parse(saved) as Project[];
           setSavedProjects(parsedProjects);
         } else if (customProjects.length === 0) {
-          // If no saved projects and no custom projects, use defaults
-          localStorage.setItem('saved-projects', JSON.stringify(DEFAULT_PROJECTS));
-          setSavedProjects(DEFAULT_PROJECTS);
+          // No manually saved projects, and no custom projects from Google Calendar
+          setSavedProjects([]);
         }
       } catch (err) {
         console.error('Error loading saved projects:', err);
-        setSavedProjects(DEFAULT_PROJECTS);
+        setSavedProjects([]);
       }
     };
     
     loadSavedProjects();
   }, [customProjects.length]);
+
+  // Sync with Google Calendar on initial load
+  useEffect(() => {
+    if (events.length === 0) {
+      syncCalendar(30);
+    }
+  }, [events.length, syncCalendar]);
 
   // Save projects to localStorage whenever they change
   useEffect(() => {
@@ -238,8 +198,8 @@ const ProjectsOverview: React.FC = () => {
       const newProject: Project = {
         id: `manual-${Date.now()}`,
         name: newProjectName.trim(),
-        description: '',
         totalHours: 0,
+        budgetHours: 120,
         activities: [],
         teamMembers: [],
         status: 'active'
@@ -421,8 +381,11 @@ const ProjectsOverview: React.FC = () => {
         </div>
       ) : (
         <div className="bg-zinc-50 border border-zinc-200 rounded-lg p-8 text-center">
-          <p className="text-zinc-500 mb-4">No projects found</p>
-          <Button onClick={() => setShowAddProject(true)}>Create your first project</Button>
+          <p className="text-zinc-500 mb-4">No projects found. Connect to Google Calendar to import your projects.</p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Button onClick={() => syncCalendar(30)}>Sync Calendar</Button>
+            <Button variant="outline" onClick={() => setShowAddProject(true)}>Create Manual Project</Button>
+          </div>
         </div>
       )}
     </div>
