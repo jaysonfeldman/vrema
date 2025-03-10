@@ -3,7 +3,6 @@ import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import GoogleCalendarSync from '@/components/GoogleCalendarSync';
-import ProjectsOverview from '@/components/ProjectsOverview';
 import TotalHoursView from '@/components/TotalHoursView';
 import CalendarEventsTable from '@/components/CalendarEventsTable';
 import { useCalendarSync } from '@/hooks/useCalendarSync';
@@ -15,7 +14,7 @@ const Index: React.FC = () => {
   const navigate = useNavigate();
   const { authState } = useGoogleAuth();
   const { syncCalendar, lastSynced, isAuthenticated, events, customProjects, updateFilters } = useCalendarSync();
-  const [activeTab, setActiveTab] = useState<string>("projects");
+  const [activeTab, setActiveTab] = useState<string>("events");
   const [initialSyncDone, setInitialSyncDone] = useState(false);
 
   // Handle URL parameters
@@ -25,7 +24,7 @@ const Index: React.FC = () => {
     const projectParam = params.get('project');
     
     // Set active tab based on URL parameter
-    if (tabParam && (tabParam === 'projects' || tabParam === 'events')) {
+    if (tabParam && tabParam === 'events') {
       setActiveTab(tabParam);
     }
     
@@ -73,13 +72,8 @@ const Index: React.FC = () => {
           
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="mb-4">
-              <TabsTrigger value="projects">Project Cards</TabsTrigger>
               <TabsTrigger value="events">Calendar Events</TabsTrigger>
             </TabsList>
-            
-            <TabsContent value="projects">
-              <ProjectsOverview />
-            </TabsContent>
             
             <TabsContent value="events">
               <CalendarEventsTable />
