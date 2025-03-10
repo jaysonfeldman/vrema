@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useCalendarSync } from '@/hooks/useCalendarSync';
 import { Card } from '@/components/ui/card';
@@ -6,7 +5,7 @@ import TotalHoursCard from './TotalHoursCard';
 import { Activity } from '@/lib/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from './ui/button';
-import { Calendar, Download, FileText } from 'lucide-react';
+import { Calendar, Download, FileText, BarChart } from 'lucide-react';
 
 const TotalHoursView: React.FC = () => {
   const { 
@@ -30,8 +29,12 @@ const TotalHoursView: React.FC = () => {
   const [selectedProject, setSelectedProject] = useState<string>('All');
   const [selectedActivity, setSelectedActivity] = useState<string>('All');
   const [month, setMonth] = useState('October 2023');
+  const [monthViewOptions] = useState([
+    { label: 'This Month', value: 'current' },
+    { label: 'Last Month', value: 'previous' },
+    { label: 'All Time', value: 'all' }
+  ]);
   
-  // For debouncing the title filter
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedTitleFilter(titleFilter);
@@ -43,7 +46,6 @@ const TotalHoursView: React.FC = () => {
     return () => clearTimeout(timer);
   }, [titleFilter, updateFilters]);
   
-  // Force recalculation on component mount and when events change
   useEffect(() => {
     if (isAuthenticated && events.length === 0 && !lastSynced) {
       console.log("No events found, triggering calendar sync...");
@@ -51,14 +53,12 @@ const TotalHoursView: React.FC = () => {
     }
   }, [isAuthenticated, events.length, lastSynced, syncCalendar]);
   
-  // Get activities when filtered events change
   useEffect(() => {
     if (filteredEvents.length > 0) {
       const fetchedActivities = getActivitiesFromEvents(filteredEvents);
       console.log("Fetched activities:", fetchedActivities);
       setActivities(fetchedActivities);
     } else {
-      // If no filtered events, try to get activities from all events
       if (events.length > 0) {
         const allActivities = getActivitiesFromEvents(events);
         console.log("Using activities from all events:", allActivities);
@@ -67,13 +67,11 @@ const TotalHoursView: React.FC = () => {
     }
   }, [filteredEvents, events, getActivitiesFromEvents]);
 
-  // Apply project filter 
   const handleProjectChange = (value: string) => {
     setSelectedProject(value);
     updateFilters({ project: value });
   };
 
-  // Apply activity filter
   const handleActivityChange = (value: string) => {
     setSelectedActivity(value);
     updateFilters({ activity: value });
@@ -81,14 +79,12 @@ const TotalHoursView: React.FC = () => {
   
   const totalHours = getTotalHours();
   
-  // Format time to hours and minutes
   const formatTime = (hours: number): string => {
     const wholeHours = Math.floor(hours);
     const minutes = Math.round((hours - wholeHours) * 60);
     return `${wholeHours}:${String(minutes).padStart(2, '0')}`;
   };
   
-  // Apply date range change and trigger re-sync
   const handleDateRangeChange = (value: string) => {
     const days = parseInt(value);
     console.log(`Changing date range to ${days} days`);
@@ -96,7 +92,6 @@ const TotalHoursView: React.FC = () => {
     syncCalendar(days);
   };
 
-  // Get all unique activities
   const getAllActivities = () => {
     const activitySet = new Set<string>();
     activitySet.add('All');
@@ -115,16 +110,33 @@ const TotalHoursView: React.FC = () => {
     <div className="space-y-8">
       <div className="flex flex-row justify-between items-center mb-4">
         <div className="flex items-center">
-          <Button variant="outline" className="bg-white mr-2">
-            <Calendar className="h-4 w-4 mr-2" />
-            <span>{month}</span>
-          </Button>
+          <Select
+            value={filters.dateRange === 30 ? 'current' : filters.dateRange === 60 ? 'previous' : 'all'}
+            onValueChange={(value) => {
+              const days = value === 'current' ? 30 : value === 'previous' ? 60 : 365;
+              handleDateRangeChange(days.toString());
+            }}
+          >
+            <SelectTrigger className="w-[150px] bg-white">
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4" />
+                <SelectValue placeholder="This Month" />
+              </div>
+            </SelectTrigger>
+            <SelectContent>
+              {monthViewOptions.map(option => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           
           <Select
             value={selectedProject}
             onValueChange={handleProjectChange}
           >
-            <SelectTrigger className="w-[150px] bg-white">
+            <SelectTrigger className="w-[150px] bg-white ml-2">
               <SelectValue placeholder="All projects" />
             </SelectTrigger>
             <SelectContent>
@@ -154,6 +166,10 @@ const TotalHoursView: React.FC = () => {
             <Download className="h-4 w-4 mr-2" />
             Export hours
           </Button>
+          <Button variant="outline" className="bg-white">
+            <BarChart className="h-4 w-4 mr-2" />
+            View reports
+          </Button>
           <Button className="bg-zinc-900">
             <FileText className="h-4 w-4 mr-2" />
             Create invoice
@@ -161,7 +177,6 @@ const TotalHoursView: React.FC = () => {
         </div>
       </div>
       
-      {/* Main Total Hours Card */}
       <Card className="bg-zinc-900 text-white border-0">
         <TotalHoursCard
           totalHours={totalHours}

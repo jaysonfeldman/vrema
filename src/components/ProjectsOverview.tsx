@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useCalendarSync } from '@/hooks/useCalendarSync';
 import { Project } from '@/lib/types';
@@ -41,6 +40,7 @@ const ProjectsOverview: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredProjects, setFilteredProjects] = useState<Project[]>([]);
   const [savedProjects, setSavedProjects] = useState<Project[]>([]);
+  const [selectedMonth, setSelectedMonth] = useState('current');
 
   useEffect(() => {
     const loadSavedProjects = () => {
@@ -213,6 +213,39 @@ const ProjectsOverview: React.FC = () => {
     }
   };
 
+  const applyMonthFilter = () => {
+    const now = new Date();
+    let startDate: Date;
+    let endDate: Date;
+    
+    switch (selectedMonth) {
+      case 'current':
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+        endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        updateFilters({ dateRange: 30 });
+        break;
+      case 'previous':
+        startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        endDate = new Date(now.getFullYear(), now.getMonth(), 0);
+        updateFilters({ dateRange: 60 });
+        break;
+      case 'all':
+        updateFilters({ dateRange: 365 });
+        break;
+      default:
+        updateFilters({ dateRange: 30 });
+    }
+    
+    if (selectedMonth !== 'all') {
+      syncCalendar();
+    }
+  };
+
+  const handleMonthChange = (month: string) => {
+    setSelectedMonth(month);
+    applyMonthFilter();
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
@@ -221,6 +254,8 @@ const ProjectsOverview: React.FC = () => {
           <ProjectFilters 
             onAddProject={() => setShowAddProject(true)} 
             onManageProjects={() => setShowManageProjects(true)}
+            selectedMonth={selectedMonth}
+            onMonthChange={handleMonthChange}
           />
           <ProjectSortOptions sortBy={sortBy} onSortChange={setSortBy} />
           <ViewToggle viewMode={viewMode} onViewChange={setViewMode} />

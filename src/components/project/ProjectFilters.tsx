@@ -1,16 +1,56 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Filter, Plus, Edit3 } from 'lucide-react';
+import { Filter, Plus, Edit3, Calendar } from 'lucide-react';
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select';
 
 interface ProjectFiltersProps {
   onAddProject: () => void;
   onManageProjects?: () => void;
+  selectedMonth: string;
+  onMonthChange: (month: string) => void;
 }
 
-const ProjectFilters: React.FC<ProjectFiltersProps> = ({ onAddProject, onManageProjects }) => {
+const ProjectFilters: React.FC<ProjectFiltersProps> = ({ 
+  onAddProject, 
+  onManageProjects,
+  selectedMonth,
+  onMonthChange
+}) => {
+  const months = [
+    { value: 'current', label: 'This Month' },
+    { value: 'previous', label: 'Last Month' },
+    { value: 'all', label: 'All Time' },
+    { value: 'custom', label: 'Custom Range' }
+  ];
+
   return (
     <div className="flex items-center gap-2">
+      <Select
+        value={selectedMonth}
+        onValueChange={onMonthChange}
+      >
+        <SelectTrigger className="w-[180px] bg-white border-gray-200">
+          <div className="flex items-center gap-2">
+            <Calendar className="h-4 w-4" />
+            <SelectValue placeholder="Select time period" />
+          </div>
+        </SelectTrigger>
+        <SelectContent>
+          {months.map(month => (
+            <SelectItem key={month.value} value={month.value}>
+              {month.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      
       <Button 
         variant="outline" 
         size="sm"

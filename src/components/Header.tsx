@@ -53,26 +53,6 @@ const Header: React.FC = () => {
           >
             Dashboard
           </Link>
-          <Link 
-            to="/projects" 
-            className={`py-2 border-b-2 ${
-              location.pathname === '/projects' 
-                ? 'border-primary text-primary font-medium' 
-                : 'border-transparent text-gray-600 hover:text-gray-900'
-            } transition-all`}
-          >
-            Projects
-          </Link>
-          <Link 
-            to="/activities" 
-            className={`py-2 border-b-2 ${
-              location.pathname === '/activities' 
-                ? 'border-primary text-primary font-medium' 
-                : 'border-transparent text-gray-600 hover:text-gray-900'
-            } transition-all`}
-          >
-            Activities
-          </Link>
         </nav>
         
         <button className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors">
