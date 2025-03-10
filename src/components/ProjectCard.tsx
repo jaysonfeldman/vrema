@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Project } from '@/lib/types';
 import { formatTime } from '@/lib/mock-data';
@@ -122,7 +123,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
               </div>
             </div>
             
-            <div className="flex items-center -space-x-2">
+            <div className="flex items-center">
               {project.teamMembers.length > 0 && (
                 <div className="flex -space-x-2">
                   {project.teamMembers.slice(0, 3).map((member, index) => (

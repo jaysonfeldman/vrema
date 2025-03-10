@@ -43,12 +43,13 @@ const ActivityTag: React.FC<ActivityTagProps> = ({ type, hours, className }) => 
   return (
     <div 
       className={cn(
-        'px-3 py-1 rounded-md text-xs inline-flex items-center', 
+        'px-3 py-1 rounded-md text-sm inline-flex items-center justify-center', 
         getTagColor(),
         className
       )}
     >
-      {formatHours(hours)} #{type}
+      <span className="font-mono font-medium">{formatHours(hours)}</span>
+      <span className="ml-1">#{type}</span>
     </div>
   );
 };

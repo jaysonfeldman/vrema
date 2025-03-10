@@ -22,13 +22,11 @@ const TotalHoursCard: React.FC<TotalHoursCardProps> = ({
 }) => {
   return (
     <div className="p-6">
-      <div className="flex flex-col space-y-6">
+      <div className="flex justify-between items-start">
         {/* Total Hours */}
-        <div className="flex justify-between items-start">
-          <div>
-            <h3 className="text-xl font-semibold text-white mb-2">Total hours</h3>
-            <p className="text-4xl font-mono font-bold">{formatTime(totalHours)}</p>
-          </div>
+        <div>
+          <h3 className="text-xl font-semibold text-white mb-2">Total hours</h3>
+          <p className="text-5xl font-mono font-bold">{formatTime(totalHours)}</p>
         </div>
         
         {/* Activities */}

@@ -144,9 +144,8 @@ const TotalHoursView: React.FC = () => {
           <Select
             value={selectedActivity}
             onValueChange={handleActivityChange}
-            className="ml-2"
           >
-            <SelectTrigger className="w-[150px] bg-white">
+            <SelectTrigger className="w-[150px] bg-white ml-2">
               <SelectValue placeholder="All activities" />
             </SelectTrigger>
             <SelectContent>

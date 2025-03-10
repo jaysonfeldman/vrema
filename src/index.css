@@ -96,6 +96,22 @@
   @apply font-mono text-2xl font-medium tracking-tight;
 }
 
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  opacity: 0;
+  animation: fadeIn 0.5s ease-out forwards;
+}
+
 .fade-in-section {
   opacity: 0;
   transform: translateY(10px);

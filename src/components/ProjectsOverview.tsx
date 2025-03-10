@@ -1,7 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { useCalendarSync } from '@/hooks/useCalendarSync';
-import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,6 +10,7 @@ import { toast } from '@/components/ui/use-toast';
 import ProjectCard from './ProjectCard';
 import { cn } from '@/lib/utils';
 import { Project } from '@/lib/types';
+import { projects as mockProjects } from '@/lib/mock-data';
 
 const ProjectsOverview: React.FC = () => {
   const { 
@@ -28,6 +28,7 @@ const ProjectsOverview: React.FC = () => {
   const [newProjectFilter, setNewProjectFilter] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [sortBy, setSortBy] = useState('most-tracked');
+  const [allProjects, setAllProjects] = useState<Project[]>(mockProjects);
 
   // Load view mode preference from localStorage
   useEffect(() => {
@@ -40,7 +41,26 @@ const ProjectsOverview: React.FC = () => {
     if (savedSortBy) {
       setSortBy(savedSortBy);
     }
+
+    // Load saved projects from localStorage if available
+    const savedProjects = localStorage.getItem('saved-projects');
+    if (savedProjects) {
+      try {
+        const parsedProjects = JSON.parse(savedProjects);
+        setAllProjects([...mockProjects, ...parsedProjects]);
+      } catch (error) {
+        console.error("Failed to parse saved projects:", error);
+      }
+    }
   }, []);
+
+  // Save projects to localStorage when they change
+  useEffect(() => {
+    if (customProjects.length > 0) {
+      const projectsToSave = [...customProjects];
+      localStorage.setItem('saved-projects', JSON.stringify(projectsToSave));
+    }
+  }, [customProjects]);
 
   // Save view mode preference to localStorage
   useEffect(() => {
@@ -84,7 +104,7 @@ const ProjectsOverview: React.FC = () => {
 
   const handleDeleteProject = (projectId: string) => {
     // Find the project name before deleting
-    const projectToDelete = customProjects.find(p => p.id === projectId);
+    const projectToDelete = allProjects.find(p => p.id === projectId);
     const projectName = projectToDelete ? projectToDelete.name : projectId;
     
     // Remove the project filter
@@ -100,7 +120,7 @@ const ProjectsOverview: React.FC = () => {
   };
 
   // Sort projects by hours logged (most or least)
-  const sortedProjects = [...customProjects].sort((a, b) => {
+  const sortedProjects = [...allProjects].sort((a, b) => {
     if (sortBy === 'most-tracked') {
       return b.totalHours - a.totalHours;
     } else {
@@ -117,18 +137,16 @@ const ProjectsOverview: React.FC = () => {
             variant="ghost" 
             size="sm" 
             className="text-gray-500"
-            onClick={() => {}}
           >
-            all projects
+            add project
           </Button>
           
           <Button 
             variant="ghost" 
             size="sm"
-            onClick={() => setShowAddProject(!showAddProject)}
             className="gap-1"
           >
-            add project
+            all projects
           </Button>
 
           <div className="flex items-center ml-2">
@@ -173,67 +191,23 @@ const ProjectsOverview: React.FC = () => {
         </div>
       </div>
       
-      {showAddProject && (
-        <Card className="bg-muted/50 mb-4">
-          <CardContent className="pt-4">
-            <div className="grid gap-4">
-              <div>
-                <label className="text-sm font-medium mb-1 block">Project Name</label>
-                <Input 
-                  placeholder="e.g., Marketing Project" 
-                  value={newProjectName}
-                  onChange={e => setNewProjectName(e.target.value)}
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium mb-1 block">Title Filter (matches events containing this text)</label>
-                <Input 
-                  placeholder="e.g., Marketing" 
-                  value={newProjectFilter}
-                  onChange={e => setNewProjectFilter(e.target.value)}
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  This will create a view of all events with titles containing this text
-                </p>
-              </div>
-              <Button 
-                onClick={handleAddProject}
-                disabled={!newProjectName || !newProjectFilter}
-              >
-                Create Project View
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-      
       {/* Projects Grid/List View */}
-      {customProjects.length > 0 ? (
-        <div className={cn(
-          viewMode === 'grid' 
-            ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4" 
-            : "space-y-4"
-        )}>
-          {sortedProjects.map(project => (
-            <ProjectCard
-              key={project.id}
-              project={project}
-              className="bg-zinc-900 text-white"
-              onUpdateProject={handleUpdateProject}
-              onDeleteProject={handleDeleteProject}
-            />
-          ))}
-        </div>
-      ) : (
-        <Card className="bg-zinc-900 text-white p-8 text-center">
-          <div className="py-6">
-            <h3 className="text-lg font-medium mb-2">No project views created yet</h3>
-            <p className="text-gray-400">
-              Create a custom project view to filter your calendar events
-            </p>
-          </div>
-        </Card>
-      )}
+      <div className={cn(
+        viewMode === 'grid' 
+          ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4" 
+          : "space-y-4"
+      )}>
+        {sortedProjects.map((project, index) => (
+          <ProjectCard
+            key={project.id}
+            project={project}
+            className="bg-zinc-900 text-white"
+            style={{ animationDelay: `${index * 100}ms` }}
+            onUpdateProject={handleUpdateProject}
+            onDeleteProject={handleDeleteProject}
+          />
+        ))}
+      </div>
     </div>
   );
 };

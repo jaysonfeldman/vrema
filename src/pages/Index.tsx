@@ -32,50 +32,15 @@ const Index: React.FC = () => {
   }, [projectFilters, customProjects]);
 
   return (
-    <div className="min-h-screen bg-gray-100 dark:bg-gray-950">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       <Header />
       <div className="container mx-auto py-6 px-4">
-        <GoogleCalendarSync />
+        <GoogleCalendarSync showSyncButton={false} />
         
-        {isAuthenticated && (
-          <>
-            {/* Notification for uncategorized entries (if needed) */}
-            {events.length > 0 && customProjects.length === 0 && (
-              <Alert className="mb-6 bg-amber-50 border-amber-200 dark:bg-amber-900/20 dark:border-amber-800">
-                <AlertDescription className="flex justify-between items-center">
-                  <span>{events.length} entries are uncategorized</span>
-                  <Button variant="outline" size="sm" className="gap-1">
-                    <Eye className="h-4 w-4" />
-                    View entries
-                  </Button>
-                </AlertDescription>
-              </Alert>
-            )}
-
-            <Tabs defaultValue="dashboard" className="mt-6">
-              <TabsList className="mb-4">
-                <TabsTrigger value="dashboard">Dashboard Overview</TabsTrigger>
-                <TabsTrigger value="projects">Projects</TabsTrigger>
-                <TabsTrigger value="events">Calendar Events</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="dashboard">
-                <div className="space-y-8">
-                  <TotalHoursView />
-                  <ProjectsOverview />
-                </div>
-              </TabsContent>
-              
-              <TabsContent value="projects">
-                <ProjectView />
-              </TabsContent>
-              
-              <TabsContent value="events">
-                <CalendarEventsTable />
-              </TabsContent>
-            </Tabs>
-          </>
-        )}
+        <div className="space-y-8 pt-4">
+          <TotalHoursView />
+          <ProjectsOverview />
+        </div>
       </div>
     </div>
   );
