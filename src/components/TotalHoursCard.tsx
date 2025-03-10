@@ -27,6 +27,14 @@ const TotalHoursCard: React.FC<TotalHoursCardProps> = ({
         <div>
           <h3 className="text-xl font-semibold text-white mb-2">Total hours</h3>
           <p className="text-5xl font-mono font-bold">{formatTime(totalHours)}</p>
+          <p className="text-sm text-gray-400 mt-1">
+            over the past {dateRange} days
+            {lastSynced && (
+              <span className="ml-1">
+                · last sync {lastSynced.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </span>
+            )}
+          </p>
         </div>
         
         {/* Activities */}

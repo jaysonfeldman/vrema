@@ -35,7 +35,7 @@ const Index: React.FC = () => {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       <Header />
       <div className="container mx-auto py-6 px-4">
-        <GoogleCalendarSync showSyncButton={false} />
+        <GoogleCalendarSync />
         
         <div className="space-y-8 pt-4">
           <TotalHoursView />

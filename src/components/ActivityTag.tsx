@@ -14,23 +14,29 @@ const ActivityTag: React.FC<ActivityTagProps> = ({ type, hours, className }) => 
   // Generate a consistent color based on the activity type string
   const getTagColor = () => {
     // Map common activity types to specific colors for consistency
-    switch (type.toLowerCase()) {
-      case 'design':
-        return 'bg-green-500';
-      case 'strategy':
-        return 'bg-teal-500';
-      case 'dev':
-        return 'bg-blue-500';
-      case 'meetings':
-        return 'bg-gray-300';
-      case 'admin':
-        return 'bg-yellow-400';
-      case 'pm':
-        return 'bg-purple-500';
-      default:
-        // For any other activity type, generate a consistent color based on the string
-        return `bg-[${stringToColor(type)}]`;
+    const colorMap: Record<string, string> = {
+      'design': 'bg-green-500',
+      'strategy': 'bg-teal-500',
+      'dev': 'bg-blue-500',
+      'meetings': 'bg-gray-300',
+      'admin': 'bg-yellow-400',
+      'pm': 'bg-purple-500',
+      'ux': 'bg-pink-500',
+      'research': 'bg-indigo-500',
+      'marketing': 'bg-orange-500',
+      'sales': 'bg-emerald-500',
+      'support': 'bg-sky-500',
+      'other': 'bg-slate-400'
+    };
+    
+    const normalizedType = type.toLowerCase();
+    if (colorMap[normalizedType]) {
+      return colorMap[normalizedType];
     }
+    
+    // For any other activity type, generate a consistent color based on the string
+    const generatedColor = stringToColor(type);
+    return `bg-[${generatedColor}]`;
   };
 
   // Format hours to show as "40:00" for example
@@ -43,7 +49,7 @@ const ActivityTag: React.FC<ActivityTagProps> = ({ type, hours, className }) => 
   return (
     <div 
       className={cn(
-        'px-3 py-1 rounded-md text-sm inline-flex items-center justify-center', 
+        'px-3 py-1 rounded-md text-sm inline-flex items-center justify-center shadow-sm', 
         getTagColor(),
         className
       )}

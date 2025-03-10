@@ -65,7 +65,8 @@ export const projects: Project[] = [
       createActivities('dev', 5)
     ],
     teamMembers: teamMembers.slice(0, 2),
-    color: '#1c1c1e'
+    color: '#1c1c1e',
+    monthlyHours: 30  // Changed from boolean to number
   },
   {
     id: 'project-2',
@@ -77,7 +78,8 @@ export const projects: Project[] = [
       createActivities('dev', 30)
     ],
     teamMembers: teamMembers,
-    color: '#1c1c1e'
+    color: '#1c1c1e',
+    monthlyHours: 60  // Changed from boolean to number
   },
   {
     id: 'project-3',
@@ -91,7 +93,7 @@ export const projects: Project[] = [
     ],
     teamMembers: teamMembers,
     color: '#1c1c1e',
-    monthlyHours: true
+    monthlyHours: 35  // Changed from boolean to number
   },
   {
     id: 'project-4',
@@ -104,7 +106,7 @@ export const projects: Project[] = [
     ],
     teamMembers: [teamMembers[0], teamMembers[2]],
     color: '#1c1c1e',
-    monthlyHours: true
+    monthlyHours: 42  // Changed from boolean to number
   }
 ];
 

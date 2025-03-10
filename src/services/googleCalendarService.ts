@@ -79,7 +79,7 @@ export const parseEventTitle = (title: string): {
   description: string 
 } => {
   let projectName = 'Other';
-  let activityType = 'other'; // Changed from 'meetings' to 'other' as default
+  let activityType = 'other'; // Default to 'other' instead of 'meetings'
   let description = title;
 
   if (title.includes('#')) {

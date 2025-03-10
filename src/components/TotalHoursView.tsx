@@ -6,7 +6,7 @@ import TotalHoursCard from './TotalHoursCard';
 import { Activity } from '@/lib/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from './ui/button';
-import { Calendar } from 'lucide-react';
+import { Calendar, Download, FileText } from 'lucide-react';
 
 const TotalHoursView: React.FC = () => {
   const { 
@@ -37,12 +37,11 @@ const TotalHoursView: React.FC = () => {
       setDebouncedTitleFilter(titleFilter);
       if (titleFilter !== '') {
         updateFilters({ searchTerm: titleFilter });
-        syncCalendar();
       }
     }, 500);
     
     return () => clearTimeout(timer);
-  }, [titleFilter, updateFilters, syncCalendar]);
+  }, [titleFilter, updateFilters]);
   
   // Force recalculation on component mount and when events change
   useEffect(() => {
@@ -58,21 +57,26 @@ const TotalHoursView: React.FC = () => {
       const fetchedActivities = getActivitiesFromEvents(filteredEvents);
       console.log("Fetched activities:", fetchedActivities);
       setActivities(fetchedActivities);
+    } else {
+      // If no filtered events, try to get activities from all events
+      if (events.length > 0) {
+        const allActivities = getActivitiesFromEvents(events);
+        console.log("Using activities from all events:", allActivities);
+        setActivities(allActivities);
+      }
     }
-  }, [filteredEvents, getActivitiesFromEvents]);
+  }, [filteredEvents, events, getActivitiesFromEvents]);
 
   // Apply project filter 
   const handleProjectChange = (value: string) => {
     setSelectedProject(value);
     updateFilters({ project: value });
-    syncCalendar();
   };
 
   // Apply activity filter
   const handleActivityChange = (value: string) => {
     setSelectedActivity(value);
     updateFilters({ activity: value });
-    syncCalendar();
   };
   
   const totalHours = getTotalHours();
@@ -106,17 +110,6 @@ const TotalHoursView: React.FC = () => {
 
   const projects = getProjects();
   const allActivities = getAllActivities();
-  
-  // Generate unique member list from all projects
-  const getAllMembers = () => {
-    const members = new Set();
-    customProjects.forEach(project => {
-      project.teamMembers.forEach(member => {
-        members.add(member);
-      });
-    });
-    return Array.from(members);
-  };
   
   return (
     <div className="space-y-8">
@@ -158,9 +151,11 @@ const TotalHoursView: React.FC = () => {
         
         <div className="flex gap-2">
           <Button variant="outline" className="bg-white">
+            <Download className="h-4 w-4 mr-2" />
             Export hours
           </Button>
           <Button className="bg-zinc-900">
+            <FileText className="h-4 w-4 mr-2" />
             Create invoice
           </Button>
         </div>
