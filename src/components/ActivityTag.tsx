@@ -18,19 +18,20 @@ const ActivityTag: React.FC<ActivityTagProps> = ({ type, hours, className }) => 
 
   // Get the appropriate background color for the activity type
   const getTagColor = () => {
+    // Vibrant color map for activities
     const colorMap: Record<string, string> = {
-      'design': 'bg-[#10b981] text-white',
-      'strategy': 'bg-[#3b82f6] text-white',
-      'dev': 'bg-[#6366f1] text-white',
-      'meetings': 'bg-[#8b5cf6] text-white',
-      'admin': 'bg-[#f59e0b] text-white',
-      'pm': 'bg-[#ec4899] text-white',
-      'ux': 'bg-[#14b8a6] text-white',
-      'research': 'bg-[#8b5cf6] text-white',
-      'marketing': 'bg-[#f97316] text-white',
-      'sales': 'bg-[#06b6d4] text-white',
-      'support': 'bg-[#0ea5e9] text-white',
-      'other': 'bg-[#6b7280] text-white'
+      'design': 'bg-[#10b981] text-white', // Green
+      'strategy': 'bg-[#3b82f6] text-white', // Blue
+      'dev': 'bg-[#6366f1] text-white', // Indigo
+      'meetings': 'bg-[#8b5cf6] text-white', // Purple
+      'admin': 'bg-[#f59e0b] text-white', // Amber
+      'pm': 'bg-[#ec4899] text-white', // Pink
+      'ux': 'bg-[#14b8a6] text-white', // Teal
+      'research': 'bg-[#8b5cf6] text-white', // Purple
+      'marketing': 'bg-[#f97316] text-white', // Orange
+      'sales': 'bg-[#06b6d4] text-white', // Cyan
+      'support': 'bg-[#0ea5e9] text-white', // Sky blue
+      'other': 'bg-[#6b7280] text-white' // Gray
     };
     
     const normalizedType = type.toLowerCase();
@@ -40,24 +41,33 @@ const ActivityTag: React.FC<ActivityTagProps> = ({ type, hours, className }) => 
       return colorMap[normalizedType];
     }
     
-    // Otherwise, generate a color based on the activity type string
-    const stringToColorCode = (str: string) => {
+    // Otherwise, generate a vibrant color based on the activity type string
+    const vibrantColors = [
+      'bg-[#10b981] text-white', // Green
+      'bg-[#3b82f6] text-white', // Blue
+      'bg-[#6366f1] text-white', // Indigo
+      'bg-[#8b5cf6] text-white', // Purple
+      'bg-[#f59e0b] text-white', // Amber
+      'bg-[#ec4899] text-white', // Pink
+      'bg-[#14b8a6] text-white', // Teal
+      'bg-[#f97316] text-white', // Orange
+      'bg-[#06b6d4] text-white', // Cyan
+      'bg-[#0ea5e9] text-white', // Sky blue
+      'bg-[#a855f7] text-white', // Purple
+      'bg-[#d946ef] text-white'  // Fuchsia
+    ];
+    
+    // Use hash of string to pick a consistent color for the same activity type
+    const stringToHash = (str: string) => {
       let hash = 0;
       for (let i = 0; i < str.length; i++) {
         hash = str.charCodeAt(i) + ((hash << 5) - hash);
       }
-      
-      let color = '#';
-      for (let i = 0; i < 3; i++) {
-        const value = (hash >> (i * 8)) & 0xFF;
-        color += ('00' + value.toString(16)).substr(-2);
-      }
-      
-      return `${color}`;
+      return Math.abs(hash);
     };
     
-    const dynamicColor = stringToColorCode(normalizedType);
-    return `bg-[${dynamicColor}] text-white`;
+    const colorIndex = stringToHash(normalizedType) % vibrantColors.length;
+    return vibrantColors[colorIndex];
   };
 
   return (

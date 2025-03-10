@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useCalendarSync } from '@/hooks/useCalendarSync';
 import { Badge } from '@/components/ui/badge';
@@ -41,7 +40,6 @@ const ProjectsOverview: React.FC = () => {
   const [filteredProjects, setFilteredProjects] = useState<Project[]>([]);
   const [savedProjects, setSavedProjects] = useState<Project[]>([]);
 
-  // Load saved projects from localStorage
   useEffect(() => {
     const loadSavedProjects = () => {
       try {
@@ -50,7 +48,6 @@ const ProjectsOverview: React.FC = () => {
           const parsedProjects = JSON.parse(saved) as Project[];
           setSavedProjects(parsedProjects);
         } else if (customProjects.length === 0) {
-          // No manually saved projects, and no custom projects from Google Calendar
           setSavedProjects([]);
         }
       } catch (err) {
@@ -62,21 +59,18 @@ const ProjectsOverview: React.FC = () => {
     loadSavedProjects();
   }, [customProjects.length]);
 
-  // Sync with Google Calendar on initial load
   useEffect(() => {
     if (events.length === 0) {
       syncCalendar(30);
     }
   }, [events.length, syncCalendar]);
 
-  // Save projects to localStorage whenever they change
   useEffect(() => {
     if (savedProjects.length > 0) {
       localStorage.setItem('saved-projects', JSON.stringify(savedProjects));
     }
   }, [savedProjects]);
 
-  // Load view mode preference from localStorage
   useEffect(() => {
     const savedViewMode = localStorage.getItem('projects-view-mode');
     if (savedViewMode) {
@@ -89,29 +83,23 @@ const ProjectsOverview: React.FC = () => {
     }
   }, []);
 
-  // Save view mode preference to localStorage
   useEffect(() => {
     localStorage.setItem('projects-view-mode', viewMode);
   }, [viewMode]);
 
-  // Save sort preference to localStorage
   useEffect(() => {
     localStorage.setItem('projects-sort-by', sortBy);
   }, [sortBy]);
 
-  // Update filtered projects based on savedProjects, customProjects, sort and search
   useEffect(() => {
-    // Combine saved projects with custom projects from calendar
     let projectsToDisplay = [...savedProjects];
     
-    // Add custom projects not already in saved projects
     customProjects.forEach(customProject => {
       if (!projectsToDisplay.some(p => p.id === customProject.id)) {
         projectsToDisplay.push(customProject);
       }
     });
     
-    // Apply search filter if any
     if (searchTerm.trim()) {
       const term = searchTerm.toLowerCase();
       projectsToDisplay = projectsToDisplay.filter(
@@ -119,7 +107,6 @@ const ProjectsOverview: React.FC = () => {
       );
     }
     
-    // Sort projects
     projectsToDisplay.sort((a, b) => {
       if (sortBy === 'most-tracked') {
         return b.totalHours - a.totalHours;
@@ -138,10 +125,8 @@ const ProjectsOverview: React.FC = () => {
     if (newProjectName.trim() && newProjectFilter.trim()) {
       console.log("Adding new project filter:", newProjectName, newProjectFilter);
       
-      // Add the new project filter
       addProjectFilter(newProjectName.trim(), newProjectFilter.trim());
       
-      // Force an immediate calendar sync to update the projects
       syncCalendar();
       
       toast({
@@ -156,14 +141,12 @@ const ProjectsOverview: React.FC = () => {
   };
 
   const handleUpdateProject = (updatedProject: Project) => {
-    // Update in saved projects if it exists there
     setSavedProjects(prev => 
       prev.map(project => 
         project.id === updatedProject.id ? updatedProject : project
       )
     );
     
-    // Also update in custom projects if necessary
     updateProject(updatedProject);
     
     toast({
@@ -173,17 +156,13 @@ const ProjectsOverview: React.FC = () => {
   };
 
   const handleDeleteProject = (projectId: string) => {
-    // Find the project name before deleting
     const projectToDelete = filteredProjects.find(p => p.id === projectId);
     const projectName = projectToDelete ? projectToDelete.name : projectId;
     
-    // Remove from saved projects
     setSavedProjects(prev => prev.filter(p => p.id !== projectId));
     
-    // Remove the project filter if it exists there
     removeProjectFilter(projectId);
     
-    // Force a sync to update
     syncCalendar();
     
     toast({
@@ -192,7 +171,6 @@ const ProjectsOverview: React.FC = () => {
     });
   };
 
-  // Add a new project manually (not from calendar)
   const handleAddManualProject = () => {
     if (newProjectName.trim()) {
       const newProject: Project = {
@@ -201,8 +179,7 @@ const ProjectsOverview: React.FC = () => {
         totalHours: 0,
         budgetHours: 120,
         activities: [],
-        teamMembers: [],
-        status: 'active'
+        teamMembers: []
       };
       
       setSavedProjects(prev => [...prev, newProject]);
@@ -288,7 +265,6 @@ const ProjectsOverview: React.FC = () => {
         </div>
       </div>
       
-      {/* Search input */}
       <div className="w-full max-w-sm">
         <Input
           type="search"
@@ -299,7 +275,6 @@ const ProjectsOverview: React.FC = () => {
         />
       </div>
       
-      {/* Add Project Dialog */}
       <Dialog open={showAddProject} onOpenChange={setShowAddProject}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -361,7 +336,6 @@ const ProjectsOverview: React.FC = () => {
         </DialogContent>
       </Dialog>
       
-      {/* Projects Grid/List View */}
       {filteredProjects.length > 0 ? (
         <div className={cn(
           viewMode === 'grid' 

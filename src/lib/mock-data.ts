@@ -41,7 +41,7 @@ export const teamMembers: TeamMember[] = [
   }
 ];
 
-// Create activities for projects
+// Create activities for a sample project
 const createActivities = (type: string, hours: number) => {
   return {
     id: `activity-${type}`,
@@ -52,63 +52,8 @@ const createActivities = (type: string, hours: number) => {
   };
 };
 
-// Create default projects that match the image
-export const projects: Project[] = [
-  {
-    id: 'project-1',
-    name: 'UMCU de Netwerkintake',
-    totalHours: 120,
-    budgetHours: 90,
-    activities: [
-      createActivities('design', 40),
-      createActivities('strategy', 15),
-      createActivities('dev', 5)
-    ],
-    teamMembers: teamMembers.slice(0, 2),
-    color: '#1c1c1e',
-    monthlyHours: 30  // Changed from boolean to number
-  },
-  {
-    id: 'project-2',
-    name: 'Wisebrick carbon shepherd',
-    totalHours: 80,
-    budgetHours: 128,
-    activities: [
-      createActivities('design', 50),
-      createActivities('dev', 30)
-    ],
-    teamMembers: teamMembers,
-    color: '#1c1c1e',
-    monthlyHours: 60  // Changed from boolean to number
-  },
-  {
-    id: 'project-3',
-    name: 'Geldfit 3.0',
-    totalHours: 52,
-    budgetHours: 64,
-    activities: [
-      createActivities('design', 40),
-      createActivities('strategy', 15),
-      createActivities('pm', 5)
-    ],
-    teamMembers: teamMembers,
-    color: '#1c1c1e',
-    monthlyHours: 35  // Changed from boolean to number
-  },
-  {
-    id: 'project-4',
-    name: 'The Next Big Thing',
-    totalHours: 110,
-    budgetHours: 80,
-    activities: [
-      createActivities('design', 40),
-      createActivities('strategy', 15)
-    ],
-    teamMembers: [teamMembers[0], teamMembers[2]],
-    color: '#1c1c1e',
-    monthlyHours: 42  // Changed from boolean to number
-  }
-];
+// Empty projects array - we'll load real projects from calendar or localStorage
+export const projects: Project[] = [];
 
 // Helper functions
 export function getTotalHours(): number {
@@ -123,6 +68,7 @@ export function getActivityHours(type: ActivityType): number {
     case 'meetings': return 12;
     case 'dev': return 5;
     case 'admin': return 3;
+    case 'ux': return 8;  // Added to match the image
     default: return 0;
   }
 }

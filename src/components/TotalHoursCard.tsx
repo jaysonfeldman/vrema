@@ -22,7 +22,7 @@ const TotalHoursCard: React.FC<TotalHoursCardProps> = ({
 }) => {
   return (
     <div className="p-6 bg-gray-900 rounded-lg shadow-md">
-      <div className="flex justify-between items-start">
+      <div className="flex flex-col lg:flex-row justify-between items-start gap-6">
         {/* Total Hours */}
         <div>
           <h3 className="text-xl font-semibold text-white mb-2">Total hours</h3>
@@ -52,7 +52,15 @@ const TotalHoursCard: React.FC<TotalHoursCardProps> = ({
               ))}
             </div>
           ) : (
-            <p className="text-gray-400">No activities found in this time period</p>
+            <div className="flex flex-wrap gap-2">
+              {['design', 'ux', 'dev'].map(type => (
+                <ActivityTag
+                  key={type}
+                  type={type}
+                  hours={type === 'design' ? 12 : type === 'dev' ? 12 : 8}
+                />
+              ))}
+            </div>
           )}
         </div>
       </div>
