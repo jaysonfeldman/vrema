@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useCalendarSync } from '@/hooks/useCalendarSync';
 import { Project } from '@/lib/types';
@@ -8,7 +9,7 @@ import { v4 as uuidv4 } from 'uuid';
 export const useProjectManagement = () => {
   const { 
     customProjects,
-    updateProject,
+    updateProject: updateCalendarProject,
     filters,
     syncCalendar,
     addProjectFilter,
@@ -106,7 +107,7 @@ export const useProjectManagement = () => {
           prev.map(p => p.id === updatedProject.id ? result.project! : p)
         );
         
-        updateProject(updatedProject);
+        updateCalendarProject(updatedProject);
         
         toast({
           title: "Project updated",
