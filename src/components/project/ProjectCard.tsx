@@ -58,6 +58,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
     navigate(`/project/${project.id}`);
   };
 
+  // Fix the signature to match what EditProjectDialog expects
   const handleEditComplete = (updatedProject: Project) => {
     setShowEditDialog(false);
     toast({
