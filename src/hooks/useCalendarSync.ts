@@ -4,7 +4,6 @@ import { useEventFilters } from './calendar/useEventFilters';
 import { useProjectStats } from './calendar/useProjectStats';
 import { useProjectManagement } from './calendar/useProjectManagement';
 import { FilterOptions, Project, ActivityType } from '@/lib/types';
-import { useProjectLookup } from './project/useProjectLookup';
 
 export function useCalendarSync() {
   const {
@@ -43,17 +42,16 @@ export function useCalendarSync() {
     removeProjectFilter,
     updateProject,
     identifyProjectsFromEvents,
-    updateCustomProjects
+    updateCustomProjects,
+    getProjectById
   } = useProjectManagement(getProjectColor);
-  
-  // Use the project lookup hook
-  const { getProjectById } = useProjectLookup(customProjects);
 
   // Sync projects when events change - with higher priority
   useEffect(() => {
     if (events.length > 0) {
       // Use a single update to reduce multiple renders
       const updateData = () => {
+        console.log("Updating project stats and identifying projects from events...");
         updateProjectStats(events);
         identifyProjectsFromEvents(events);
       };

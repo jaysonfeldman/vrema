@@ -42,37 +42,55 @@ const ProjectDetail: React.FC = () => {
   // Load project and filter events
   useEffect(() => {
     if (!projectId) return;
+
+    console.log("ProjectDetail: Loading project with ID:", projectId);
+    console.log("Available projects:", customProjects.map(p => ({ id: p.id, name: p.name })));
     
-    // Find the project using the getProjectById function
-    const foundProject = getProjectById(projectId);
-    console.log(`Looking for project with ID: ${projectId}`, foundProject ? 'Found' : 'Not found');
+    // Find the project
+    const foundProject = customProjects.find(p => p.id === projectId);
     
     if (foundProject) {
+      console.log("Project found:", foundProject.name);
       setProject(foundProject);
-      console.log(`Loading project: ${foundProject.name} with filter: ${foundProject.filterTerm}`);
       
       // Force a calendar sync to ensure we have the latest data
+      console.log("Syncing calendar data...");
       syncCalendar(90); // Get 3 months of data
       
       // Apply project filter to show only this project's events
+      const searchTerm = foundProject.filterTerm || foundProject.name;
+      console.log("Setting filter for events with term:", searchTerm);
+      
       updateFilters({ 
-        project: foundProject.name,
-        searchTerm: foundProject.filterTerm || foundProject.name,
+        searchTerm: searchTerm,
         dateRange: 90, // Show more history for project details
         selectedProjects: [foundProject.name]
       });
     } else {
       console.error('Project not found with ID:', projectId);
     }
-  }, [projectId, getProjectById, updateFilters, syncCalendar]);
+  }, [projectId, customProjects, updateFilters, syncCalendar]);
   
-  // Update projectEvents when filteredEvents changes
+  // Update projectEvents when filteredEvents or events change
   useEffect(() => {
-    if (project && filteredEvents) {
-      console.log(`Found ${filteredEvents.length} events for project ${project.name}`);
+    if (!project) return;
+    
+    if (filteredEvents && filteredEvents.length > 0) {
+      console.log(`Found ${filteredEvents.length} filtered events for project ${project.name}`);
       setProjectEvents(filteredEvents);
+    } else if (events && events.length > 0) {
+      // As a fallback, filter the events directly
+      const searchTerm = (project.filterTerm || project.name).toLowerCase();
+      console.log("Manually filtering events with term:", searchTerm);
+      
+      const matchingEvents = events.filter(event => 
+        event.summary && event.summary.toLowerCase().includes(searchTerm)
+      );
+      
+      console.log(`Found ${matchingEvents.length} matching events by direct search`);
+      setProjectEvents(matchingEvents);
     }
-  }, [project, filteredEvents]);
+  }, [project, filteredEvents, events]);
 
   // Handle project update
   const handleProjectUpdate = (updatedProject: Project) => {
@@ -99,6 +117,8 @@ const ProjectDetail: React.FC = () => {
           <Card className="p-8 max-w-3xl mx-auto mt-8">
             <div className="text-center space-y-4">
               <h2 className="text-2xl font-bold">Project Not Found</h2>
+              <p className="text-muted-foreground">Project ID: {projectId}</p>
+              <p className="text-muted-foreground">Available Projects: {customProjects.length}</p>
               <p className="text-muted-foreground">The project you're looking for doesn't exist or couldn't be loaded.</p>
               <Button onClick={() => navigate('/')}>
                 <ArrowLeft className="mr-2 h-4 w-4" />
