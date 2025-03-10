@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Project } from '@/lib/types';
@@ -33,10 +32,8 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
     return `${wholeHours}:${String(minutes).padStart(2, '0')}`;
   };
 
-  // Sort activities by hours (descending)
   const sortedActivities = [...project.activities].sort((a, b) => b.hours - a.hours);
   
-  // Calculate budget progress if budget exists
   const budgetProgress = project.budgetHours 
     ? Math.min(100, (project.totalHours / project.budgetHours) * 100)
     : null;
@@ -47,22 +44,18 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
       : { text: `${formatHoursDisplay(project.budgetHours - project.totalHours)}`, color: 'text-amber-400' }
     : null;
 
-  // Calculate earned value if hourly rate exists
   const earnedValue = project.hourlyRate 
     ? (project.totalHours * project.hourlyRate).toFixed(2)
     : null;
 
   const handleCardClick = (e: React.MouseEvent) => {
-    // Don't navigate if clicking on dropdown
     if ((e.target as HTMLElement).closest('.dropdown-trigger')) {
       return;
     }
     navigate(`/project/${project.id}`);
   };
 
-  // Fix the signature to match what EditProjectDialog expects
   const handleEditComplete = (updatedProject: Project) => {
-    // Update the project in the global state
     updateProject(updatedProject);
     
     setShowEditDialog(false);
