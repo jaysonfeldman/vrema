@@ -38,7 +38,7 @@ const ProjectList: React.FC<ProjectListProps> = ({
         <div key={project.id} id={`project-card-${project.id}`}>
           <ProjectCard
             project={project}
-            className="bg-zinc-900 text-white"
+            className="bg-zinc-900 text-white hover:bg-zinc-800 transition-colors"
             style={{ animationDelay: `${index * 100}ms` }}
             onUpdateProject={onUpdateProject}
             onDeleteProject={onDeleteProject}

@@ -29,8 +29,6 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
   onDeleteProject
 }) => {
   const navigate = useNavigate();
-  const location = useLocation();
-  const { updateFilters } = useCalendarSync();
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
   const [editedProject, setEditedProject] = useState<Project>({...project});
@@ -78,20 +76,8 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
       return;
     }
     
-    // First, update the filters to show only this project's events
-    updateFilters({ project: project.name });
-    
-    // Navigate to the Calendar Events tab
-    if (location.pathname === '/') {
-      // If we're already on the index page, just change the tab
-      const eventsTab = document.querySelector('[value="events"]') as HTMLElement;
-      if (eventsTab) {
-        eventsTab.click();
-      }
-    } else {
-      // Navigate to index page with events tab
-      navigate('/?tab=events&project=' + encodeURIComponent(project.name));
-    }
+    // Navigate to the dedicated project page
+    navigate(`/projects/${project.id}`);
   };
 
   return (

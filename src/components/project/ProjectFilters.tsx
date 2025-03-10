@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Filter, Plus, Edit3, Calendar } from 'lucide-react';
+import { Plus, Edit3, Calendar } from 'lucide-react';
 import { 
   Select,
   SelectContent,
@@ -72,15 +72,6 @@ const ProjectFilters: React.FC<ProjectFiltersProps> = ({
           Manage projects
         </Button>
       )}
-      
-      <Button 
-        variant="ghost" 
-        size="sm"
-        className="gap-1"
-      >
-        <Filter className="h-4 w-4" />
-        All projects
-      </Button>
     </div>
   );
 };
