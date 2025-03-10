@@ -13,7 +13,7 @@ import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useProjectManagement } from '@/hooks/useProjectManagement';
-import { ProjectSettingsDialog } from './project/ProjectSettingsDialog';
+import ProjectSettingsDialog from './project/ProjectSettingsDialog';
 
 interface ProjectCardProps {
   project: Project;
@@ -43,7 +43,6 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
   };
 
   const handleCardClick = (e: React.MouseEvent) => {
-    // Only navigate if we didn't click the menu or other interactive elements
     if ((e.target as HTMLElement).closest('.project-card-action')) {
       return;
     }
