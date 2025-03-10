@@ -27,6 +27,8 @@ const ProjectList: React.FC<ProjectListProps> = ({
     );
   }
   
+  console.log(`Rendering project list with ${projects.length} projects`, projects.map(p => p.id));
+  
   // Create a map of unique projects (case-insensitive)
   const uniqueProjects = new Map<string, Project>();
   

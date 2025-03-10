@@ -169,8 +169,20 @@ export function useProjectManagement(getProjectColor: (projectName: string) => s
       
       // Match events that have project name matching the filter term (case-insensitive)
       const filteredEvents = eventsList.filter(event => {
+        if (!event.summary) return false;
+        
         const { projectName } = parseEventTitle(event.summary);
-        return projectName.toLowerCase() === filterTerm.toLowerCase();
+        const matchesFilter = projectName && (
+          projectName.toLowerCase() === filterTerm.toLowerCase() ||
+          filterTerm.toLowerCase().includes(projectName.toLowerCase()) ||
+          projectName.toLowerCase().includes(filterTerm.toLowerCase())
+        );
+        
+        if (matchesFilter) {
+          console.log(`Event match: "${event.summary}" -> "${filterTerm}"`);
+        }
+        
+        return matchesFilter;
       });
       
       console.log(`Found ${filteredEvents.length} events matching project "${filterTerm}"`);
@@ -189,6 +201,8 @@ export function useProjectManagement(getProjectColor: (projectName: string) => s
         const startTime = new Date(event.start.dateTime);
         const endTime = new Date(event.end.dateTime);
         const durationHours = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
+        
+        console.log(`Event: "${event.summary}" duration: ${durationHours.toFixed(2)} hours`);
         
         if (durationHours <= 0) return;
         

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Project } from '@/lib/types';
@@ -165,6 +164,8 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
       return;
     }
     
+    console.log(`Navigating to project detail page for project ID: ${project.id}`);
+    
     // Navigate to the dedicated project page
     navigate(`/projects/${project.id}`);
   };
@@ -172,7 +173,9 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
   // Calculate project earnings if hourly rate is set
   const getProjectEarnings = () => {
     if (project.hourlyRate && project.hourlyRate > 0) {
-      return project.totalHours * project.hourlyRate;
+      const earnings = project.totalHours * project.hourlyRate;
+      console.log(`Calculated earnings for ${project.name}: ${earnings} (${project.totalHours} × ${project.hourlyRate})`);
+      return earnings;
     }
     return null;
   };

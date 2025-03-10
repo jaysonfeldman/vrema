@@ -14,32 +14,35 @@ import { GoogleCalendarEvent, Project } from '@/lib/types';
 const ProjectDetail: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
-  const { events, customProjects } = useCalendarSync();
+  const { events, customProjects, getProjectById } = useCalendarSync();
   const [project, setProject] = useState<Project | null>(null);
   const [projectEvents, setProjectEvents] = useState<GoogleCalendarEvent[]>([]);
 
   useEffect(() => {
-    if (projectId && customProjects.length > 0) {
-      const foundProject = customProjects.find(p => p.id === projectId);
+    if (projectId) {
+      console.log('Looking for project with ID:', projectId);
+      console.log('Available projects:', customProjects.map(p => ({ id: p.id, name: p.name })));
+      
+      // Try to find the project by ID first
+      const foundProject = getProjectById(projectId);
       
       if (foundProject) {
-        console.log('Found project:', foundProject);
+        console.log('Found project by ID:', foundProject);
         setProject(foundProject);
         
         // Filter events for this project
         const filteredEvents = events.filter(event => {
           const { projectName } = parseEventTitle(event.summary);
-          return projectName.toLowerCase() === foundProject.name.toLowerCase();
+          return projectName.toLowerCase() === foundProject.filterTerm.toLowerCase();
         });
         
         console.log(`Found ${filteredEvents.length} events for project ${foundProject.name}`);
         setProjectEvents(filteredEvents);
       } else {
         console.log('Project not found with ID:', projectId);
-        console.log('Available projects:', customProjects.map(p => ({ id: p.id, name: p.name })));
       }
     }
-  }, [projectId, customProjects, events]);
+  }, [projectId, customProjects, events, getProjectById]);
 
   if (!project) {
     return (
@@ -53,7 +56,7 @@ const ProjectDetail: React.FC = () => {
             </Button>
           </div>
           <div className="text-center py-12">
-            <p className="text-muted-foreground">Project not found</p>
+            <p className="text-muted-foreground">Project not found with ID: {projectId}</p>
           </div>
         </div>
       </div>
