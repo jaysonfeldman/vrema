@@ -1,9 +1,9 @@
 
 import { useState, useCallback, useEffect } from 'react';
-import { Project } from '@/lib/types';
-import { GoogleCalendarEvent } from '@/lib/types';
+import { Project, TeamMember, GoogleCalendarEvent } from '@/lib/types';
 import { parseEventTitle } from '@/services/googleCalendarService';
 import { startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
+import { v4 as uuidv4 } from 'uuid';
 
 export function useProjectManagement(getProjectColor: (projectName: string) => string) {
   const [projectFilters, setProjectFilters] = useState<{[key: string]: string}>({});
@@ -180,7 +180,7 @@ export function useProjectManagement(getProjectColor: (projectName: string) => s
       let totalHours = 0;
       let thisMonthHours = 0;
       const activities: any[] = [];
-      const teamMembers = new Set<string>();
+      const teamMemberEmails = new Set<string>();
       
       // Process each event to calculate hours and extract activities
       filteredEvents.forEach(event => {
@@ -200,9 +200,18 @@ export function useProjectManagement(getProjectColor: (projectName: string) => s
         
         const { activityType, description } = parseEventTitle(event.summary);
         
-        // Add creator to team members if available
-        if (event.creator?.email) {
-          teamMembers.add(event.creator.email);
+        // Add organizer to team members if available
+        if (event.organizer?.email) {
+          teamMemberEmails.add(event.organizer.email);
+        }
+        
+        // Add attendees to team members if available
+        if (event.attendees && Array.isArray(event.attendees)) {
+          event.attendees.forEach(attendee => {
+            if (attendee.email) {
+              teamMemberEmails.add(attendee.email);
+            }
+          });
         }
         
         if (activityType) {
@@ -225,6 +234,15 @@ export function useProjectManagement(getProjectColor: (projectName: string) => s
         const normalizedKey = projectKey.toLowerCase();
         const projectSettings = savedSettings && savedSettings[normalizedKey] ? savedSettings[normalizedKey] : {};
         
+        // Create proper TeamMember objects from the collected emails
+        const teamMembers: TeamMember[] = Array.from(teamMemberEmails).map(email => ({
+          id: uuidv4(), // Generate a unique ID for each team member
+          name: email.split('@')[0] || email, // Use the part before @ as name, or full email if splitting fails
+          avatar: `https://www.gravatar.com/avatar/${email.length}?d=identicon&s=128`, // Use length as a simple hash for demo
+          hoursLogged: 0, // Default value, will be updated with actual data if available
+          weeklyHours: {} // Empty weekly hours object, will be populated if/when data is available
+        }));
+        
         console.log(`Adding project "${projectKey}" with ${totalHours.toFixed(2)} hours and ${activities.length} activities`);
         newCustomProjects.push({
           id: projectKey,
@@ -233,7 +251,7 @@ export function useProjectManagement(getProjectColor: (projectName: string) => s
           budgetHours: projectSettings.budgetHours || undefined,
           hourlyRate: projectSettings.hourlyRate || undefined,
           activities: activities,
-          teamMembers: Array.from(teamMembers).map(email => ({ email })),
+          teamMembers: teamMembers,
           monthlyHours: thisMonthHours,
           color: getProjectColor(projectKey),
           visible: projectSettings.visible !== false,
