@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useCalendarSync } from '@/hooks/useCalendarSync';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, Edit, Calendar, Clock, Users, Download, FileText } from 'lucide-react';
+import { ChevronLeft, Edit, Calendar, Users } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent } from '@/components/ui/card';
@@ -302,20 +302,6 @@ const ProjectDetail: React.FC = () => {
                   {formatTime(activity.hours)} #{activity.type}
                 </div>
               ))}
-          </div>
-        </div>
-        
-        <div className="flex justify-between mb-8">
-          <div></div>
-          <div className="flex gap-3">
-            <Button variant="outline">
-              <Download className="h-4 w-4 mr-2" />
-              Export hours
-            </Button>
-            <Button className="bg-zinc-900 text-white hover:bg-zinc-800">
-              <FileText className="h-4 w-4 mr-2" />
-              Create invoice
-            </Button>
           </div>
         </div>
         

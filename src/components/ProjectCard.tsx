@@ -11,7 +11,6 @@ import ProjectTeam from './project/ProjectTeam';
 import ProjectActivities from './project/ProjectActivities';
 import ProjectHeader from './project/ProjectHeader';
 import { getProjectTag } from './project/ProjectUtils';
-import { Coins } from 'lucide-react';
 
 interface ProjectCardProps {
   project: Project;
@@ -120,23 +119,39 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
             </div>
           </div>
           
-          <ProjectStatus 
-            totalHours={project.totalHours} 
-            budgetHours={project.budgetHours}
-            monthlyHours={project.monthlyHours}
-          />
-          
-          {projectEarnings !== null && (
-            <div className="mb-6 p-3 bg-zinc-800 rounded-md flex items-center">
-              <Coins className="h-5 w-5 text-amber-500 mr-3" />
+          <div className="mb-6">
+            <div className="grid grid-cols-2 gap-6">
               <div>
-                <p className="text-sm text-gray-400">Earnings</p>
-                <p className="font-mono font-bold text-2xl text-amber-500">
-                  €{projectEarnings.toFixed(2)}
-                </p>
+                <p className="text-sm text-gray-400 mb-1">Time logged</p>
+                <p className="font-mono font-bold text-2xl">{formatTime(project.totalHours)}</p>
+                <p className="text-xs text-gray-500 mt-1">in total</p>
               </div>
+              
+              {budgetHours && (
+                <div>
+                  <p className="text-sm text-gray-400 mb-1">Budget left</p>
+                  <p className={cn(
+                    "font-mono font-bold text-2xl",
+                    isOverBudget ? "text-red-500" : "text-amber-500"
+                  )}>
+                    {budgetText}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {monthlyHours ? "/this month" : "in total"}
+                  </p>
+                </div>
+              )}
+              
+              {projectEarnings !== null && (
+                <div>
+                  <p className="text-sm text-gray-400 mb-1">Earnings</p>
+                  <p className="font-mono font-bold text-2xl text-amber-500">
+                    €{projectEarnings.toFixed(2)}
+                  </p>
+                </div>
+              )}
             </div>
-          )}
+          </div>
           
           <ProjectActivities activities={project.activities} />
         </div>
@@ -162,6 +177,20 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
       />
     </>
   );
+};
+
+// Helper function for formatting time from mock-data
+const formatTime = (hours: number): string => {
+  const h = Math.floor(hours);
+  const m = Math.round((hours - h) * 60);
+  
+  if (h === 0) {
+    return `${m}m`;
+  } else if (m === 0) {
+    return `${h}h`;
+  } else {
+    return `${h}h ${m}m`;
+  }
 };
 
 export default ProjectCard;
