@@ -16,15 +16,15 @@ const getActivityColor = (activityType: string): string => {
   // Map common activity types to specific colors for consistency
   switch (activityType.toLowerCase()) {
     case 'design':
-      return 'bg-[#fef18b] text-slate-900 border-[#fef18b]';
+      return 'bg-green-500 text-white border-green-400';
     case 'strategy':
-      return 'bg-[#22c55f] text-white border-[#22c55f]';
+      return 'bg-blue-500 text-white border-blue-400';
     case 'dev':
-      return 'bg-[#7ed3fc] text-slate-900 border-[#7ed3fc]';
+      return 'bg-purple-500 text-white border-purple-400';
     case 'meetings':
-      return 'bg-[#6ee7b7] text-slate-900 border-[#6ee7b7]';
+      return 'bg-yellow-500 text-white border-yellow-400';
     case 'admin':
-      return 'bg-[#d1fae5] text-slate-900 border-[#d1fae5]';
+      return 'bg-red-500 text-white border-red-400';
     default:
       // Generate a consistent color based on the activity type
       const color = stringToColor(activityType);

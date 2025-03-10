@@ -64,11 +64,11 @@ export default {
 					ring: 'hsl(var(--sidebar-ring))'
 				},
 				// Custom colors for our time tracker
-				design: '#fef18b',  // Updated soft yellow
-				strategy: '#22c55f', // Updated bright green
-				dev: '#7ed3fc',     // Updated light blue 
-				meetings: '#6ee7b7', // Updated mint green
-				admin: '#d1fae5',   // Updated pale green
+				design: '#10b981',
+				strategy: '#3b82f6',
+				dev: '#6366f1',
+				meetings: '#8b5cf6',
+				admin: '#f59e0b',
         project: {
           bg: '#1c1c1e',
           text: '#ffffff'
