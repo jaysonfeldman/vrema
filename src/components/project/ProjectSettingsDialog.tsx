@@ -43,10 +43,9 @@ const ProjectSettingsDialog: React.FC<ProjectSettingsDialogProps> = ({
         </DialogHeader>
         
         <Tabs defaultValue="activities">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="activities">Activities</TabsTrigger>
             <TabsTrigger value="filters">Filters</TabsTrigger>
-            <TabsTrigger value="visibility">Visibility</TabsTrigger>
           </TabsList>
           
           <TabsContent value="activities" className="space-y-4 mt-4">
@@ -103,52 +102,6 @@ const ProjectSettingsDialog: React.FC<ProjectSettingsDialogProps> = ({
                     budgetHours: parseFloat(e.target.value) || undefined
                   })}
                   className="col-span-3"
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="hourly-rate-setting" className="text-right">
-                  Rate (€/hour)
-                </Label>
-                <Input
-                  id="hourly-rate-setting"
-                  type="number"
-                  value={editedProject.hourlyRate || 0}
-                  onChange={(e) => setEditedProject({
-                    ...editedProject, 
-                    hourlyRate: parseFloat(e.target.value) || undefined
-                  })}
-                  className="col-span-3"
-                />
-              </div>
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="visibility" className="space-y-4 mt-4">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-sm font-medium">Project Visibility</h3>
-                  <p className="text-sm text-gray-500">Show or hide this project in your dashboard</p>
-                </div>
-                <Switch 
-                  checked={editedProject.visible !== false} 
-                  onCheckedChange={(checked) => setEditedProject({
-                    ...editedProject, 
-                    visible: checked
-                  })}
-                />
-              </div>
-              
-              <div className="pt-2">
-                <h3 className="text-sm font-medium mb-2">Project Display Name</h3>
-                <p className="text-sm text-gray-500 mb-2">Change how this project appears in your dashboard</p>
-                <Input
-                  value={editedProject.name}
-                  onChange={(e) => setEditedProject({
-                    ...editedProject, 
-                    name: e.target.value
-                  })}
-                  placeholder="Project display name"
                 />
               </div>
             </div>

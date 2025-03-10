@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,88 +15,24 @@ import {
 interface NewProjectDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  newProjectName?: string;
-  onProjectNameChange?: (value: string) => void;
-  newProjectFilter?: string;
-  onProjectFilterChange?: (value: string) => void;
-  onAddProject?: () => void;
-  onAddManualProject?: () => void;
-  existingProjects?: string[]; // Add this prop to check for duplicate projects
+  newProjectName: string;
+  onProjectNameChange: (value: string) => void;
+  newProjectFilter: string;
+  onProjectFilterChange: (value: string) => void;
+  onAddProject: () => void;
+  onAddManualProject: () => void;
 }
 
 const NewProjectDialog: React.FC<NewProjectDialogProps> = ({
   open,
   onOpenChange,
-  newProjectName: externalProjectName,
-  onProjectNameChange: externalProjectNameChange,
-  newProjectFilter: externalProjectFilter,
-  onProjectFilterChange: externalProjectFilterChange,
+  newProjectName,
+  onProjectNameChange,
+  newProjectFilter,
+  onProjectFilterChange,
   onAddProject,
-  onAddManualProject,
-  existingProjects = []
+  onAddManualProject
 }) => {
-  // Local state to make the component work without all props
-  const [localProjectName, setLocalProjectName] = useState('');
-  const [localProjectFilter, setLocalProjectFilter] = useState('');
-  const [nameError, setNameError] = useState('');
-  
-  // Use external state if provided, otherwise use local state
-  const projectName = externalProjectName !== undefined ? externalProjectName : localProjectName;
-  const projectFilter = externalProjectFilter !== undefined ? externalProjectFilter : localProjectFilter;
-  
-  const handleProjectNameChange = (value: string) => {
-    // Check for duplicate project names (case-insensitive)
-    setNameError('');
-    
-    if (value.trim()) {
-      const normalizedName = value.trim().toLowerCase();
-      const isDuplicate = existingProjects.some(
-        existing => existing.toLowerCase() === normalizedName
-      );
-      
-      if (isDuplicate) {
-        setNameError('A project with this name already exists');
-      }
-    }
-    
-    if (externalProjectNameChange) {
-      externalProjectNameChange(value);
-    } else {
-      setLocalProjectName(value);
-    }
-  };
-  
-  const handleProjectFilterChange = (value: string) => {
-    // For case-insensitivity, we store filter term in original case but normalize when used for comparison
-    if (externalProjectFilterChange) {
-      externalProjectFilterChange(value);
-    } else {
-      setLocalProjectFilter(value);
-    }
-  };
-  
-  const handleAddProject = () => {
-    if (nameError) return;
-    
-    if (onAddProject) {
-      onAddProject();
-    } else {
-      console.log('Add project with filter', projectName, projectFilter);
-      onOpenChange(false);
-    }
-  };
-  
-  const handleAddManualProject = () => {
-    if (nameError) return;
-    
-    if (onAddManualProject) {
-      onAddManualProject();
-    } else {
-      console.log('Add manual project', projectName);
-      onOpenChange(false);
-    }
-  };
-  
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
@@ -108,18 +44,13 @@ const NewProjectDialog: React.FC<NewProjectDialogProps> = ({
             <Label htmlFor="project-name" className="text-right">
               Name
             </Label>
-            <div className="col-span-3 space-y-1">
-              <Input
-                id="project-name"
-                value={projectName}
-                onChange={(e) => handleProjectNameChange(e.target.value)}
-                className={nameError ? "border-red-500" : ""}
-                placeholder="e.g., Marketing Project"
-              />
-              {nameError && (
-                <p className="text-xs text-red-500">{nameError}</p>
-              )}
-            </div>
+            <Input
+              id="project-name"
+              value={newProjectName}
+              onChange={(e) => onProjectNameChange(e.target.value)}
+              className="col-span-3"
+              placeholder="e.g., Marketing Project"
+            />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="project-filter" className="text-right">
@@ -127,8 +58,8 @@ const NewProjectDialog: React.FC<NewProjectDialogProps> = ({
             </Label>
             <Input
               id="project-filter"
-              value={projectFilter}
-              onChange={(e) => handleProjectFilterChange(e.target.value)}
+              value={newProjectFilter}
+              onChange={(e) => onProjectFilterChange(e.target.value)}
               className="col-span-3"
               placeholder="e.g., Marketing"
             />
@@ -143,19 +74,19 @@ const NewProjectDialog: React.FC<NewProjectDialogProps> = ({
               Cancel
             </Button>
           </DialogClose>
-          {projectFilter ? (
+          {newProjectFilter ? (
             <Button 
               type="button" 
-              onClick={handleAddProject}
-              disabled={!projectName || !!nameError}
+              onClick={onAddProject}
+              disabled={!newProjectName}
             >
               Create Calendar Project
             </Button>
           ) : (
             <Button 
               type="button" 
-              onClick={handleAddManualProject}
-              disabled={!projectName || !!nameError}
+              onClick={onAddManualProject}
+              disabled={!newProjectName}
             >
               Create Manual Project
             </Button>

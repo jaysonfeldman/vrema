@@ -2,17 +2,18 @@
 import React from 'react';
 import { Project } from '@/lib/types';
 import ProjectCard from '@/components/ProjectCard';
+import { cn } from '@/lib/utils';
 
 interface ProjectListProps {
   projects: Project[];
-  viewMode: 'grid' | 'list'; // We'll keep this for API compatibility, but will always use grid
+  viewMode: 'grid' | 'list';
   onUpdateProject: (updatedProject: Project) => void;
   onDeleteProject: (projectId: string) => void;
 }
 
 const ProjectList: React.FC<ProjectListProps> = ({ 
-  projects,
-  viewMode, // Kept for API compatibility but not used
+  projects, 
+  viewMode, 
   onUpdateProject, 
   onDeleteProject 
 }) => {
@@ -26,49 +27,18 @@ const ProjectList: React.FC<ProjectListProps> = ({
       </div>
     );
   }
-  
-  // Create a map of unique projects (case-insensitive)
-  const uniqueProjects = new Map<string, Project>();
-  
-  // Group projects by lowercase name to handle case insensitivity
-  projects.forEach(project => {
-    const normalizedName = project.id.toLowerCase();
-    if (uniqueProjects.has(normalizedName)) {
-      // If we already have this project (case-insensitively), merge hours and activities
-      const existingProject = uniqueProjects.get(normalizedName)!;
-      existingProject.totalHours += project.totalHours;
-      
-      // Merge activities
-      project.activities.forEach(activity => {
-        const existingActivity = existingProject.activities.find(a => a.type.toLowerCase() === activity.type.toLowerCase());
-        if (existingActivity) {
-          existingActivity.hours += activity.hours;
-        } else {
-          existingProject.activities.push(activity);
-        }
-      });
-      
-      // Update monthly hours if present
-      if (project.monthlyHours) {
-        existingProject.monthlyHours = (existingProject.monthlyHours || 0) + project.monthlyHours;
-      }
-    } else {
-      // First time seeing this project name
-      uniqueProjects.set(normalizedName, {...project});
-    }
-  });
-  
-  // Convert map back to array
-  const dedupedProjects = Array.from(uniqueProjects.values());
-  console.log(`Showing ${dedupedProjects.length} unique projects after deduplication (original: ${projects.length})`);
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-      {dedupedProjects.map((project, index) => (
+    <div className={cn(
+      viewMode === 'grid' 
+        ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4" 
+        : "space-y-4"
+    )}>
+      {projects.map((project, index) => (
         <div key={project.id} id={`project-card-${project.id}`}>
           <ProjectCard
             project={project}
-            className="bg-zinc-900 text-white hover:bg-zinc-800 transition-colors"
+            className="bg-zinc-900 text-white"
             style={{ animationDelay: `${index * 100}ms` }}
             onUpdateProject={onUpdateProject}
             onDeleteProject={onDeleteProject}

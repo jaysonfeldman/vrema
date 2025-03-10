@@ -30,14 +30,6 @@ const EditProjectDialog: React.FC<EditProjectDialogProps> = ({
   setEditedProject,
   onSave
 }) => {
-  const handleResetHourlyRate = () => {
-    setEditedProject({...editedProject, hourlyRate: undefined});
-  };
-
-  const handleResetBudget = () => {
-    setEditedProject({...editedProject, budgetHours: undefined});
-  };
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
@@ -60,57 +52,16 @@ const EditProjectDialog: React.FC<EditProjectDialogProps> = ({
             <Label htmlFor="budget-hours" className="text-right">
               Budget (hours)
             </Label>
-            <div className="col-span-3 flex gap-2">
-              <Input
-                id="budget-hours"
-                type="number"
-                value={editedProject.budgetHours || ''}
-                onChange={(e) => setEditedProject({
-                  ...editedProject, 
-                  budgetHours: e.target.value ? parseFloat(e.target.value) : undefined
-                })}
-                className="flex-1"
-                placeholder="Not set"
-              />
-              {editedProject.budgetHours !== undefined && (
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  size="sm"
-                  onClick={handleResetBudget}
-                >
-                  Reset
-                </Button>
-              )}
-            </div>
-          </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="hourly-rate" className="text-right">
-              Rate (€/hour)
-            </Label>
-            <div className="col-span-3 flex gap-2">
-              <Input
-                id="hourly-rate"
-                type="number"
-                value={editedProject.hourlyRate || ''}
-                onChange={(e) => setEditedProject({
-                  ...editedProject, 
-                  hourlyRate: e.target.value ? parseFloat(e.target.value) : undefined
-                })}
-                className="flex-1"
-                placeholder="Not set"
-              />
-              {editedProject.hourlyRate !== undefined && (
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  size="sm"
-                  onClick={handleResetHourlyRate}
-                >
-                  Reset
-                </Button>
-              )}
-            </div>
+            <Input
+              id="budget-hours"
+              type="number"
+              value={editedProject.budgetHours || 0}
+              onChange={(e) => setEditedProject({
+                ...editedProject, 
+                budgetHours: parseFloat(e.target.value) || undefined
+              })}
+              className="col-span-3"
+            />
           </div>
         </div>
         <DialogFooter>

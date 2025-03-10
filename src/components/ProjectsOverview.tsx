@@ -2,330 +2,329 @@
 import React, { useState, useEffect } from 'react';
 import { useCalendarSync } from '@/hooks/useCalendarSync';
 import { Project } from '@/lib/types';
-import ProjectList from '@/components/project/ProjectList';
-import ProjectFilters from '@/components/project/ProjectFilters';
-import NewProjectDialog from '@/components/project/NewProjectDialog';
 import { toast } from '@/components/ui/use-toast';
-import { Loader2 } from 'lucide-react';
-import { fetchProjects, saveProject, deleteProject } from '@/services/projectService';
-import { v4 as uuidv4 } from 'uuid';
+import ProjectFilters from './project/ProjectFilters';
+import ProjectSortOptions from './project/ProjectSortOptions';
+import ViewToggle from './project/ViewToggle';
+import ProjectSearch from './project/ProjectSearch';
+import ProjectList from './project/ProjectList';
+import NewProjectDialog from './project/NewProjectDialog';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Trash2 } from 'lucide-react';
 
 const ProjectsOverview: React.FC = () => {
   const { 
-    customProjects,
-    updateProject,
-    isLoading: calendarLoading,
+    customProjects, 
+    addProjectFilter, 
+    removeProjectFilter, 
+    projectFilters,
+    events,
     syncCalendar,
-    filters,
-    updateFilters,
-    getProjects,
-    addProjectFilter,
+    updateProject,
+    getActivitiesFromEvents
   } = useCalendarSync();
   
   const [showAddProject, setShowAddProject] = useState(false);
-  const [selectedMonth, setSelectedMonth] = useState('current');
-  const [projectFilters, setProjectFilters] = useState<string[]>([]);
-  const [filteredProjects, setFilteredProjects] = useState<Project[]>([]);
-  const [storedProjects, setStoredProjects] = useState<Project[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  
-  // New state for new project dialog
+  const [showManageProjects, setShowManageProjects] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
   const [newProjectFilter, setNewProjectFilter] = useState('');
-  
-  // Load projects from Supabase on mount
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [sortBy, setSortBy] = useState('most-tracked');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filteredProjects, setFilteredProjects] = useState<Project[]>([]);
+  const [savedProjects, setSavedProjects] = useState<Project[]>([]);
+
   useEffect(() => {
-    const loadProjects = async () => {
-      setIsLoading(true);
+    const loadSavedProjects = () => {
       try {
-        const projects = await fetchProjects();
-        setStoredProjects(projects);
-      } catch (error) {
-        console.error('Error loading projects:', error);
-        toast({
-          variant: "destructive",
-          title: "Error loading projects",
-          description: "Could not load your projects. Please try again."
-        });
-      } finally {
-        setIsLoading(false);
+        const saved = localStorage.getItem('saved-projects');
+        if (saved) {
+          const parsedProjects = JSON.parse(saved) as Project[];
+          setSavedProjects(parsedProjects);
+        } else if (customProjects.length === 0) {
+          setSavedProjects([]);
+        }
+      } catch (err) {
+        console.error('Error loading saved projects:', err);
+        setSavedProjects([]);
       }
     };
     
-    loadProjects();
-  }, []);
-  
-  // Sync calendar when component mounts to ensure we have project data
+    loadSavedProjects();
+  }, [customProjects.length]);
+
   useEffect(() => {
-    if (!calendarLoading && customProjects.length === 0) {
-      console.log('ProjectsOverview - Initial calendar sync');
-      syncCalendar(30); // Default to 30 days for initial load
+    if (events.length === 0) {
+      syncCalendar(30);
+    }
+  }, [events.length, syncCalendar]);
+
+  useEffect(() => {
+    if (savedProjects.length > 0) {
+      localStorage.setItem('saved-projects', JSON.stringify(savedProjects));
+    }
+  }, [savedProjects]);
+
+  useEffect(() => {
+    const savedViewMode = localStorage.getItem('projects-view-mode');
+    if (savedViewMode) {
+      setViewMode(savedViewMode as 'grid' | 'list');
+    }
+    
+    const savedSortBy = localStorage.getItem('projects-sort-by');
+    if (savedSortBy) {
+      setSortBy(savedSortBy);
     }
   }, []);
-  
-  // Merge stored projects with calendar projects
+
   useEffect(() => {
-    const allProjects = [...storedProjects];
+    localStorage.setItem('projects-view-mode', viewMode);
+  }, [viewMode]);
+
+  useEffect(() => {
+    localStorage.setItem('projects-sort-by', sortBy);
+  }, [sortBy]);
+
+  useEffect(() => {
+    let projectsToDisplay = [...savedProjects];
     
-    // Add any custom projects that aren't already in stored projects
-    for (const customProject of customProjects) {
-      const existingProject = storedProjects.find(p => 
-        p.id === customProject.id || 
-        p.name.toLowerCase() === customProject.name.toLowerCase());
-      
-      if (!existingProject) {
-        allProjects.push(customProject);
+    customProjects.forEach(customProject => {
+      if (!projectsToDisplay.some(p => p.id === customProject.id)) {
+        projectsToDisplay.push(customProject);
       }
-    }
+    });
     
-    if (projectFilters.length === 0) {
-      // Initialize project filters with all project names
-      setProjectFilters(allProjects.map(project => project.name));
-    }
-    
-    // Apply project filters and visibility settings
-    if (projectFilters.length === 0) {
-      setFilteredProjects([]);
-    } else {
-      // Filter by name (case-insensitive matching)
-      let filtered = allProjects.filter(project => 
-        projectFilters.some(filter => 
-          // Case-insensitive comparison for project names
-          project.name.toLowerCase() === filter.toLowerCase() ||
-          filter === project.name
-        )
+    if (searchTerm.trim()) {
+      const term = searchTerm.toLowerCase();
+      projectsToDisplay = projectsToDisplay.filter(
+        project => project.name.toLowerCase().includes(term)
       );
-      
-      // Only show visible projects
-      filtered = filtered.filter(project => project.visible !== false);
-      
-      setFilteredProjects(filtered);
     }
-  }, [customProjects, projectFilters, storedProjects]);
+    
+    projectsToDisplay.sort((a, b) => {
+      if (sortBy === 'most-tracked') {
+        return b.totalHours - a.totalHours;
+      } else if (sortBy === 'least-tracked') {
+        return a.totalHours - b.totalHours;
+      } else if (sortBy === 'alphabetical') {
+        return a.name.localeCompare(b.name);
+      }
+      return 0;
+    });
+    
+    setFilteredProjects(projectsToDisplay);
+  }, [customProjects, savedProjects, searchTerm, sortBy]);
   
-  const handleOpenChange = (open: boolean) => {
-    setShowAddProject(open);
-    if (!open) {
-      // Reset form when dialog closes
+  const handleAddProject = () => {
+    if (newProjectName.trim() && newProjectFilter.trim()) {
+      console.log("Adding new project filter:", newProjectName, newProjectFilter);
+      
+      addProjectFilter(newProjectName.trim(), newProjectFilter.trim());
+      
+      syncCalendar();
+      
+      toast({
+        title: "Project view created",
+        description: `Created "${newProjectName}" view for events containing "${newProjectFilter}"`,
+      });
+      
       setNewProjectName('');
       setNewProjectFilter('');
-    }
-  };
-  
-  const handleUpdateProject = async (updatedProject: Project) => {
-    try {
-      const result = await saveProject(updatedProject);
-      
-      if (result.success && result.project) {
-        // Update local state
-        setStoredProjects(prev => 
-          prev.map(p => p.id === updatedProject.id ? result.project! : p)
-        );
-        
-        updateProject(updatedProject);
-        
-        toast({
-          title: "Project updated",
-          description: `Updated "${updatedProject.name}" settings`
-        });
-      } else {
-        toast({
-          variant: "destructive",
-          title: "Error updating project",
-          description: "Failed to update project. Please try again."
-        });
-      }
-    } catch (error) {
-      console.error('Error updating project:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "An unexpected error occurred."
-      });
-    }
-  };
-  
-  const handleDeleteProject = async (projectId: string) => {
-    try {
-      const result = await deleteProject(projectId);
-      
-      if (result.success) {
-        // Update local state
-        setStoredProjects(prev => prev.filter(p => p.id !== projectId));
-        
-        toast({
-          title: "Project deleted",
-          description: "Project has been removed"
-        });
-      } else {
-        toast({
-          variant: "destructive",
-          title: "Error deleting project",
-          description: "Failed to delete project. Please try again."
-        });
-      }
-    } catch (error) {
-      console.error('Error deleting project:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "An unexpected error occurred."
-      });
-    }
-  };
-  
-  const handleMonthChange = (month: string) => {
-    setSelectedMonth(month);
-    
-    // Update date range based on selected month
-    switch (month) {
-      case 'current':
-        // Current month - about 30 days
-        updateFilters({ dateRange: 30 });
-        syncCalendar(30);
-        break;
-      case 'previous':
-        // Previous month - about 60 days
-        updateFilters({ dateRange: 60 });
-        syncCalendar(60);
-        break;
-      case 'all':
-        // All time - last 365 days
-        updateFilters({ dateRange: 365 });
-        syncCalendar(365);
-        break;
-      case 'custom':
-        // Custom range - keep current range but show date picker
-        // This would typically open a date picker dialog
-        toast({
-          title: "Custom date range",
-          description: "Custom date range selection is not yet implemented"
-        });
-        break;
-      default:
-        updateFilters({ dateRange: 30 });
-        syncCalendar(30);
+      setShowAddProject(false);
     }
   };
 
-  const availableProjects = [...new Set([
-    ...customProjects.map(project => project.name),
-    ...storedProjects.map(project => project.name)
-  ])];
-  
-  // Handle adding new project with filter
-  const handleAddProject = async () => {
-    if (newProjectName && newProjectFilter) {
-      // Convert to lowercase for case-insensitive comparison
-      const normalizedName = newProjectName.toLowerCase();
+  const handleUpdateProject = (updatedProject: Project) => {
+    setSavedProjects(prev => 
+      prev.map(project => 
+        project.id === updatedProject.id ? updatedProject : project
+      )
+    );
+    
+    updateProject(updatedProject);
+    
+    toast({
+      title: "Project updated",
+      description: `Updated "${updatedProject.name}" settings`,
+    });
+  };
+
+  const handleDeleteProject = (projectId: string) => {
+    const projectToDelete = filteredProjects.find(p => p.id === projectId);
+    if (!projectToDelete) return;
+    
+    const projectName = projectToDelete.name;
+    
+    console.log("Deleting project:", projectId, projectName);
+    
+    // Remove from saved projects
+    setSavedProjects(prev => prev.filter(p => p.id !== projectId));
+    
+    // Remove from custom projects (if it's a filter-based project)
+    if (projectFilters[projectId]) {
+      removeProjectFilter(projectId);
+      syncCalendar();
+    }
+    
+    toast({
+      title: "Project deleted",
+      description: `Removed "${projectName}" project`,
+      variant: "default"
+    });
+  };
+
+  const handleAddManualProject = () => {
+    if (newProjectName.trim()) {
+      const newProject: Project = {
+        id: `manual-${Date.now()}`,
+        name: newProjectName.trim(),
+        totalHours: 0,
+        budgetHours: 120,
+        activities: [],
+        teamMembers: []
+      };
       
-      // Check if project already exists (case-insensitive)
-      const projectExists = [
-        ...customProjects,
-        ...storedProjects
-      ].some(p => p.name.toLowerCase() === normalizedName);
+      setSavedProjects(prev => [...prev, newProject]);
       
-      if (!projectExists) {
-        // Create new project
-        const newProject: Project = {
-          id: uuidv4(),
-          name: newProjectName,
-          totalHours: 0,
-          budgetHours: undefined,
-          hourlyRate: undefined,
-          activities: [],
-          teamMembers: [],
-          filterTerm: newProjectFilter
-        };
-        
-        // Save to Supabase
-        const result = await saveProject(newProject);
-        
-        if (result.success && result.project) {
-          // Update local state
-          setStoredProjects(prev => [...prev, result.project!]);
-          
-          // Add project filter for calendar sync
-          addProjectFilter(normalizedName, newProjectFilter);
-          
-          toast({
-            title: "Project created",
-            description: `Created new project "${newProjectName}"`
-          });
-        } else {
-          toast({
-            variant: "destructive",
-            title: "Error creating project",
-            description: "Failed to create project. Please try again."
-          });
-        }
-      } else {
-        toast({
-          variant: "destructive",
-          title: "Project already exists",
-          description: `A project with the name "${newProjectName}" already exists`
-        });
-      }
+      toast({
+        title: "Project created",
+        description: `Created "${newProjectName}" project`,
+      });
       
-      setShowAddProject(false);
       setNewProjectName('');
-      setNewProjectFilter('');
+      setShowAddProject(false);
+    }
+  };
+
+  const handleEmptyStateAction = () => {
+    // Determine whether to sync or create new project
+    if (events.length === 0) {
+      syncCalendar(30);
+    } else {
+      setShowAddProject(true);
     }
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <h2 className="text-2xl font-bold tracking-tight">Projects</h2>
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">Projects</h2>
         <div className="flex items-center gap-2">
           <ProjectFilters 
-            onAddProject={() => setShowAddProject(true)}
-            selectedMonth={selectedMonth}
-            onMonthChange={handleMonthChange}
-            projectFilters={projectFilters}
-            availableProjects={availableProjects}
-            onProjectFilterChange={setProjectFilters}
+            onAddProject={() => setShowAddProject(true)} 
+            onManageProjects={() => setShowManageProjects(true)}
           />
+          <ProjectSortOptions sortBy={sortBy} onSortChange={setSortBy} />
+          <ViewToggle viewMode={viewMode} onViewChange={setViewMode} />
         </div>
       </div>
       
-      {isLoading || calendarLoading ? (
-        <div className="flex justify-center items-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-          <span className="ml-2 text-muted-foreground">Loading projects...</span>
-        </div>
-      ) : filteredProjects.length === 0 ? (
-        <div className="bg-muted/50 rounded-lg border border-border p-8 text-center">
-          <h3 className="text-lg font-medium mb-2">No projects available</h3>
-          <p className="text-muted-foreground mb-4">
-            Get started by creating your first project or connect to Google Calendar.
-          </p>
-          <button 
-            onClick={() => setShowAddProject(true)}
-            className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background bg-primary text-primary-foreground hover:bg-primary/90 h-10 py-2 px-4"
-          >
-            Create Your First Project
-          </button>
-        </div>
-      ) : (
-        <ProjectList 
-          projects={filteredProjects} 
-          viewMode="grid"
-          onUpdateProject={handleUpdateProject}
-          onDeleteProject={handleDeleteProject}
-        />
-      )}
+      <ProjectSearch 
+        searchTerm={searchTerm} 
+        onSearchChange={setSearchTerm} 
+      />
       
-      <NewProjectDialog 
-        open={showAddProject} 
-        onOpenChange={handleOpenChange}
+      <NewProjectDialog
+        open={showAddProject}
+        onOpenChange={setShowAddProject}
         newProjectName={newProjectName}
         onProjectNameChange={setNewProjectName}
         newProjectFilter={newProjectFilter}
         onProjectFilterChange={setNewProjectFilter}
         onAddProject={handleAddProject}
-        existingProjects={availableProjects}
+        onAddManualProject={handleAddManualProject}
       />
+      
+      <Dialog open={showManageProjects} onOpenChange={setShowManageProjects}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Manage Projects</DialogTitle>
+            <DialogDescription>
+              You can edit or delete your projects here.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-2">
+            {filteredProjects.length > 0 ? (
+              filteredProjects.map(project => (
+                <div key={project.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-md border">
+                  <div>
+                    <h3 className="font-medium">{project.name}</h3>
+                    <p className="text-sm text-gray-500">{project.totalHours.toFixed(1)} hours tracked</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => {
+                        const projectToEdit = filteredProjects.find(p => p.id === project.id);
+                        if (projectToEdit) {
+                          const card = document.getElementById(`project-card-${project.id}`);
+                          if (card) {
+                            card.scrollIntoView({ behavior: 'smooth' });
+                            setTimeout(() => {
+                              const editButton = card.querySelector('[data-edit-button]');
+                              if (editButton instanceof HTMLElement) {
+                                editButton.click();
+                              }
+                            }, 300);
+                          }
+                          setShowManageProjects(false);
+                        }
+                      }}
+                    >
+                      Edit
+                    </Button>
+                    <Button 
+                      variant="destructive" 
+                      size="sm"
+                      onClick={() => handleDeleteProject(project.id)}
+                    >
+                      <Trash2 className="h-4 w-4 mr-1" />
+                      Delete
+                    </Button>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-center p-4">
+                <p>No projects found. Create a new project first.</p>
+              </div>
+            )}
+          </div>
+          
+          <DialogFooter>
+            <Button type="button" onClick={() => setShowManageProjects(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {filteredProjects.length > 0 ? (
+        <ProjectList
+          projects={filteredProjects}
+          viewMode={viewMode}
+          onUpdateProject={handleUpdateProject}
+          onDeleteProject={handleDeleteProject}
+        />
+      ) : (
+        <div className="bg-zinc-50 border border-zinc-200 rounded-lg p-8 text-center">
+          <p className="text-zinc-500 mb-4">No projects found. Connect to Google Calendar to import your projects.</p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Button onClick={() => syncCalendar(30)}>Sync Calendar</Button>
+            <Button variant="outline" onClick={() => setShowAddProject(true)}>Create Manual Project</Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
