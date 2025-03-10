@@ -227,9 +227,9 @@ export function useProjectManagement(getProjectColor: (projectName: string) => s
         const endTime = new Date(event.end.dateTime);
         const durationHours = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
         
-        console.log(`Event: "${event.summary}" duration: ${durationHours.toFixed(2)} hours`);
-        
         if (durationHours <= 0) return;
+        
+        console.log(`Adding ${durationHours.toFixed(2)} hours to project "${displayName}" from event "${event.summary}"`);
         
         totalHours += durationHours;
         
@@ -298,7 +298,8 @@ export function useProjectManagement(getProjectColor: (projectName: string) => s
       }
     });
     
-    console.log(`Generated ${newCustomProjects.length} custom projects`);
+    console.log(`Generated ${newCustomProjects.length} custom projects with total hours`, 
+      newCustomProjects.map(p => `${p.name}: ${p.totalHours.toFixed(2)}h`));
     setCustomProjects(newCustomProjects);
   }, [loadSavedProjectSettings, getProjectColor]);
 

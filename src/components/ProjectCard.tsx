@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Project } from '@/lib/types';
@@ -34,6 +35,13 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
   const [editedProject, setEditedProject] = useState<Project>({...project});
   
   const projectTag = getProjectTag(project.name);
+
+  // Log project details for debugging
+  console.log(`Rendering ProjectCard for ${project.name} with ${project.totalHours} hours and ${project.activities?.length || 0} activities`);
+  
+  if (project.activities?.length > 0) {
+    console.log(`Activities for ${project.name}:`, project.activities.map(a => ({type: a.type, hours: a.hours})));
+  }
 
   const handleSaveChanges = async () => {
     try {

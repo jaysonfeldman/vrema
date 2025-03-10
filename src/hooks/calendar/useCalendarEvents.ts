@@ -57,6 +57,13 @@ export function useCalendarEvents() {
       
       console.log(`${validEvents.length} events have valid start/end times`);
       
+      // Log the first 5 events for debugging
+      validEvents.slice(0, 5).forEach(event => {
+        console.log(`Event: ${event.summary}, Start: ${event.start.dateTime}, End: ${event.end.dateTime}`);
+        const { projectName, activityType } = parseEventTitle(event.summary);
+        console.log(`  Parsed as Project: "${projectName}", Activity: "${activityType}"`);
+      });
+      
       if (validEvents.length === 0) {
         toast({
           variant: "destructive",

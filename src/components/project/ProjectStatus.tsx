@@ -13,6 +13,8 @@ const ProjectStatus: React.FC<ProjectStatusProps> = ({
   budgetHours,
   monthlyHours
 }) => {
+  console.log(`ProjectStatus - Total Hours: ${totalHours}, Budget Hours: ${budgetHours}, Monthly Hours: ${monthlyHours}`);
+  
   // Is the project over budget?
   const isOverBudget = budgetHours && totalHours > budgetHours;
   

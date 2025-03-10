@@ -148,6 +148,8 @@ export const convertEventsToActivities = (events: GoogleCalendarEvent[]): {
     
     const { projectName, activityType } = parseEventTitle(event.summary);
     
+    console.log(`Event: "${event.summary}" -> Project: "${projectName}", Activity: "${activityType}", Duration: ${durationHours.toFixed(2)}h`);
+    
     // Store project name in original case for display
     // Use lowercase for case-insensitive matching in maps
     const normalizedProjectName = projectName.toLowerCase();
