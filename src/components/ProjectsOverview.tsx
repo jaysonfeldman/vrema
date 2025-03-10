@@ -23,9 +23,18 @@ const ProjectsOverview: React.FC = () => {
   const [showAddProject, setShowAddProject] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState('current');
   
+  // Sync calendar when component mounts to ensure we have project data
+  useEffect(() => {
+    if (!isLoading && customProjects.length === 0) {
+      console.log('ProjectsOverview - Initial calendar sync');
+      syncCalendar(30); // Default to 30 days for initial load
+    }
+  }, []);
+  
   useEffect(() => {
     console.log('ProjectsOverview - Current selected month:', selectedMonth);
-  }, [selectedMonth]);
+    console.log('ProjectsOverview - Current projects count:', customProjects.length);
+  }, [selectedMonth, customProjects]);
   
   const handleOpenChange = (open: boolean) => {
     setShowAddProject(open);
@@ -105,6 +114,19 @@ const ProjectsOverview: React.FC = () => {
         <div className="flex justify-center items-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           <span className="ml-2 text-muted-foreground">Loading projects...</span>
+        </div>
+      ) : customProjects.length === 0 ? (
+        <div className="bg-muted/50 rounded-lg border border-border p-8 text-center">
+          <h3 className="text-lg font-medium mb-2">No projects available</h3>
+          <p className="text-muted-foreground mb-4">
+            Get started by creating your first project or connect to Google Calendar.
+          </p>
+          <button 
+            onClick={() => setShowAddProject(true)}
+            className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background bg-primary text-primary-foreground hover:bg-primary/90 h-10 py-2 px-4"
+          >
+            Create Your First Project
+          </button>
         </div>
       ) : (
         <ProjectList 

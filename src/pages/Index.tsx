@@ -39,7 +39,26 @@ const Index: React.FC = () => {
         
         <div className="space-y-8 pt-4">
           <TotalHoursView />
-          <ProjectsOverview />
+          
+          <Tabs defaultValue="projects" className="w-full">
+            <TabsList className="mb-4">
+              <TabsTrigger value="projects">Project Cards</TabsTrigger>
+              <TabsTrigger value="views">Project Views</TabsTrigger>
+              <TabsTrigger value="events">Calendar Events</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="projects">
+              <ProjectsOverview />
+            </TabsContent>
+            
+            <TabsContent value="views">
+              <ProjectView />
+            </TabsContent>
+            
+            <TabsContent value="events">
+              <CalendarEventsTable />
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
     </div>
