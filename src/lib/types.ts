@@ -1,3 +1,4 @@
+
 export type ActivityType = string;
 
 export interface Activity {
@@ -79,7 +80,7 @@ export interface FilterOptions {
   searchTerm: string;
   project: string;
   dateRange: number;
-  activity?: string; // Added activity filter
+  activity?: string; // Activity filter property
 }
 
 export interface ParsedEvent {

@@ -1,8 +1,9 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useCalendarSync } from '@/hooks/useCalendarSync';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { ActivityType } from '@/lib/types';
 import CalendarEventFilters from './calendar/CalendarEventFilters';
 import CalendarEventListView from './calendar/CalendarEventListView';
 import CalendarEventDayView from './calendar/CalendarEventDayView';
@@ -17,8 +18,20 @@ const CalendarEventsTable: React.FC = () => {
     isAuthenticated, 
     syncCalendar,
     lastSynced,
-    isLoading 
+    isLoading,
+    getActivitiesFromEvents
   } = useCalendarSync();
+
+  const [activityTypes, setActivityTypes] = useState<ActivityType[]>([]);
+
+  useEffect(() => {
+    if (filteredEvents.length > 0) {
+      // Extract unique activity types from events
+      const activities = getActivitiesFromEvents(filteredEvents);
+      const uniqueTypes = Array.from(new Set(activities.map(a => a.type)));
+      setActivityTypes(uniqueTypes as ActivityType[]);
+    }
+  }, [filteredEvents, getActivitiesFromEvents]);
 
   if (!isAuthenticated) {
     return null;
@@ -52,6 +65,9 @@ const CalendarEventsTable: React.FC = () => {
               updateFilters({ dateRange: days });
               syncCalendar(days);
             }}
+            activity={filters.activity}
+            onActivityChange={(value) => updateFilters({ activity: value })}
+            activities={activityTypes}
           />
 
           <Tabs defaultValue="list">

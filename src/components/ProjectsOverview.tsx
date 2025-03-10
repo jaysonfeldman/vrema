@@ -16,12 +16,15 @@ const ProjectsOverview: React.FC = () => {
     isLoading,
     syncCalendar,
     filters,
-    updateFilters
+    updateFilters,
+    getProjects
   } = useCalendarSync();
   
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showAddProject, setShowAddProject] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState('current');
+  const [projectFilters, setProjectFilters] = useState<string[]>([]);
+  const [filteredProjects, setFilteredProjects] = useState<Project[]>([]);
   
   // Sync calendar when component mounts to ensure we have project data
   useEffect(() => {
@@ -32,9 +35,22 @@ const ProjectsOverview: React.FC = () => {
   }, []);
   
   useEffect(() => {
-    console.log('ProjectsOverview - Current selected month:', selectedMonth);
-    console.log('ProjectsOverview - Current projects count:', customProjects.length);
-  }, [selectedMonth, customProjects]);
+    if (customProjects.length > 0 && projectFilters.length === 0) {
+      // Initialize project filters with all project names
+      setProjectFilters(customProjects.map(project => project.name));
+    }
+    
+    // Apply project filters
+    if (projectFilters.length === 0) {
+      setFilteredProjects([]);
+    } else if (projectFilters.length === customProjects.length) {
+      setFilteredProjects([...customProjects]);
+    } else {
+      setFilteredProjects(customProjects.filter(project => 
+        projectFilters.includes(project.name)
+      ));
+    }
+  }, [customProjects, projectFilters]);
   
   const handleOpenChange = (open: boolean) => {
     setShowAddProject(open);
@@ -93,6 +109,8 @@ const ProjectsOverview: React.FC = () => {
     }
   };
 
+  const availableProjects = customProjects.map(project => project.name);
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -102,6 +120,9 @@ const ProjectsOverview: React.FC = () => {
             onAddProject={() => setShowAddProject(true)}
             selectedMonth={selectedMonth}
             onMonthChange={handleMonthChange}
+            projectFilters={projectFilters}
+            availableProjects={availableProjects}
+            onProjectFilterChange={setProjectFilters}
           />
           <ViewToggle 
             viewMode={viewMode} 
@@ -115,7 +136,7 @@ const ProjectsOverview: React.FC = () => {
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           <span className="ml-2 text-muted-foreground">Loading projects...</span>
         </div>
-      ) : customProjects.length === 0 ? (
+      ) : filteredProjects.length === 0 ? (
         <div className="bg-muted/50 rounded-lg border border-border p-8 text-center">
           <h3 className="text-lg font-medium mb-2">No projects available</h3>
           <p className="text-muted-foreground mb-4">
@@ -130,7 +151,7 @@ const ProjectsOverview: React.FC = () => {
         </div>
       ) : (
         <ProjectList 
-          projects={customProjects} 
+          projects={filteredProjects} 
           viewMode={viewMode}
           onUpdateProject={handleUpdateProject}
           onDeleteProject={handleDeleteProject}
