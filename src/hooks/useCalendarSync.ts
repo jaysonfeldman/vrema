@@ -68,10 +68,15 @@ export function useCalendarSync() {
     setFilteredEvents(filteredEvents);
   }, [filteredEvents, setFilteredEvents]);
 
+  // Modified sync calendar function that passes projects
+  const syncCalendarWithProjects = useCallback((days = 30) => {
+    return syncCalendar(days, customProjects);
+  }, [syncCalendar, customProjects]);
+
   // Custom hook wrapping all calendar functionality
   return {
     // Calendar sync functions
-    syncCalendar,
+    syncCalendar: syncCalendarWithProjects,
     events,
     filteredEvents,
     isLoading,

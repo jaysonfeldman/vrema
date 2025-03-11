@@ -5,8 +5,9 @@ import {
   fetchCalendarEvents, 
   parseEventTitle 
 } from '@/services/googleCalendarService';
+import { saveCalendarEventsToSupabase } from '@/services/calendarEventService';
 import { toast } from '@/components/ui/use-toast';
-import { GoogleCalendarEvent, FilterOptions } from '@/lib/types';
+import { GoogleCalendarEvent, FilterOptions, Project } from '@/lib/types';
 
 export function useCalendarEvents() {
   const { authState, refreshToken } = useGoogleAuth();
@@ -16,7 +17,7 @@ export function useCalendarEvents() {
   const [lastSynced, setLastSynced] = useState<Date | null>(null);
   const [syncError, setSyncError] = useState<string | null>(null);
   
-  const syncCalendar = useCallback(async (days = 30) => {
+  const syncCalendar = useCallback(async (days = 30, projects: Project[] = []) => {
     setSyncError(null);
     
     if (!authState.isAuthenticated) {
@@ -71,13 +72,24 @@ export function useCalendarEvents() {
         });
       }
       
+      // Save events to Supabase
+      const saveResult = await saveCalendarEventsToSupabase(validEvents, projects);
+      
+      if (saveResult.success) {
+        console.log(`Successfully saved ${saveResult.count} events to Supabase`);
+      } else {
+        console.error('Error saving events to Supabase:', saveResult.error);
+      }
+      
       setEvents(validEvents);
       setFilteredEvents(validEvents);
       setLastSynced(new Date());
       
       toast({
         title: "Calendar synced",
-        description: `Found ${validEvents.length} events from your Google Calendar`,
+        description: `Found ${validEvents.length} events from your Google Calendar${
+          saveResult.success ? ` and saved ${saveResult.count} to database` : ''
+        }`,
       });
       
       return { events: validEvents };

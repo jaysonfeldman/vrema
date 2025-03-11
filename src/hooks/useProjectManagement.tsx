@@ -4,6 +4,7 @@ import { Project } from '@/lib/types';
 import { fetchProjects, saveProject, deleteProject } from '@/services/projectService';
 import { toast } from '@/components/ui/use-toast';
 import { v4 as uuidv4 } from 'uuid';
+import { fetchCalendarEventsFromSupabase } from '@/services/calendarEventService';
 
 export const useProjectManagement = () => {
   const { 
@@ -21,33 +22,41 @@ export const useProjectManagement = () => {
   const [storedProjects, setStoredProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [availableProjectNames, setAvailableProjectNames] = useState<string[]>([]);
+  const [storedCalendarEvents, setStoredCalendarEvents] = useState<any[]>([]);
   
   // New project state
   const [newProjectName, setNewProjectName] = useState('');
   const [newProjectFilter, setNewProjectFilter] = useState('');
   
-  // Load projects from Supabase on mount and trigger initial calendar sync
+  // Load projects and calendar events from Supabase on mount and trigger initial calendar sync
   useEffect(() => {
-    const loadProjects = async () => {
+    const loadProjectsAndEvents = async () => {
       setIsLoading(true);
       try {
+        // Load projects
         const projects = await fetchProjects();
         setStoredProjects(projects);
-        // Initial calendar sync
+        
+        // Load calendar events
+        const events = await fetchCalendarEventsFromSupabase();
+        setStoredCalendarEvents(events);
+        console.log(`Loaded ${events.length} calendar events from Supabase`);
+        
+        // Initial calendar sync to get fresh data
         syncCalendar(30);
       } catch (error) {
-        console.error('Error loading projects:', error);
+        console.error('Error loading data:', error);
         toast({
           variant: "destructive",
-          title: "Error loading projects",
-          description: "Could not load your projects. Please try again."
+          title: "Error loading data",
+          description: "Could not load your projects and events. Please try again."
         });
       } finally {
         setIsLoading(false);
       }
     };
     
-    loadProjects();
+    loadProjectsAndEvents();
   }, [syncCalendar]);
   
   // Merge stored projects with calendar projects and initialize filters
@@ -254,6 +263,7 @@ export const useProjectManagement = () => {
     newProjectFilter,
     setNewProjectFilter,
     availableProjects,
+    storedCalendarEvents,
     handleOpenChange,
     handleUpdateProject,
     handleDeleteProject,

@@ -1,12 +1,14 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useGoogleAuth } from '@/providers/GoogleAuthProvider';
 import { useCalendarSync } from '@/hooks/useCalendarSync';
-import { Loader2, Calendar, LogOut, RefreshCw, AlertCircle } from 'lucide-react';
+import { Loader2, Calendar, LogOut, RefreshCw, AlertCircle, Database } from 'lucide-react';
 import { format } from 'date-fns';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { fetchCalendarEventsFromSupabase } from '@/services/calendarEventService';
 
 const GoogleCalendarSync: React.FC = () => {
   const { authState, login, logout, isLoading: authLoading } = useGoogleAuth();
@@ -17,6 +19,26 @@ const GoogleCalendarSync: React.FC = () => {
     events, 
     syncError 
   } = useCalendarSync();
+  const [storedEventsCount, setStoredEventsCount] = useState<number>(0);
+  const [loadingStoredEvents, setLoadingStoredEvents] = useState<boolean>(false);
+
+  useEffect(() => {
+    const loadStoredEventsCount = async () => {
+      setLoadingStoredEvents(true);
+      try {
+        const events = await fetchCalendarEventsFromSupabase();
+        setStoredEventsCount(events.length);
+      } catch (error) {
+        console.error('Error loading stored events count:', error);
+      } finally {
+        setLoadingStoredEvents(false);
+      }
+    };
+
+    if (authState.isAuthenticated) {
+      loadStoredEventsCount();
+    }
+  }, [authState.isAuthenticated, lastSynced]);
 
   const handleSync = () => {
     syncCalendar();
@@ -34,6 +56,14 @@ const GoogleCalendarSync: React.FC = () => {
                 Connected as {authState.profile?.name || authState.profile?.email}
                 {lastSynced && ` · Last synced ${format(lastSynced, 'MMM d, h:mm a')}`}
                 {events.length > 0 && ` · ${events.length} events`}
+                {storedEventsCount > 0 && (
+                  <span className="ml-2">
+                    <Badge variant="outline" className="ml-1 flex items-center gap-1">
+                      <Database className="h-3 w-3" />
+                      {storedEventsCount} stored
+                    </Badge>
+                  </span>
+                )}
               </p>
             ) : (
               <p className="text-sm text-gray-500">Connect to import your events for time tracking</p>
@@ -47,7 +77,7 @@ const GoogleCalendarSync: React.FC = () => {
               <Button 
                 variant="outline" 
                 onClick={handleSync} 
-                disabled={syncLoading}
+                disabled={syncLoading || loadingStoredEvents}
               >
                 {syncLoading ? (
                   <>

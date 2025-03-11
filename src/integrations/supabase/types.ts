@@ -47,6 +47,53 @@ export type Database = {
           },
         ]
       }
+      calendar_events: {
+        Row: {
+          activity_type: string
+          created_at: string
+          end_time: string
+          event_id: string | null
+          hours: number
+          id: string
+          project_id: string | null
+          start_time: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          activity_type: string
+          created_at?: string
+          end_time: string
+          event_id?: string | null
+          hours: number
+          id?: string
+          project_id?: string | null
+          start_time: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          activity_type?: string
+          created_at?: string
+          end_time?: string
+          event_id?: string | null
+          hours?: number
+          id?: string
+          project_id?: string | null
+          start_time?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendar_events_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projects: {
         Row: {
           budget_hours: number | null
