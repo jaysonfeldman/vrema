@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useCalendarSync } from '@/hooks/useCalendarSync';
 import { Project } from '@/lib/types';
 import { fetchProjects, saveProject, deleteProject } from '@/services/projectService';
@@ -28,8 +28,14 @@ export const useProjectManagement = () => {
   const [newProjectName, setNewProjectName] = useState('');
   const [newProjectFilter, setNewProjectFilter] = useState('');
   
+  // Add loading ref to prevent multiple data loading
+  const dataLoadedRef = useRef(false);
+  
   // Load projects and calendar events from Supabase on mount and trigger initial calendar sync
   useEffect(() => {
+    // Skip if data was already loaded
+    if (dataLoadedRef.current) return;
+    
     const loadProjectsAndEvents = async () => {
       setIsLoading(true);
       try {
@@ -44,6 +50,9 @@ export const useProjectManagement = () => {
         
         // Initial calendar sync to get fresh data
         syncCalendar(30);
+        
+        // Mark as loaded
+        dataLoadedRef.current = true;
       } catch (error) {
         console.error('Error loading data:', error);
         toast({
@@ -59,7 +68,7 @@ export const useProjectManagement = () => {
     loadProjectsAndEvents();
   }, [syncCalendar]);
   
-  // Merge stored projects with calendar projects and initialize filters
+  // Merge stored projects with calendar projects and initialize filters, but don't run on every render
   useEffect(() => {
     const allProjects = [...storedProjects];
     const projectNames = new Set<string>();
@@ -83,23 +92,27 @@ export const useProjectManagement = () => {
     
     const namesArray = Array.from(projectNames);
     setAvailableProjectNames(namesArray);
-    setProjectFilters(namesArray); // Always set all projects as filtered by default
     
-    // Update filtered projects immediately
+    // Only set project filters if they're empty and we have names
+    if (projectFilters.length === 0 && namesArray.length > 0) {
+      setProjectFilters(namesArray);
+    }
+    
+    // Update filtered projects
     const filtered = allProjects.filter(project => project.visible !== false);
     setFilteredProjects(filtered);
     
   }, [customProjects, storedProjects]);
 
-  const handleOpenChange = (open: boolean) => {
+  const handleOpenChange = useCallback((open: boolean) => {
     setShowAddProject(open);
     if (!open) {
       // Reset form when dialog closes
       setNewProjectName('');
       setNewProjectFilter('');
     }
-  };
-  
+  }, []);
+
   const handleUpdateProject = async (updatedProject: Project) => {
     try {
       const result = await saveProject(updatedProject);
@@ -162,7 +175,7 @@ export const useProjectManagement = () => {
     }
   };
   
-  const handleMonthChange = (month: string) => {
+  const handleMonthChange = useCallback((month: string) => {
     setSelectedMonth(month);
     
     switch (month) {
@@ -177,6 +190,7 @@ export const useProjectManagement = () => {
         break;
       case 'custom':
         toast({
+          id: 'custom-date-range',
           title: "Custom date range",
           description: "Custom date range selection is not yet implemented"
         });
@@ -184,14 +198,13 @@ export const useProjectManagement = () => {
       default:
         syncCalendar(30);
     }
-  };
-
+  }, [syncCalendar]);
+  
   const availableProjects = [...new Set([
     ...customProjects.map(project => project.name),
     ...storedProjects.map(project => project.name)
   ])];
   
-  // Handle adding new project with filter
   const handleAddProject = async () => {
     if (newProjectName && newProjectFilter) {
       // Convert to lowercase for case-insensitive comparison
@@ -227,11 +240,13 @@ export const useProjectManagement = () => {
           addProjectFilter(normalizedName, newProjectFilter);
           
           toast({
+            id: `project-created-${normalizedName}`,
             title: "Project created",
             description: `Created new project "${newProjectName}"`
           });
         } else {
           toast({
+            id: `project-error-${normalizedName}`,
             variant: "destructive",
             title: "Error creating project",
             description: "Failed to create project. Please try again."
@@ -239,6 +254,7 @@ export const useProjectManagement = () => {
         }
       } else {
         toast({
+          id: `project-exists-${normalizedName}`,
           variant: "destructive",
           title: "Project already exists",
           description: `A project with the name "${newProjectName}" already exists`

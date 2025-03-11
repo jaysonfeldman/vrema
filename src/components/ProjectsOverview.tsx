@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useCalendarSync } from '@/hooks/useCalendarSync';
 import ProjectList from '@/components/project/ProjectList';
 import NewProjectDialog from '@/components/project/NewProjectDialog';
@@ -45,6 +45,11 @@ const ProjectsOverview: React.FC = () => {
       setCalendarSynced(true);
     }
   }, [calendarLoading, customProjects.length, syncCalendar, calendarSynced]);
+  
+  // Memoize these callbacks to prevent unnecessary re-renders
+  const handleAddProjectClick = useCallback(() => {
+    setShowAddProject(true);
+  }, [setShowAddProject]);
 
   return (
     <div className="space-y-6">
@@ -62,7 +67,7 @@ const ProjectsOverview: React.FC = () => {
       {isLoading || calendarLoading ? (
         <ProjectsLoading />
       ) : filteredProjects.length === 0 ? (
-        <EmptyProjectsState onAddProject={() => setShowAddProject(true)} />
+        <EmptyProjectsState onAddProject={handleAddProjectClick} />
       ) : (
         <ProjectList 
           projects={filteredProjects} 
@@ -86,4 +91,4 @@ const ProjectsOverview: React.FC = () => {
   );
 };
 
-export default ProjectsOverview;
+export default React.memo(ProjectsOverview);

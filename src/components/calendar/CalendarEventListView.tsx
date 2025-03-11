@@ -33,6 +33,44 @@ const getActivityColor = (activityType: string): string => {
 };
 
 const CalendarEventListView: React.FC<CalendarEventListViewProps> = ({ events }) => {
+  // Memoize the rendering to prevent unnecessary updates
+  const renderEvents = React.useMemo(() => {
+    if (events.length === 0) {
+      return (
+        <TableRow>
+          <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
+            No events found. Try adjusting your filters or sync your calendar.
+          </TableCell>
+        </TableRow>
+      );
+    }
+    
+    return events.map((event) => {
+      const { projectName, activityType, description } = parseEventTitle(event.summary);
+      
+      return (
+        <TableRow key={event.id}>
+          <TableCell>
+            <Badge variant="outline">{projectName}</Badge>
+          </TableCell>
+          <TableCell>
+            <Badge variant="outline" className={getActivityColor(activityType)}>
+              #{activityType}
+            </Badge>
+          </TableCell>
+          <TableCell className="font-medium">{description || '(No description)'}</TableCell>
+          <TableCell>{formatEventDate(event.start.dateTime)}</TableCell>
+          <TableCell>
+            <div className="flex items-center gap-2">
+              <Clock className="h-3 w-3 text-muted-foreground" />
+              {calculateDuration(event.start.dateTime, event.end.dateTime)}
+            </div>
+          </TableCell>
+        </TableRow>
+      );
+    });
+  }, [events]);
+
   return (
     <div className="rounded-md border">
       <Table>
@@ -46,42 +84,11 @@ const CalendarEventListView: React.FC<CalendarEventListViewProps> = ({ events })
           </TableRow>
         </TableHeader>
         <TableBody>
-          {events.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
-                No events found. Try adjusting your filters or sync your calendar.
-              </TableCell>
-            </TableRow>
-          ) : (
-            events.map((event) => {
-              const { projectName, activityType, description } = parseEventTitle(event.summary);
-              
-              return (
-                <TableRow key={event.id}>
-                  <TableCell>
-                    <Badge variant="outline">{projectName}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className={getActivityColor(activityType)}>
-                      #{activityType}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="font-medium">{description || '(No description)'}</TableCell>
-                  <TableCell>{formatEventDate(event.start.dateTime)}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Clock className="h-3 w-3 text-muted-foreground" />
-                      {calculateDuration(event.start.dateTime, event.end.dateTime)}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              );
-            })
-          )}
+          {renderEvents}
         </TableBody>
       </Table>
     </div>
   );
 };
 
-export default CalendarEventListView;
+export default React.memo(CalendarEventListView);
