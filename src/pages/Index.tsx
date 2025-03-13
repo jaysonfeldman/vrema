@@ -1,85 +1,30 @@
-
-import React, { useEffect, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import Header from '@/components/Header';
-import GoogleCalendarSync from '@/components/GoogleCalendarSync';
-import ProjectsOverview from '@/components/ProjectsOverview';
-import TotalHoursView from '@/components/TotalHoursView';
-import CalendarEventsTable from '@/components/CalendarEventsTable';
-import { useCalendarSync } from '@/hooks/useCalendarSync';
+import React from 'react';
 import { useGoogleAuth } from '@/providers/GoogleAuthProvider';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useSharedState } from '@/hooks/useSharedState';
+import { useCalendarSync } from '@/hooks/useCalendarSync';
+import TotalHoursView from '@/components/TotalHoursView';
+import ProjectsOverview from '@/components/ProjectsOverview';
+import Header from '@/components/Header';
 
-const Index: React.FC = () => {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const { authState } = useGoogleAuth();
-  const { syncCalendar, lastSynced, isAuthenticated, events, projectFilters, customProjects, updateFilters } = useCalendarSync();
-  const [activeTab, setActiveTab] = useState<string>("projects");
+export default function Index() {
+  const { isAuthenticated } = useGoogleAuth();
+  const { syncCalendar } = useCalendarSync();
+  const { lastSynced } = useSharedState();
 
-  // Handle URL parameters
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const tabParam = params.get('tab');
-    const projectParam = params.get('project');
-    
-    // Set active tab based on URL parameter
-    if (tabParam && (tabParam === 'projects' || tabParam === 'events')) {
-      setActiveTab(tabParam);
-    }
-    
-    // Set project filter based on URL parameter
-    if (projectParam) {
-      updateFilters({ project: projectParam });
-    }
-    
-    // Clean URL after processing parameters
-    if (tabParam || projectParam) {
-      navigate('/', { replace: true });
-    }
-  }, [location, navigate, updateFilters]);
-
-  // Auto-sync calendar when authenticated and not yet synced
-  useEffect(() => {
-    if (authState.isAuthenticated && (!lastSynced || events.length === 0)) {
-      console.log("Auto-syncing calendar from Index component");
+  // Initial sync
+  React.useEffect(() => {
+    if (isAuthenticated && !lastSynced) {
       syncCalendar();
     }
-  }, [authState.isAuthenticated, lastSynced, syncCalendar, events.length]);
-
-  // For debugging
-  useEffect(() => {
-    console.log("Index - Current project filters:", projectFilters);
-    console.log("Index - Custom projects count:", customProjects.length);
-  }, [projectFilters, customProjects]);
+  }, [isAuthenticated, lastSynced, syncCalendar]);
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
+    <div className="min-h-screen bg-white">
       <Header />
-      <div className="container mx-auto py-6 px-4">
-        <GoogleCalendarSync />
-        
-        <div className="space-y-8 pt-4">
-          <TotalHoursView />
-          
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="mb-4">
-              <TabsTrigger value="projects">Project Cards</TabsTrigger>
-              <TabsTrigger value="events">Calendar Events</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="projects">
-              <ProjectsOverview />
-            </TabsContent>
-            
-            <TabsContent value="events">
-              <CalendarEventsTable />
-            </TabsContent>
-          </Tabs>
-        </div>
-      </div>
+      <main className="container mx-auto px-4 py-8 space-y-8">
+        <TotalHoursView />
+        <ProjectsOverview />
+      </main>
     </div>
   );
-};
-
-export default Index;
+}

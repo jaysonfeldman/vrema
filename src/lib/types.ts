@@ -1,4 +1,3 @@
-
 export type ActivityType = string;
 
 export interface Activity {
@@ -11,26 +10,26 @@ export interface Activity {
   color?: string;
 }
 
-export interface Project {
-  id: string;
-  name: string;
-  totalHours: number;
-  budgetHours?: number;
-  hourlyRate?: number;
-  activities: Activity[];
-  teamMembers: TeamMember[];
-  color?: string;
-  monthlyHours?: number; // Hours logged in the current month
-  filterTerm?: string;   // Term used to filter events for this project
-  visible?: boolean;     // Whether the project is visible in the UI
-}
-
 export interface TeamMember {
   id: string;
   name: string;
-  avatar: string;
+  imageUrl: string;
   hoursLogged: number;
-  weeklyHours: { [key: string]: number }; // e.g. { 'WK 40': 10, 'WK 41': 5 }
+  weeklyHours?: { [key: string]: number }; // e.g. { 'WK 40': 10, 'WK 41': 5 }
+}
+
+export interface Project {
+  id: string;
+  name: string;
+  filterTerm?: string;
+  totalHours: number;
+  hourlyRate?: number;
+  budgetHours?: number;
+  teamMembers: TeamMember[];
+  activities: Activity[];
+  color?: string;
+  monthlyHours?: number; // Hours logged in the current month
+  visible?: boolean;     // Whether the project is visible in the UI
 }
 
 export interface WeekData {
@@ -40,30 +39,15 @@ export interface WeekData {
 
 export interface GoogleCalendarEvent {
   id: string;
-  summary: string;
-  description?: string;
-  location?: string;
-  start: {
+  summary?: string;
+  start?: {
     dateTime: string;
-    timeZone: string;
+    timeZone?: string;
   };
-  end: {
+  end?: {
     dateTime: string;
-    timeZone: string;
+    timeZone?: string;
   };
-  attendees?: {
-    email: string;
-    displayName?: string;
-    responseStatus?: string;
-  }[];
-  organizer?: {
-    email: string;
-    displayName?: string;
-  };
-  created?: string;
-  updated?: string;
-  status?: string;
-  htmlLink?: string;
 }
 
 export interface GoogleAuthState {

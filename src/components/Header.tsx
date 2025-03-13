@@ -1,66 +1,111 @@
-
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Circle, User } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { useGoogleAuth } from '@/providers/GoogleAuthProvider';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import { useCalendarSync } from '@/hooks/useCalendarSync';
+import { useSharedState } from '@/hooks/useSharedState';
+import { useToast } from '@/components/ui/use-toast';
+import { RefreshCw } from 'lucide-react';
 
-const Header: React.FC = () => {
+export default function Header() {
   const location = useLocation();
-  const [lastSynced, setLastSynced] = useState<Date>(new Date());
-  
-  useEffect(() => {
-    // Simulate a sync every 60 seconds
-    const interval = setInterval(() => {
-      setLastSynced(new Date());
-    }, 60000);
-    
-    return () => clearInterval(interval);
-  }, []);
-  
-  const getTimeAgo = () => {
-    const seconds = Math.floor((new Date().getTime() - lastSynced.getTime()) / 1000);
-    
-    if (seconds < 60) {
-      return 'just now';
-    } else if (seconds < 120) {
-      return '1 minute ago';
-    } else {
-      const minutes = Math.floor(seconds / 60);
-      return `${minutes} minutes ago`;
-    }
+  const { authState } = useGoogleAuth();
+  const { syncCalendar, lastSynced } = useCalendarSync();
+  const { isLoading } = useSharedState();
+  const { toast } = useToast();
+
+  const handleSync = async () => {
+    await syncCalendar();
+    toast({
+      title: "Calendar Synced",
+      description: "Your calendar events have been updated.",
+    });
   };
 
   return (
-    <header className="flex items-center justify-between py-6 px-8 border-b border-gray-200 animate-fade-in">
-      <div className="flex items-center">
-        <Link to="/" className="text-xl font-bold tracking-tight hover:opacity-80 transition-opacity">
-          timetracker2400
-        </Link>
-        <div className="flex items-center ml-8 text-sm text-gray-600">
-          <Circle className="w-3 h-3 text-emerald-500 mr-2 fill-current" />
-          <span>Hours synced {getTimeAgo()}</span>
-        </div>
-      </div>
-      
-      <div className="flex items-center space-x-8">
-        <nav className="flex items-center space-x-6">
-          <Link 
-            to="/" 
-            className={`py-2 border-b-2 ${
-              location.pathname === '/' 
-                ? 'border-primary text-primary font-medium' 
-                : 'border-transparent text-gray-600 hover:text-gray-900'
-            } transition-all`}
-          >
-            Dashboard
+    <header className="border-b">
+      <div className="flex items-center justify-between px-6 py-3">
+        <div className="flex items-center space-x-8">
+          <Link to="/" className="font-medium">
+            timetracker2400
           </Link>
-        </nav>
-        
-        <button className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors">
-          <User className="w-5 h-5 text-gray-700" />
-        </button>
+          
+          {authState.isAuthenticated && lastSynced && (
+            <div className="text-sm text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full">
+              Last synced {new Date(lastSynced).toLocaleTimeString()}
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center space-x-4">
+          <nav className="flex space-x-8">
+            <Link
+              to="/"
+              className={cn(
+                "text-sm font-medium transition-colors hover:text-gray-900",
+                location.pathname === "/" 
+                  ? "text-gray-900 border-b-2 border-gray-900 pb-1" 
+                  : "text-gray-500"
+              )}
+            >
+              Dashboard
+            </Link>
+            <Link
+              to="/projects"
+              className={cn(
+                "text-sm font-medium transition-colors hover:text-gray-900",
+                location.pathname.startsWith("/projects")
+                  ? "text-gray-900 border-b-2 border-gray-900 pb-1"
+                  : "text-gray-500"
+              )}
+            >
+              Projects
+            </Link>
+            <Link
+              to="/activities"
+              className={cn(
+                "text-sm font-medium transition-colors hover:text-gray-900",
+                location.pathname === "/activities"
+                  ? "text-gray-900 border-b-2 border-gray-900 pb-1"
+                  : "text-gray-500"
+              )}
+            >
+              Activities
+            </Link>
+          </nav>
+
+          {authState.isAuthenticated && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSync}
+              disabled={isLoading}
+              className="flex items-center space-x-2"
+            >
+              <RefreshCw className={cn("w-4 h-4", isLoading && "animate-spin")} />
+              <span>{isLoading ? "Syncing..." : "Sync Calendar"}</span>
+            </Button>
+          )}
+
+          {authState.isAuthenticated ? (
+            <div className="flex items-center space-x-4">
+              <Avatar className="h-8 w-8">
+                <AvatarImage src={authState.user?.imageUrl} />
+                <AvatarFallback>{authState.user?.name?.charAt(0)}</AvatarFallback>
+              </Avatar>
+            </div>
+          ) : (
+            <Link
+              to="/login"
+              className="text-sm font-medium text-gray-900 hover:text-gray-700"
+            >
+              Login
+            </Link>
+          )}
+        </div>
       </div>
     </header>
   );
-};
-
-export default Header;
+}

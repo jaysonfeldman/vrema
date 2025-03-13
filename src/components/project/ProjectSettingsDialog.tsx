@@ -1,173 +1,102 @@
-
 import React from 'react';
-import { Project, Activity } from '@/lib/types';
-import { getActivityColor, formatTime } from '@/lib/mock-data';
+import { Project } from '@/lib/types';
 import { 
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
-  DialogClose
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Switch } from "@/components/ui/switch";
 
 interface ProjectSettingsDialogProps {
+  project: Project;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  project: Project;
-  editedProject: Project;
-  setEditedProject: (project: Project) => void;
-  onActivityVisibilityChange: (activityId: string, isVisible: boolean) => void;
-  onSave: () => void;
+  onSave: (updatedProject: Project) => void;
 }
 
-const ProjectSettingsDialog: React.FC<ProjectSettingsDialogProps> = ({
+export default function ProjectSettingsDialog({
+  project,
   open,
   onOpenChange,
-  project,
-  editedProject,
-  setEditedProject,
-  onActivityVisibilityChange,
-  onSave
-}) => {
+  onSave,
+}: ProjectSettingsDialogProps) {
+  const [name, setName] = React.useState(project.name || '');
+  const [hourlyRate, setHourlyRate] = React.useState(project.hourlyRate?.toString() || '');
+  const [budgetHours, setBudgetHours] = React.useState(project.budgetHours?.toString() || '');
+  const [filterTerm, setFilterTerm] = React.useState(project.filterTerm || '');
+
+  const handleSave = () => {
+    const updatedProject = {
+      ...project,
+      name: name.trim(),
+      hourlyRate: parseFloat(hourlyRate) || 0,
+      budgetHours: parseFloat(budgetHours) || 0,
+      filterTerm: filterTerm,
+    };
+    onSave(updatedProject);
+    onOpenChange(false);
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Project Settings</DialogTitle>
         </DialogHeader>
-        
-        <Tabs defaultValue="activities">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="activities">Activities</TabsTrigger>
-            <TabsTrigger value="filters">Filters</TabsTrigger>
-            <TabsTrigger value="visibility">Visibility</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="activities" className="space-y-4 mt-4">
-            <h3 className="text-sm font-medium">Activity Visibility & Colors</h3>
-            <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
-              {editedProject.activities.map((activity) => (
-                <div key={activity.id} className="flex items-center justify-between bg-gray-50 p-2 rounded-md">
-                  <div className="flex items-center space-x-3">
-                    <div 
-                      className="w-4 h-4 rounded-full" 
-                      style={{ backgroundColor: getActivityColor(activity.type) }}
-                    />
-                    <span className="font-medium">{activity.type}</span>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <span className="text-sm text-gray-500">{formatTime(activity.hours)}</span>
-                    <Switch 
-                      checked={!activity.hidden} 
-                      onCheckedChange={(checked) => onActivityVisibilityChange(activity.id, checked)}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="filters" className="space-y-4 mt-4">
-            <div className="grid gap-4">
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="filter-term" className="text-right">
-                  Filter Term
-                </Label>
-                <Input
-                  id="filter-term"
-                  value={editedProject.filterTerm || ""}
-                  onChange={(e) => setEditedProject({
-                    ...editedProject, 
-                    filterTerm: e.target.value
-                  })}
-                  className="col-span-3"
-                  placeholder="e.g., Marketing"
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="budget-hours-setting" className="text-right">
-                  Budget (hours)
-                </Label>
-                <Input
-                  id="budget-hours-setting"
-                  type="number"
-                  value={editedProject.budgetHours || 0}
-                  onChange={(e) => setEditedProject({
-                    ...editedProject, 
-                    budgetHours: parseFloat(e.target.value) || undefined
-                  })}
-                  className="col-span-3"
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="hourly-rate-setting" className="text-right">
-                  Rate (€/hour)
-                </Label>
-                <Input
-                  id="hourly-rate-setting"
-                  type="number"
-                  value={editedProject.hourlyRate || 0}
-                  onChange={(e) => setEditedProject({
-                    ...editedProject, 
-                    hourlyRate: parseFloat(e.target.value) || undefined
-                  })}
-                  className="col-span-3"
-                />
-              </div>
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="visibility" className="space-y-4 mt-4">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-sm font-medium">Project Visibility</h3>
-                  <p className="text-sm text-gray-500">Show or hide this project in your dashboard</p>
-                </div>
-                <Switch 
-                  checked={editedProject.visible !== false} 
-                  onCheckedChange={(checked) => setEditedProject({
-                    ...editedProject, 
-                    visible: checked
-                  })}
-                />
-              </div>
-              
-              <div className="pt-2">
-                <h3 className="text-sm font-medium mb-2">Project Display Name</h3>
-                <p className="text-sm text-gray-500 mb-2">Change how this project appears in your dashboard</p>
-                <Input
-                  value={editedProject.name}
-                  onChange={(e) => setEditedProject({
-                    ...editedProject, 
-                    name: e.target.value
-                  })}
-                  placeholder="Project display name"
-                />
-              </div>
-            </div>
-          </TabsContent>
-        </Tabs>
-        
+        <div className="grid gap-4 py-4">
+          <div className="grid gap-2">
+            <Label htmlFor="name">Project Name</Label>
+            <Input
+              id="name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Enter project name"
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="hourlyRate">Hourly Rate (€)</Label>
+            <Input
+              id="hourlyRate"
+              type="number"
+              value={hourlyRate}
+              onChange={(e) => setHourlyRate(e.target.value)}
+              placeholder="Enter hourly rate"
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="budgetHours">Monthly Budget Hours</Label>
+            <Input
+              id="budgetHours"
+              type="number"
+              value={budgetHours}
+              onChange={(e) => setBudgetHours(e.target.value)}
+              placeholder="Enter monthly budget hours"
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="filterTerm">Filter Term</Label>
+            <Input
+              id="filterTerm"
+              value={filterTerm}
+              onChange={(e) => setFilterTerm(e.target.value)}
+              placeholder="Enter filter term for calendar events"
+            />
+            <p className="text-sm text-muted-foreground">
+              This term is used to filter calendar events for this project
+            </p>
+          </div>
+        </div>
         <DialogFooter>
-          <DialogClose asChild>
-            <Button type="button" variant="outline">
-              Cancel
-            </Button>
-          </DialogClose>
-          <Button type="button" onClick={onSave}>
-            Save settings
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
           </Button>
+          <Button onClick={handleSave}>Save changes</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
-};
-
-export default ProjectSettingsDialog;
+}

@@ -1,18 +1,11 @@
-
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React from 'react';
 import { Project } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import ProjectCardMenu from './project/ProjectCardMenu';
-import EditProjectDialog from './project/EditProjectDialog';
-import ProjectSettingsDialog from './project/ProjectSettingsDialog';
-import ProjectStatus from './project/ProjectStatus';
-import ProjectTeam from './project/ProjectTeam';
-import ProjectActivities from './project/ProjectActivities';
-import ProjectHeader from './project/ProjectHeader';
-import { getProjectTag } from './project/ProjectUtils';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/components/ui/use-toast';
+import { AvatarGroup } from './ui/avatar-group';
+import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
+import { useSharedState } from '@/hooks/useSharedState';
+import { Button } from './ui/button';
+import { Settings2 } from 'lucide-react';
 
 interface ProjectCardProps {
   project: Project;
@@ -20,266 +13,165 @@ interface ProjectCardProps {
   style?: React.CSSProperties;
   onUpdateProject?: (updatedProject: Project) => void;
   onDeleteProject?: (projectId: string) => void;
+  onClick?: () => void;
 }
 
 const ProjectCard: React.FC<ProjectCardProps> = ({ 
   project, 
-  className, 
+  className,
   style,
   onUpdateProject,
-  onDeleteProject
+  onClick
 }) => {
-  const navigate = useNavigate();
-  const [showEditDialog, setShowEditDialog] = useState(false);
-  const [showSettingsDialog, setShowSettingsDialog] = useState(false);
-  const [editedProject, setEditedProject] = useState<Project>({...project});
-  
-  const projectTag = getProjectTag(project.name);
+  const { activityColors } = useSharedState();
 
-  // Log project details for debugging
-  console.log(`Rendering ProjectCard for ${project.name} with ${project.totalHours} hours and ${project.activities?.length || 0} activities`);
-  
-  if (project.activities?.length > 0) {
-    console.log(`Activities for ${project.name}:`, project.activities.map(a => ({type: a.type, hours: a.hours})));
-  }
-
-  const handleSaveChanges = async () => {
-    try {
-      // Save to Supabase
-      const { data, error } = await supabase
-        .from('projects')
-        .upsert({
-          id: editedProject.id,
-          name: editedProject.name,
-          budget_hours: editedProject.budgetHours,
-          hourly_rate: editedProject.hourlyRate,
-          total_hours: editedProject.totalHours,
-          monthly_hours: editedProject.monthlyHours,
-          filter_term: editedProject.filterTerm,
-          visible: editedProject.visible !== false
-        })
-        .select();
-
-      if (error) {
-        console.error('Error saving project:', error);
-        toast({
-          variant: "destructive",
-          title: "Error saving project",
-          description: error.message
-        });
-        return;
-      }
-
-      // Update activities if needed
-      if (editedProject.activities) {
-        for (const activity of editedProject.activities) {
-          // Upsert activity (update or insert)
-          const { error: activityError } = await supabase
-            .from('activities')
-            .upsert({
-              id: activity.id.startsWith('new-') ? undefined : activity.id,
-              project_id: editedProject.id,
-              type: activity.type,
-              hours: activity.hours,
-              hidden: activity.hidden
-            });
-
-          if (activityError) {
-            console.error('Error saving activity:', activityError);
-          }
-        }
-      }
-
-      if (onUpdateProject) {
-        onUpdateProject(editedProject);
-      }
-
-      toast({
-        title: "Project saved",
-        description: "Your changes have been saved successfully."
-      });
-
-      setShowEditDialog(false);
-    } catch (error) {
-      console.error('Error in saving project:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to save project. Please try again."
-      });
-    }
+  // Format time function
+  const formatTime = (hours: number): string => {
+    const h = Math.floor(hours);
+    const m = Math.round((hours - h) * 60);
+    return `${h}:${m.toString().padStart(2, '0')}`;
   };
 
-  const handleDeleteProject = async () => {
-    try {
-      // Delete from Supabase
-      const { error } = await supabase
-        .from('projects')
-        .delete()
-        .eq('id', project.id);
-
-      if (error) {
-        console.error('Error deleting project:', error);
-        toast({
-          variant: "destructive",
-          title: "Error deleting project",
-          description: error.message
-        });
-        return;
-      }
-
-      if (onDeleteProject) {
-        onDeleteProject(project.id);
-      }
-
-      toast({
-        title: "Project deleted",
-        description: "The project has been deleted successfully."
-      });
-    } catch (error) {
-      console.error('Error in deleting project:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to delete project. Please try again."
-      });
-    }
+  // Format currency
+  const formatCurrency = (amount: number): string => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'EUR',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount);
   };
 
-  const handleActivityVisibilityChange = (activityId: string, isVisible: boolean) => {
-    const updatedActivities = editedProject.activities.map(activity => {
-      if (activity.id === activityId) {
-        return { ...activity, hidden: !isVisible };
-      }
-      return activity;
-    });
-
-    setEditedProject({
-      ...editedProject,
-      activities: updatedActivities
-    });
-  };
-
-  const handleSaveSettings = async () => {
-    await handleSaveChanges();
-    setShowSettingsDialog(false);
-  };
-
-  const handleCardClick = (e: React.MouseEvent) => {
-    // Don't navigate if user clicked on menu or within dropdown
-    if ((e.target as HTMLElement).closest('.project-menu') || 
-        (e.target as HTMLElement).closest('[role="menu"]')) {
-      return;
-    }
+  // Get activity color from shared state
+  const getActivityColor = (type: string): string => {
+    const activityColor = activityColors.find(ac => ac.type.toLowerCase() === type.toLowerCase());
+    if (activityColor) return activityColor.color;
     
-    console.log(`Navigating to project detail page for project ID: ${project.id}`);
-    
-    // Navigate to the dedicated project page
-    navigate(`/projects/${project.id}`);
+    // For any unlisted activity type, deterministically assign one of the alternate colors
+    const alternateColors = ['#FEF18B', '#FED8AA', '#7ED3FC'];
+    const hash = type.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    return alternateColors[hash % alternateColors.length];
   };
 
-  // Get budget-related calculations
-  const hasBudget = !!project.budgetHours;
-  const isMonthlyBudget = !!project.monthlyHours;
-  const hoursUsed = isMonthlyBudget ? (project.monthlyHours || 0) : project.totalHours;
-  const budgetRemaining = hasBudget ? (project.budgetHours || 0) - hoursUsed : null;
-  const isOverBudget = hasBudget && budgetRemaining !== null && budgetRemaining < 0;
+  // Calculate total value
+  const totalValue = project.hourlyRate ? project.totalHours * project.hourlyRate : 0;
+
+  // Sort activities by hours
+  const sortedActivities = [...project.activities]
+    .sort((a, b) => b.hours - a.hours);
 
   return (
-    <>
-      <div 
-        className={cn(
-          'rounded-lg overflow-hidden bg-[#272729] text-white animate-fade-in cursor-pointer h-full',
-          className
-        )}
-        style={{
-          ...style,
-        }}
-        onClick={handleCardClick}
-      >
-        <div className="p-5 h-full flex flex-col">
-          <div className="flex items-start justify-between mb-4">
-            <div>
-              <ProjectHeader name={project.name} projectTag={projectTag} />
+    <div 
+      className={cn(
+        'rounded-lg overflow-hidden bg-[#272729] text-white p-6 cursor-pointer hover:bg-[#2d2d30] transition-colors',
+        className
+      )}
+      style={style}
+      onClick={onClick}
+    >
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex items-start justify-between">
+          <div>
+            <div className="flex items-center space-x-2 mb-1">
+              <h3 className="text-lg font-medium">{project.name}</h3>
+              <div className="bg-zinc-700/50 px-2 py-0.5 rounded text-xs text-zinc-400">
+                {project.filterTerm || project.name.toLowerCase()}
+              </div>
             </div>
-            
-            <div className="flex items-center gap-2 project-menu">
-              <ProjectTeam members={project.teamMembers} />
+          </div>
+          
+          <div className="flex items-center space-x-4">
+            <AvatarGroup>
+              {project.teamMembers.map((member, i) => (
+                <Avatar key={i} className="h-8 w-8 border-2 border-[#272729]">
+                  <AvatarImage src={member.imageUrl} />
+                  <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
+                </Avatar>
+              ))}
+            </AvatarGroup>
+            <Button 
+              variant="ghost" 
+              size="icon"
+              className="text-zinc-400 hover:text-white hover:bg-zinc-800"
+              onClick={(e) => {
+                e.stopPropagation();
+                onUpdateProject?.(project);
+              }}
+            >
+              <Settings2 className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+
+        {/* Time and Budget */}
+        <div className="grid grid-cols-3 gap-6">
+          <div>
+            <p className="text-sm text-zinc-400 mb-1">Time logged</p>
+            <p className="font-mono text-2xl">{formatTime(project.totalHours)}</p>
+          </div>
+          
+          <div>
+            <p className="text-sm text-zinc-400 mb-1">Total value</p>
+            <p className="font-mono text-2xl text-emerald-400">
+              {formatCurrency(totalValue)}
+            </p>
+          </div>
+          
+          <div>
+            <p className="text-sm text-zinc-400 mb-1">Budget left</p>
+            {project.budgetHours ? (
+              <>
+                <p className="font-mono text-2xl text-amber-500">
+                  {formatTime(project.budgetHours - project.totalHours)}
+                </p>
+                <p className="text-xs text-zinc-500 mt-1">
+                  /month
+                </p>
+              </>
+            ) : (
+              <p className="font-mono text-2xl text-zinc-500">—</p>
+            )}
+          </div>
+        </div>
+
+        {/* Activities */}
+        <div>
+          <h3 className="text-lg font-medium mb-4">Activities</h3>
+          <div className="h-2 bg-zinc-800 rounded-full mb-4 overflow-hidden">
+            {sortedActivities.map((activity) => {
+              const totalHours = project.activities.reduce((sum, a) => sum + a.hours, 0);
+              const widthPercent = (activity.hours / totalHours) * 100;
               
-              <ProjectCardMenu 
-                projectName={project.name}
-                onEdit={() => setShowEditDialog(true)}
-                onSettings={() => setShowSettingsDialog(true)}
-                onDelete={handleDeleteProject}
-              />
-            </div>
+              return (
+                <div 
+                  key={activity.id} 
+                  className="h-full float-left"
+                  style={{ 
+                    width: `${widthPercent}%`,
+                    backgroundColor: getActivityColor(activity.type)
+                  }}
+                />
+              );
+            })}
           </div>
           
-          <div className="grid grid-cols-2 gap-6 mb-6">
-            <div>
-              <p className="text-sm text-gray-400 mb-1">Time logged</p>
-              <p className="font-mono font-bold text-2xl">{formatTime(project.totalHours)}</p>
-            </div>
-            
-            {hasBudget && (
-              <div>
-                <p className="text-sm text-gray-400 mb-1">Budget left</p>
-                <p className={cn(
-                  "font-mono font-bold text-2xl",
-                  isOverBudget ? "text-red-500" : "text-amber-500"
-                )}>
-                  {formatTime(Math.abs(budgetRemaining || 0))}
-                </p>
-                <p className="text-xs text-gray-500 mt-1">
-                  {isMonthlyBudget ? "/this month" : "/in total"}
-                </p>
+          <div className="flex flex-wrap gap-2">
+            {sortedActivities.map((activity) => (
+              <div
+                key={activity.id}
+                className="flex items-center space-x-1 px-3 py-1.5 rounded-md text-black"
+                style={{ backgroundColor: getActivityColor(activity.type) }}
+              >
+                <span className="font-mono">{formatTime(activity.hours)}</span>
+                <span>#{activity.type}</span>
               </div>
-            )}
-            
-            {!hasBudget && (
-              <div>
-                <p className="text-sm text-gray-400 mb-1">Budget</p>
-                <p className="font-mono font-bold text-2xl text-gray-500">
-                  Not set
-                </p>
-              </div>
-            )}
-          </div>
-          
-          <div className="mt-auto">
-            <ProjectActivities activities={project.activities} />
+            ))}
           </div>
         </div>
       </div>
-      
-      <EditProjectDialog 
-        open={showEditDialog}
-        onOpenChange={setShowEditDialog}
-        project={project}
-        editedProject={editedProject}
-        setEditedProject={setEditedProject}
-        onSave={handleSaveChanges}
-      />
-
-      <ProjectSettingsDialog 
-        open={showSettingsDialog}
-        onOpenChange={setShowSettingsDialog}
-        project={project}
-        editedProject={editedProject}
-        setEditedProject={setEditedProject}
-        onActivityVisibilityChange={handleActivityVisibilityChange}
-        onSave={handleSaveSettings}
-      />
-    </>
+    </div>
   );
-};
-
-// Helper function for formatting time
-const formatTime = (hours: number): string => {
-  const h = Math.floor(hours);
-  const m = Math.round((hours - h) * 60);
-  
-  return `${h}:${m.toString().padStart(2, '0')}`;
 };
 
 export default ProjectCard;

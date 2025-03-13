@@ -1,37 +1,49 @@
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { GoogleOAuthProvider, useGoogleLogin } from '@react-oauth/google';
-import { GoogleAuthState } from '@/lib/types';
-import { toast } from '@/components/ui/use-toast';
-
-// This is a public OAuth client ID that's meant to be used with http://localhost or the deployed app domain
-// You should replace this with your own Google OAuth Client ID for production use
-const GOOGLE_CLIENT_ID = '238356005706-p3un444dbhbhqbb8opj5pg31o36ggqkf.apps.googleusercontent.com';
-
-interface GoogleAuthContextType {
-  authState: GoogleAuthState;
-  login: () => void;
-  logout: () => void;
-  isLoading: boolean;
-  refreshToken: () => Promise<string | null>;
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  imageUrl: string;
 }
 
-const defaultAuthState: GoogleAuthState = {
-  isAuthenticated: false,
-  token: null,
-  profile: null,
-  tokenExpiry: null
-};
+interface AuthState {
+  isAuthenticated: boolean;
+  user: User | null;
+  accessToken: string | null;
+}
+
+interface GoogleAuthContextType {
+  authState: AuthState;
+  signIn: () => void;
+  signOut: () => void;
+  getAccessToken: () => Promise<string>;
+}
 
 const GoogleAuthContext = createContext<GoogleAuthContextType | undefined>(undefined);
 
-export const GoogleAuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [authState, setAuthState] = useState<GoogleAuthState>(() => {
-    const savedAuth = localStorage.getItem('googleAuth');
-    return savedAuth ? JSON.parse(savedAuth) : defaultAuthState;
-  });
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+// Your Google OAuth client ID
+const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+const SCOPES = [
+  'https://www.googleapis.com/auth/calendar.readonly',
+  'https://www.googleapis.com/auth/calendar.events.readonly',
+  'profile',
+  'email'
+].join(' ');
 
+export function GoogleAuthProvider({ children }: { children: React.ReactNode }) {
+  const navigate = useNavigate();
+  const [authState, setAuthState] = useState<AuthState>(() => {
+    const savedAuth = localStorage.getItem('googleAuth');
+    return savedAuth ? JSON.parse(savedAuth) : {
+      isAuthenticated: false,
+      user: null,
+      accessToken: null
+    };
+  });
+
+  // Persist auth state to localStorage
   useEffect(() => {
     if (authState.isAuthenticated) {
       localStorage.setItem('googleAuth', JSON.stringify(authState));
@@ -40,137 +52,139 @@ export const GoogleAuthProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }
   }, [authState]);
 
-  // Check if token is expired
-  const isTokenExpired = () => {
-    if (!authState.tokenExpiry) return true;
-    
-    // Add a 5-minute buffer before expiration to refresh token
-    const expiryTime = new Date(authState.tokenExpiry).getTime();
-    const currentTime = new Date().getTime();
-    const fiveMinutesInMs = 5 * 60 * 1000;
-    
-    return currentTime + fiveMinutesInMs >= expiryTime;
-  };
+  // Load the Google API client library
+  useEffect(() => {
+    const script = document.createElement('script');
+    script.src = 'https://apis.google.com/js/api.js';
+    script.onload = initializeGoogleAuth;
+    document.body.appendChild(script);
 
-  const refreshToken = async (): Promise<string | null> => {
-    if (!authState.isAuthenticated) {
-      return null;
-    }
+    return () => {
+      document.body.removeChild(script);
+    };
+  }, []);
 
-    if (isTokenExpired()) {
-      console.log('Token expired or missing, attempting to re-login');
-      try {
-        setIsLoading(true);
-        // Handle re-login if needed
-        await logout();
-        toast({
-          variant: "destructive",
-          title: "Session expired",
-          description: "Please reconnect your Google Calendar",
-        });
-        return null;
-      } finally {
-        setIsLoading(false);
-      }
-    }
-
-    return authState.token;
-  };
-
-  const googleLogin = useGoogleLogin({
-    onSuccess: async (response) => {
-      try {
-        setIsLoading(true);
-        console.log('Google login successful, fetching user profile');
-        
-        // Calculate token expiry (default OAuth tokens last 1 hour)
-        const now = new Date();
-        const expiryTime = new Date(now.getTime() + response.expires_in * 1000);
-        
-        // Get user profile info
-        const profileResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-          headers: {
-            Authorization: `Bearer ${response.access_token}`
+  const initializeGoogleAuth = () => {
+    window.gapi.load('client:auth2', () => {
+      window.gapi.client
+        .init({
+          clientId: CLIENT_ID,
+          scope: SCOPES,
+          plugin_name: 'timetracker2400'
+        })
+        .then(() => {
+          // Check if user is already signed in
+          const authInstance = window.gapi.auth2.getAuthInstance();
+          const isSignedIn = authInstance.isSignedIn.get();
+          
+          if (isSignedIn) {
+            const googleUser = authInstance.currentUser.get();
+            handleAuthSuccess(googleUser);
           }
-        });
-        
-        if (!profileResponse.ok) {
-          throw new Error('Failed to fetch user profile');
-        }
-        
-        const profileData = await profileResponse.json();
-        
-        setAuthState({
-          isAuthenticated: true,
-          token: response.access_token,
-          profile: {
-            name: profileData.name,
-            email: profileData.email,
-            picture: profileData.picture
-          },
-          tokenExpiry: expiryTime.toISOString()
-        });
-        
-        toast({
-          title: "Success!",
-          description: "Connected to Google Calendar",
-        });
-      } catch (error) {
-        console.error('Google auth error:', error);
-        toast({
-          variant: "destructive",
-          title: "Authentication failed",
-          description: "Could not connect to Google Calendar",
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    scope: 'https://www.googleapis.com/auth/calendar.readonly',
-    onError: (error) => {
-      console.error('Login Failed:', error);
-      toast({
-        variant: "destructive",
-        title: "Authentication failed",
-        description: "Could not connect to Google Calendar",
-      });
-      setIsLoading(false);
-    }
-  });
 
-  const login = () => {
-    setIsLoading(true);
-    googleLogin();
+          // Listen for sign-in state changes
+          authInstance.isSignedIn.listen((signedIn: boolean) => {
+            if (!signedIn) {
+              handleSignOut();
+            }
+          });
+        })
+        .catch(console.error);
+    });
   };
 
-  const logout = async () => {
-    setAuthState(defaultAuthState);
-    toast({
-      description: "Disconnected from Google Calendar",
+  const handleAuthSuccess = (googleUser: any) => {
+    const profile = googleUser.getBasicProfile();
+    const accessToken = googleUser.getAuthResponse().access_token;
+
+    const newAuthState = {
+      isAuthenticated: true,
+      user: {
+        id: profile.getId(),
+        name: profile.getName(),
+        email: profile.getEmail(),
+        imageUrl: profile.getImageUrl()
+      },
+      accessToken
+    };
+
+    setAuthState(newAuthState);
+    localStorage.setItem('googleAuth', JSON.stringify(newAuthState));
+
+    // Redirect to home page after successful login
+    navigate('/', { replace: true });
+  };
+
+  const signIn = () => {
+    if (!window.gapi) {
+      console.error('Google API client not loaded');
+      return;
+    }
+
+    const authInstance = window.gapi.auth2.getAuthInstance();
+    authInstance
+      .signIn()
+      .then(handleAuthSuccess)
+      .catch((error: Error) => {
+        console.error('Error signing in:', error);
+      });
+  };
+
+  const signOut = () => {
+    if (!window.gapi) {
+      console.error('Google API client not loaded');
+      return;
+    }
+
+    const authInstance = window.gapi.auth2.getAuthInstance();
+    authInstance
+      .signOut()
+      .then(handleSignOut)
+      .catch(console.error);
+  };
+
+  const handleSignOut = () => {
+    setAuthState({
+      isAuthenticated: false,
+      user: null,
+      accessToken: null
     });
-    return true;
+    localStorage.removeItem('googleAuth');
+    navigate('/login', { replace: true });
+  };
+
+  const getAccessToken = async (): Promise<string> => {
+    if (!authState.accessToken) {
+      throw new Error('No access token available');
+    }
+    return authState.accessToken;
   };
 
   return (
-    <GoogleAuthContext.Provider value={{ authState, login, logout, isLoading, refreshToken }}>
+    <GoogleAuthContext.Provider
+      value={{
+        authState,
+        signIn,
+        signOut,
+        getAccessToken
+      }}
+    >
       {children}
     </GoogleAuthContext.Provider>
   );
-};
+}
 
-// Important: The GoogleOAuthProvider must be a separate component to avoid invalid hook call errors
-export const GoogleAuthProviderWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  return (
-    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-      <GoogleAuthProvider>{children}</GoogleAuthProvider>
-    </GoogleOAuthProvider>
-  );
-};
-
-export const useGoogleAuth = () => {
+export function useGoogleAuth() {
   const context = useContext(GoogleAuthContext);
   if (context === undefined) {
     throw new Error('useGoogleAuth must be used within a GoogleAuthProvider');
   }
   return context;
-};
+}
+
+// Add type definition for window.gapi
+declare global {
+  interface Window {
+    gapi: any;
+  }
+}
