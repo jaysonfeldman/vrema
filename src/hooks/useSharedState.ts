@@ -44,7 +44,7 @@ export const useSharedState = create<SharedState>((set) => ({
   filters: {
     searchTerm: '',
     project: 'All',
-    dateRange: 'month',
+    dateRange: 'week',
     activity: 'All',
     selectedProjects: [],
     selectedActivities: [],

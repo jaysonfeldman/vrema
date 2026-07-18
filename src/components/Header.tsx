@@ -7,11 +7,11 @@ import { Button } from '@/components/ui/button';
 import { useCalendarSync } from '@/hooks/useCalendarSync';
 import { useSharedState } from '@/hooks/useSharedState';
 import { useToast } from '@/components/ui/use-toast';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, LogOut } from 'lucide-react';
 
 export default function Header() {
   const location = useLocation();
-  const { authState } = useGoogleAuth();
+  const { authState, signOut } = useGoogleAuth();
   const { syncCalendar, lastSynced } = useCalendarSync();
   const { isLoading } = useSharedState();
   const { toast } = useToast();
@@ -90,11 +90,20 @@ export default function Header() {
           )}
 
           {authState.isAuthenticated ? (
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2">
               <Avatar className="h-8 w-8">
                 <AvatarImage src={authState.user?.imageUrl} />
                 <AvatarFallback>{authState.user?.name?.charAt(0)}</AvatarFallback>
               </Avatar>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={signOut}
+                title="Sign out"
+                className="text-gray-500 hover:text-gray-900"
+              >
+                <LogOut className="w-4 h-4" />
+              </Button>
             </div>
           ) : (
             <Link

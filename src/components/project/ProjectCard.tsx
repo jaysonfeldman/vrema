@@ -1,9 +1,9 @@
 import React from 'react';
 import { Project } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { AvatarGroup } from '../ui/avatar-group';
-import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { useSharedState } from '@/hooks/useSharedState';
+import { formatHours } from '@/lib/eventStats';
+import ActivityPieChart from '@/components/charts/ActivityPieChart';
 import { Button } from '../ui/button';
 import { Settings2 } from 'lucide-react';
 
@@ -23,14 +23,6 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
 }) => {
   const { activityColors } = useSharedState();
 
-  // Format time function
-  const formatTime = (hours: number): string => {
-    const h = Math.floor(hours);
-    const m = Math.round((hours - h) * 60);
-    return `${h}:${m.toString().padStart(2, '0')}`;
-  };
-
-  // Format currency
   const formatCurrency = (amount: number): string => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -86,7 +78,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
         <div className="grid grid-cols-3 gap-6">
           <div>
             <p className="text-sm text-zinc-400 mb-1">Time logged</p>
-            <p className="font-mono text-2xl">{formatTime(project.totalHours)}</p>
+            <p className="font-mono text-2xl">{formatHours(project.totalHours)}</p>
           </div>
           
           <div>
@@ -101,7 +93,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
             {project.budgetHours ? (
               <>
                 <p className="font-mono text-2xl text-amber-500">
-                  {formatTime(project.budgetHours - project.totalHours)}
+                  {formatHours(project.budgetHours - project.totalHours)}
                 </p>
                 <p className="text-xs text-zinc-500 mt-1">
                   /month
@@ -114,37 +106,23 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
         </div>
 
         {/* Activities */}
-        <div>
-          <p className="text-sm text-zinc-400 mb-1">Activities</p>
-          <div className="h-2 bg-zinc-800 rounded-full mb-2 overflow-hidden">
-            {sortedActivities.map((activity) => {
-              const totalHours = project.activities.reduce((sum, a) => sum + a.hours, 0);
-              const widthPercent = (activity.hours / totalHours) * 100;
-              
-              return (
-                <div 
-                  key={activity.id} 
-                  className="h-full float-left"
-                  style={{ 
-                    width: `${widthPercent}%`,
-                    backgroundColor: getActivityColor(activity.type)
-                  }}
-                />
-              );
-            })}
-          </div>
-          
-          <div className="flex flex-wrap gap-1">
-            {sortedActivities.map((activity) => (
-              <div
-                key={activity.id}
-                className="flex items-center space-x-0.5 px-1.5 py-0.5 rounded text-[10px] text-black"
-                style={{ backgroundColor: getActivityColor(activity.type) }}
-              >
-                <span className="font-mono">{formatTime(activity.hours)}</span>
-                <span>#{activity.type}</span>
-              </div>
-            ))}
+        <div className="grid grid-cols-[140px_1fr] gap-4 items-center">
+          <ActivityPieChart project={project} />
+
+          <div>
+            <p className="text-sm text-zinc-400 mb-2">Activities</p>
+            <div className="flex flex-wrap gap-1">
+              {sortedActivities.map((activity) => (
+                <div
+                  key={activity.id}
+                  className="flex items-center space-x-0.5 px-1.5 py-0.5 rounded text-[10px] text-black"
+                  style={{ backgroundColor: getActivityColor(activity.type) }}
+                >
+                  <span className="font-mono">{formatHours(activity.hours)}</span>
+                  <span>#{activity.type}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>

@@ -1,5 +1,6 @@
 import React from 'react';
 import { useSharedState } from '@/hooks/useSharedState';
+import { useProjectStats } from '@/hooks/useProjectStats';
 import ProjectCard from '@/components/project/ProjectCard';
 import ProjectSettingsDialog from '@/components/project/ProjectSettingsDialog';
 import { Button } from './ui/button';
@@ -10,7 +11,8 @@ import { Project } from '@/lib/types';
 import { useToast } from './ui/use-toast';
 
 export default function ProjectsOverview() {
-  const { customProjects, isLoading, setCustomProjects } = useSharedState();
+  const { isLoading, customProjects, setCustomProjects } = useSharedState();
+  const { filteredProjects } = useProjectStats();
   const [sortBy, setSortBy] = React.useState('Most tracked hours');
   const [selectedProject, setSelectedProject] = React.useState<Project | null>(null);
   const { toast } = useToast();
@@ -20,16 +22,32 @@ export default function ProjectsOverview() {
   };
 
   const handleSaveProjectSettings = (updatedProject: Project) => {
-    setCustomProjects(
-      customProjects.map(p => 
-        p.id === updatedProject.id ? updatedProject : p
-      )
-    );
+    const existing = customProjects.find((project) => project.id === updatedProject.id);
+    const nextProjects = existing
+      ? customProjects.map((project) => (project.id === updatedProject.id ? updatedProject : project))
+      : [...customProjects, updatedProject];
+
+    setCustomProjects(nextProjects);
     toast({
       title: "Project updated",
       description: "Project settings have been saved successfully.",
     });
   };
+
+  const sortedProjects = React.useMemo(() => {
+    const projects = [...filteredProjects];
+
+    switch (sortBy) {
+      case 'Least tracked hours':
+        return projects.sort((a, b) => a.totalHours - b.totalHours);
+      case 'Name (A-Z)':
+        return projects.sort((a, b) => a.name.localeCompare(b.name));
+      case 'Name (Z-A)':
+        return projects.sort((a, b) => b.name.localeCompare(a.name));
+      default:
+        return projects.sort((a, b) => b.totalHours - a.totalHours);
+    }
+  }, [filteredProjects, sortBy]);
 
   if (isLoading) {
     return (
@@ -39,13 +57,13 @@ export default function ProjectsOverview() {
     );
   }
 
-  if (!customProjects || customProjects.length === 0) {
+  if (!sortedProjects || sortedProjects.length === 0) {
     return (
       <div className="text-center py-12">
         <h3 className="text-lg font-medium">No projects found</h3>
         <p className="text-muted-foreground mt-2">
-          Add a calendar event with a title like "projectname#activity description"<br />
-          For example: "marvel#design making the homepage"
+          Name calendar events like <code className="text-zinc-700">mx#design user flows</code><br />
+          where <strong>mx</strong> is the project, <strong>design</strong> is the activity, and <strong>user flows</strong> is the description.
         </p>
       </div>
     );
@@ -91,7 +109,7 @@ export default function ProjectsOverview() {
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {customProjects.map((project) => (
+        {sortedProjects.map((project) => (
           <ProjectCard
             key={project.id}
             project={project}

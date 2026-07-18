@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useGoogleLogin } from '@react-oauth/google';
+import { DEV_ACCESS_TOKEN, isDevAuthBypass } from '@/lib/dev-auth';
 
 interface User {
   id: string;
@@ -12,38 +14,61 @@ interface AuthState {
   isAuthenticated: boolean;
   user: User | null;
   accessToken: string | null;
+  expiresAt?: number | null;
 }
 
 interface GoogleAuthContextType {
   authState: AuthState;
   signIn: () => void;
+  signInDev: () => void;
   signOut: () => void;
   getAccessToken: () => Promise<string>;
+  isDevAuthBypass: boolean;
 }
 
 const GoogleAuthContext = createContext<GoogleAuthContextType | undefined>(undefined);
 
-// Your Google OAuth client ID
-const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 const SCOPES = [
   'https://www.googleapis.com/auth/calendar.readonly',
   'https://www.googleapis.com/auth/calendar.events.readonly',
+  'openid',
   'profile',
-  'email'
+  'email',
 ].join(' ');
+
+const emptyState: AuthState = {
+  isAuthenticated: false,
+  user: null,
+  accessToken: null,
+  expiresAt: null,
+};
 
 export function GoogleAuthProvider({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
   const [authState, setAuthState] = useState<AuthState>(() => {
     const savedAuth = localStorage.getItem('googleAuth');
-    return savedAuth ? JSON.parse(savedAuth) : {
-      isAuthenticated: false,
-      user: null,
-      accessToken: null
-    };
+    if (!savedAuth) {
+      return emptyState;
+    }
+
+    const parsed = JSON.parse(savedAuth) as AuthState;
+
+    // Ignore a stale dev-bypass session when dev mode is off (and vice versa).
+    const isDevSession = parsed.accessToken === DEV_ACCESS_TOKEN;
+    if (isDevSession !== isDevAuthBypass) {
+      localStorage.removeItem('googleAuth');
+      return emptyState;
+    }
+
+    // Drop expired real sessions so the user is prompted to sign in again.
+    if (!isDevSession && parsed.expiresAt && Date.now() >= parsed.expiresAt) {
+      localStorage.removeItem('googleAuth');
+      return emptyState;
+    }
+
+    return parsed;
   });
 
-  // Persist auth state to localStorage
   useEffect(() => {
     if (authState.isAuthenticated) {
       localStorage.setItem('googleAuth', JSON.stringify(authState));
@@ -52,111 +77,94 @@ export function GoogleAuthProvider({ children }: { children: React.ReactNode }) 
     }
   }, [authState]);
 
-  // Load the Google API client library
-  useEffect(() => {
-    const script = document.createElement('script');
-    script.src = 'https://apis.google.com/js/api.js';
-    script.onload = initializeGoogleAuth;
-    document.body.appendChild(script);
-
-    return () => {
-      document.body.removeChild(script);
-    };
-  }, []);
-
-  const initializeGoogleAuth = () => {
-    window.gapi.load('client:auth2', () => {
-      window.gapi.client
-        .init({
-          clientId: CLIENT_ID,
-          scope: SCOPES,
-          plugin_name: 'timetracker2400'
-        })
-        .then(() => {
-          // Check if user is already signed in
-          const authInstance = window.gapi.auth2.getAuthInstance();
-          const isSignedIn = authInstance.isSignedIn.get();
-          
-          if (isSignedIn) {
-            const googleUser = authInstance.currentUser.get();
-            handleAuthSuccess(googleUser);
-          }
-
-          // Listen for sign-in state changes
-          authInstance.isSignedIn.listen((signedIn: boolean) => {
-            if (!signedIn) {
-              handleSignOut();
-            }
-          });
-        })
-        .catch(console.error);
-    });
-  };
-
-  const handleAuthSuccess = (googleUser: any) => {
-    const profile = googleUser.getBasicProfile();
-    const accessToken = googleUser.getAuthResponse().access_token;
-
-    const newAuthState = {
-      isAuthenticated: true,
-      user: {
-        id: profile.getId(),
-        name: profile.getName(),
-        email: profile.getEmail(),
-        imageUrl: profile.getImageUrl()
-      },
-      accessToken
-    };
-
-    setAuthState(newAuthState);
-    localStorage.setItem('googleAuth', JSON.stringify(newAuthState));
-
-    // Redirect to home page after successful login
-    navigate('/', { replace: true });
-  };
-
-  const signIn = () => {
-    if (!window.gapi) {
-      console.error('Google API client not loaded');
-      return;
-    }
-
-    const authInstance = window.gapi.auth2.getAuthInstance();
-    authInstance
-      .signIn()
-      .then(handleAuthSuccess)
-      .catch((error: Error) => {
-        console.error('Error signing in:', error);
-      });
-  };
-
-  const signOut = () => {
-    if (!window.gapi) {
-      console.error('Google API client not loaded');
-      return;
-    }
-
-    const authInstance = window.gapi.auth2.getAuthInstance();
-    authInstance
-      .signOut()
-      .then(handleSignOut)
-      .catch(console.error);
-  };
-
   const handleSignOut = () => {
-    setAuthState({
-      isAuthenticated: false,
-      user: null,
-      accessToken: null
-    });
+    setAuthState(emptyState);
     localStorage.removeItem('googleAuth');
     navigate('/login', { replace: true });
   };
 
+  const login = useGoogleLogin({
+    scope: SCOPES,
+    onSuccess: async (tokenResponse) => {
+      try {
+        const accessToken = tokenResponse.access_token;
+        const expiresAt = Date.now() + (tokenResponse.expires_in ?? 3600) * 1000;
+
+        const profileResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+
+        if (!profileResponse.ok) {
+          throw new Error('Failed to load Google profile');
+        }
+
+        const profile = await profileResponse.json();
+
+        const newAuthState: AuthState = {
+          isAuthenticated: true,
+          user: {
+            id: profile.sub,
+            name: profile.name ?? profile.email ?? 'User',
+            email: profile.email ?? '',
+            imageUrl: profile.picture ?? '',
+          },
+          accessToken,
+          expiresAt,
+        };
+
+        setAuthState(newAuthState);
+        navigate('/', { replace: true });
+      } catch (error) {
+        console.error('Error completing Google sign-in:', error);
+      }
+    },
+    onError: (error) => {
+      console.error('Google sign-in failed:', error);
+    },
+  });
+
+  const signInDev = () => {
+    setAuthState({
+      isAuthenticated: true,
+      user: {
+        id: 'dev-user',
+        name: 'Dev User',
+        email: 'dev@localhost',
+        imageUrl: '',
+      },
+      accessToken: DEV_ACCESS_TOKEN,
+      expiresAt: null,
+    });
+    navigate('/', { replace: true });
+  };
+
+  const signIn = () => {
+    if (isDevAuthBypass) {
+      signInDev();
+      return;
+    }
+
+    login();
+  };
+
+  const signOut = () => {
+    handleSignOut();
+  };
+
   const getAccessToken = async (): Promise<string> => {
+    if (authState.accessToken === DEV_ACCESS_TOKEN) {
+      return DEV_ACCESS_TOKEN;
+    }
+
     if (!authState.accessToken) {
       throw new Error('No access token available');
     }
+
+    if (authState.expiresAt && Date.now() >= authState.expiresAt) {
+      handleSignOut();
+      throw new Error('Session expired - please sign in again');
+    }
+
     return authState.accessToken;
   };
 
@@ -165,8 +173,10 @@ export function GoogleAuthProvider({ children }: { children: React.ReactNode }) 
       value={{
         authState,
         signIn,
+        signInDev,
         signOut,
-        getAccessToken
+        getAccessToken,
+        isDevAuthBypass,
       }}
     >
       {children}
@@ -180,11 +190,4 @@ export function useGoogleAuth() {
     throw new Error('useGoogleAuth must be used within a GoogleAuthProvider');
   }
   return context;
-}
-
-// Add type definition for window.gapi
-declare global {
-  interface Window {
-    gapi: any;
-  }
 }

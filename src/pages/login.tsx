@@ -1,10 +1,12 @@
 import React from 'react';
-import { useNavigate, Navigate } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
 import { useGoogleAuth } from '@/providers/GoogleAuthProvider';
 import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export default function Login() {
-  const { signIn, authState } = useGoogleAuth();
+  const { signIn, signInDev, authState, isDevAuthBypass } = useGoogleAuth();
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
 
   // If already authenticated, redirect to home
   if (authState.isAuthenticated) {
@@ -24,6 +26,22 @@ export default function Login() {
         </div>
 
         <div className="bg-white border border-gray-200 rounded-lg p-8 space-y-6">
+          {!isDevAuthBypass && (
+            <Alert>
+              <AlertTitle>Google OAuth setup required</AlertTitle>
+              <AlertDescription className="space-y-2">
+                <p>
+                  Add this exact origin in Google Cloud Console under your OAuth client&apos;s
+                  <strong> Authorized JavaScript origins</strong>:
+                </p>
+                <code className="block rounded bg-gray-100 px-2 py-1 text-sm">{origin}</code>
+                <p className="text-xs text-gray-500">
+                  Credentials → OAuth 2.0 Client IDs → edit client → save → wait 1–2 minutes.
+                </p>
+              </AlertDescription>
+            </Alert>
+          )}
+
           <div className="space-y-2 text-sm text-gray-500">
             <p>By connecting your Google Calendar, you can:</p>
             <ul className="list-disc list-inside space-y-1">
@@ -33,24 +51,34 @@ export default function Login() {
             </ul>
           </div>
 
-          <Button
-            onClick={signIn}
-            className="w-full flex items-center justify-center space-x-2 py-6"
-          >
-            <svg className="w-5 h-5" viewBox="0 0 24 24">
-              <path
-                fill="currentColor"
-                d="M21.35 11.1h-9.17v2.73h6.51c-.33 3.81-3.5 5.44-6.5 5.44C8.36 19.27 5 16.25 5 12c0-4.1 3.2-7.27 7.2-7.27c3.09 0 4.9 1.97 4.9 1.97L19 4.72S16.56 2 12.1 2C6.42 2 2.03 6.8 2.03 12c0 5.05 4.13 10 10.22 10c5.35 0 9.25-3.67 9.25-9.09c0-1.15-.15-1.81-.15-1.81Z"
-              />
-            </svg>
-            <span>Continue with Google</span>
-          </Button>
+          {!isDevAuthBypass && (
+            <Button
+              onClick={signIn}
+              className="w-full flex items-center justify-center space-x-2 py-6"
+            >
+              <svg className="w-5 h-5" viewBox="0 0 24 24">
+                <path
+                  fill="currentColor"
+                  d="M21.35 11.1h-9.17v2.73h6.51c-.33 3.81-3.5 5.44-6.5 5.44C8.36 19.27 5 16.25 5 12c0-4.1 3.2-7.27 7.2-7.27c3.09 0 4.9 1.97 4.9 1.97L19 4.72S16.56 2 12.1 2C6.42 2 2.03 6.8 2.03 12c0 5.05 4.13 10 10.22 10c5.35 0 9.25-3.67 9.25-9.09c0-1.15-.15-1.81-.15-1.81Z"
+                />
+              </svg>
+              <span>Continue with Google</span>
+            </Button>
+          )}
+
+          {isDevAuthBypass && (
+            <Button onClick={signInDev} className="w-full py-6">
+              Continue with sample data (dev mode)
+            </Button>
+          )}
 
           <p className="text-xs text-center text-gray-400">
-            We only request access to your calendar events. You can revoke access at any time.
+            {isDevAuthBypass
+              ? 'Dev mode is on. Google sign-in is bypassed with sample calendar events.'
+              : 'We only request access to your calendar events. You can revoke access at any time.'}
           </p>
         </div>
       </div>
     </div>
   );
-} 
+}

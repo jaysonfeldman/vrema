@@ -1,102 +1,43 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { useSharedState } from '@/hooks/useSharedState';
+import { useProjectStats } from '@/hooks/useProjectStats';
+import { formatHours, getDateRange } from '@/lib/eventStats';
 import { Button } from './ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { AvatarGroup } from './ui/avatar-group';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 
 export default function TotalHoursView() {
-  const { customProjects, activityColors, filters, updateFilters } = useSharedState();
+  const { activityColors, filters, updateFilters } = useSharedState();
+  const { filteredProjects, allProjects } = useProjectStats();
 
-  // Calculate date range based on selected filter
-  useEffect(() => {
-    const now = new Date();
-    let startDate = new Date();
-    let endDate = new Date();
-
-    switch (filters.dateRange) {
-      case 'day':
-        startDate.setHours(0, 0, 0, 0);
-        endDate.setHours(23, 59, 59, 999);
-        break;
-      case 'week':
-        // Get current day (0 = Sunday, 1 = Monday, ..., 6 = Saturday)
-        const currentDay = now.getDay();
-        // Calculate days to subtract to get to Monday (if Sunday, subtract 6, if Monday subtract 0, etc)
-        const daysToMonday = currentDay === 0 ? 6 : currentDay - 1;
-        
-        // Set to Monday
-        startDate.setDate(now.getDate() - daysToMonday);
-        startDate.setHours(0, 0, 0, 0);
-        
-        // Set to Sunday (6 days after Monday)
-        endDate = new Date(startDate);
-        endDate.setDate(startDate.getDate() + 6);
-        endDate.setHours(23, 59, 59, 999);
-        break;
-      case 'month':
-        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-        endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
-        break;
-      case 'year':
-        startDate = new Date(now.getFullYear(), 0, 1);
-        endDate = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
-        break;
-      case 'all':
-        startDate = new Date(0);
-        endDate = new Date(8640000000000000);
-        break;
-    }
-
-    updateFilters({ startDate, endDate });
-  }, [filters.dateRange, updateFilters]);
+  const { startDate: rangeStart, endDate: rangeEnd } = useMemo(
+    () => getDateRange(filters.dateRange),
+    [filters.dateRange]
+  );
 
   // Filter projects and activities based on selected filters
   const filteredData = useMemo(() => {
-    let projects = [...customProjects];
+    let projects = [...filteredProjects];
 
-    // Filter by date range
-    projects = projects.map(project => ({
-      ...project,
-      activities: project.activities.filter(activity => {
-        const activityDate = new Date(activity.date);
-        
-        if (filters.dateRange === 'day') {
-          // For 'day' filter, compare year, month, and day
-          const today = filters.startDate!;
-          return activityDate.getFullYear() === today.getFullYear() &&
-                 activityDate.getMonth() === today.getMonth() &&
-                 activityDate.getDate() === today.getDate();
-        }
-        
-        // For other ranges, use the start/end date comparison
-        return activityDate >= filters.startDate! && activityDate <= filters.endDate!;
-      })
-    }));
-
-    // Filter by project
     if (filters.project !== 'All') {
-      projects = projects.filter(project => project.id === filters.project);
+      projects = projects.filter((project) => project.id === filters.project);
     }
 
-    // Filter by activity
     if (filters.activity !== 'All') {
-      projects = projects.map(project => ({
+      projects = projects.map((project) => ({
         ...project,
-        activities: project.activities.filter(activity => 
-          activity.type.toLowerCase() === filters.activity.toLowerCase()
-        )
+        activities: project.activities.filter(
+          (activity) => activity.type.toLowerCase() === filters.activity.toLowerCase()
+        ),
       }));
     }
 
-    // Recalculate total hours
-    projects = projects.map(project => ({
+    return projects.map((project) => ({
       ...project,
-      totalHours: project.activities.reduce((sum, activity) => sum + activity.hours, 0)
+      totalHours: project.activities.reduce((sum, activity) => sum + activity.hours, 0),
     }));
-
-    return projects;
-  }, [customProjects, filters]);
+  }, [filteredProjects, filters.project, filters.activity]);
 
   // Calculate total hours and merged activities
   const totalHours = filteredData.reduce((sum, project) => sum + project.totalHours, 0);
@@ -115,13 +56,6 @@ export default function TotalHoursView() {
   // Sort activities by hours (highest to lowest)
   const sortedActivities = [...mergedActivities].sort((a, b) => b.hours - a.hours);
 
-  // Format time helper
-  const formatTime = (hours: number): string => {
-    const h = Math.floor(hours);
-    const m = Math.round((hours - h) * 60);
-    return `${h}:${m.toString().padStart(2, '0')}`;
-  };
-
   // Get activity color from shared state
   const getActivityColor = (type: string): string => {
     const activityColor = activityColors.find(ac => ac.type.toLowerCase() === type.toLowerCase());
@@ -131,30 +65,28 @@ export default function TotalHoursView() {
 
   // Format date range display
   const getDateRangeDisplay = () => {
-    if (!filters.startDate || !filters.endDate) return '';
-
     switch (filters.dateRange) {
       case 'day':
-        return filters.startDate.toLocaleDateString('en-GB', { 
+        return rangeStart.toLocaleDateString('en-GB', {
           day: 'numeric',
           month: 'numeric',
           year: 'numeric'
         });
       case 'week':
-        return `${filters.startDate.toLocaleDateString('en-GB', { 
+        return `${rangeStart.toLocaleDateString('en-GB', {
           day: 'numeric',
           month: 'numeric'
-        })} - ${filters.endDate.toLocaleDateString('en-GB', { 
+        })} - ${rangeEnd.toLocaleDateString('en-GB', {
           day: 'numeric',
           month: 'numeric'
         })}`;
       case 'month':
-        return filters.startDate.toLocaleDateString('en-GB', { 
+        return rangeStart.toLocaleDateString('en-GB', {
           month: 'long',
           year: 'numeric'
         });
       case 'year':
-        return filters.startDate.getFullYear().toString();
+        return rangeStart.getFullYear().toString();
       default:
         return 'All time';
     }
@@ -187,7 +119,7 @@ export default function TotalHoursView() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="All">All projects</SelectItem>
-              {customProjects.map(project => (
+              {allProjects.map(project => (
                 <SelectItem key={project.id} value={project.id}>
                   {project.name}
                 </SelectItem>
@@ -201,7 +133,7 @@ export default function TotalHoursView() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="All">All activities</SelectItem>
-              {Array.from(new Set(customProjects.flatMap(p => p.activities.map(a => a.type)))).map((type) => (
+              {Array.from(new Set(allProjects.flatMap(p => p.activities.map(a => a.type)))).map((type) => (
                 <SelectItem key={type} value={type}>
                   {type}
                 </SelectItem>
@@ -245,7 +177,7 @@ export default function TotalHoursView() {
         <div className="flex items-start space-x-12">
           <div>
             <p className="text-sm text-zinc-400 mb-2">Total hours</p>
-            <p className="text-5xl font-mono font-bold">{formatTime(totalHours)}</p>
+            <p className="text-5xl font-mono font-bold">{formatHours(totalHours)}</p>
           </div>
 
           <div className="flex-1">
@@ -273,7 +205,7 @@ export default function TotalHoursView() {
                   className="flex items-center space-x-1 px-2 py-1 rounded text-xs text-black"
                   style={{ backgroundColor: getActivityColor(activity.type) }}
                 >
-                  <span className="font-mono">{formatTime(activity.hours)}</span>
+                  <span className="font-mono">{formatHours(activity.hours)}</span>
                   <span>#{activity.type}</span>
                 </div>
               ))}
