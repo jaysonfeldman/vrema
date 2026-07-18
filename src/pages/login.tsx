@@ -18,7 +18,7 @@ export default function Login() {
       <div className="w-full max-w-md space-y-8">
         <div className="text-center">
           <h1 className="text-2xl font-medium tracking-tight">
-            Welcome to timetracker2400
+            Welcome to vrema
           </h1>
           <p className="mt-2 text-gray-500">
             Connect your Google Calendar to start tracking your time
