@@ -30,7 +30,7 @@ export default function ProjectDetail() {
       .sort((a, b) => new Date(b.start!.dateTime!).getTime() - new Date(a.start!.dateTime!).getTime());
   }, [events, project]);
 
-  const goBack = () => navigate('/');
+  const goBack = () => navigate('/app');
 
   if (!project) {
     return (

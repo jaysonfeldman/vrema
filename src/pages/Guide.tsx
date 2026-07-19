@@ -109,13 +109,13 @@ export default function Guide() {
         </div>
         <div className="space-y-3 text-sm leading-relaxed text-muted-foreground">
           <p>
-            Vrema is built to help you track time from Google Calendar. You block time on your
-            calendar like you normally would, give the event a short title, and Sync. No timers to
-            start or stop.
+            Your calendar already knows how you spend your day. Block time as you normally would,
+            give each event a short title, and sync. Vrema turns those events into clear projects,
+            activities, and hours. No timers to start or stop.
           </p>
           <p>
-            If you freelance for a few clients, use each client as the project name. Morning with
-            one client, afternoon with another, both show up as separate projects on your timesheet.
+            Title your events with this simple format. We’ll handle the categorization and time
+            tracking from there.
           </p>
           <p className="flex flex-wrap items-center gap-1.5">
             <span>Title format:</span>

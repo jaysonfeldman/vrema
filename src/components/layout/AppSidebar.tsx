@@ -19,7 +19,7 @@ import { useGoogleAuth } from '@/providers/GoogleAuthProvider';
 import { sound } from '@/lib/sounds';
 
 const navItems = [
-  { title: 'Dashboard', url: '/', icon: HomeIcon, end: true },
+  { title: 'Dashboard', url: '/app', icon: HomeIcon, end: true },
   { title: 'Guide', url: '/guide', icon: BookTextIcon },
   { title: 'Feedback', url: '/feedback', icon: MessageSquareIcon },
 ];

@@ -112,7 +112,7 @@ export function GoogleAuthProvider({ children }: { children: React.ReactNode }) 
         };
 
         setAuthState(newAuthState);
-        navigate('/', { replace: true });
+        navigate('/app', { replace: true });
       } catch (error) {
         console.error('Error completing Google sign-in:', error);
       }
@@ -134,7 +134,7 @@ export function GoogleAuthProvider({ children }: { children: React.ReactNode }) 
       accessToken: DEV_ACCESS_TOKEN,
       expiresAt: null,
     });
-    navigate('/', { replace: true });
+    navigate('/app', { replace: true });
   };
 
   const signIn = () => {

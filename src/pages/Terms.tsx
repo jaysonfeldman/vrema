@@ -1,0 +1,209 @@
+import { LegalPage } from '@/components/LegalPage';
+
+const EFFECTIVE_DATE = '19 July 2026';
+
+export default function Terms() {
+  return (
+    <LegalPage title="Terms of Service" effectiveDate={EFFECTIVE_DATE}>
+      <section className="space-y-3">
+        <p>
+          These Terms of Service (“Terms”) govern your access to and use of Vrema (the “Service”),
+          operated by Jayson Feldman (“we”, “us”, or “our”), located in the Netherlands.
+        </p>
+        <p>
+          By accessing or using the Service at{' '}
+          <a
+            href="https://vrema.dev/"
+            className="underline underline-offset-2 hover:text-neutral-950"
+          >
+            https://vrema.dev/
+          </a>
+          , you agree to these Terms. If you do not agree, do not use the Service.
+        </p>
+      </section>
+
+      <section className="space-y-3">
+        <h2>1. The Service</h2>
+        <p>
+          Vrema is a time tracking tool that reads events from your Google Calendar and helps you
+          organize them into projects, activities, and hours based on event titles and timing.
+        </p>
+        <p>
+          Features may change over time. We may add, modify, or remove functionality without prior
+          notice.
+        </p>
+      </section>
+
+      <section className="space-y-3">
+        <h2>2. Eligibility</h2>
+        <p>
+          You must be at least 16 years old and able to form a binding contract under applicable law
+          to use the Service. If you use the Service on behalf of an organization, you represent
+          that you have authority to bind that organization to these Terms.
+        </p>
+      </section>
+
+      <section className="space-y-3">
+        <h2>3. Accounts and Google access</h2>
+        <p>
+          To use Vrema, you must sign in with a Google account and grant the permissions we request,
+          including read-only access to Google Calendar data needed for time tracking.
+        </p>
+        <p>You are responsible for:</p>
+        <ul>
+          <li>Maintaining the security of your Google account</li>
+          <li>All activity that occurs through your use of the Service</li>
+          <li>Reviewing and managing the permissions you grant to Vrema in your Google account</li>
+        </ul>
+        <p>
+          You can revoke Vrema’s access at any time through Google account permissions. Revoking
+          access or signing out may limit or end your ability to use the Service.
+        </p>
+      </section>
+
+      <section className="space-y-3">
+        <h2>4. Acceptable use</h2>
+        <p>You agree not to:</p>
+        <ul>
+          <li>Use the Service for unlawful, harmful, or fraudulent purposes</li>
+          <li>Attempt to gain unauthorized access to the Service or related systems</li>
+          <li>Interfere with or disrupt the Service</li>
+          <li>Reverse engineer or attempt to extract source code except where allowed by law</li>
+          <li>Misrepresent your identity or affiliation</li>
+          <li>Use the Service in a way that violates Google’s terms or policies</li>
+          <li>Abuse feedback or support channels</li>
+        </ul>
+        <p>We may suspend or terminate access if we reasonably believe you have violated these Terms.</p>
+      </section>
+
+      <section className="space-y-3">
+        <h2>5. Your content and calendar data</h2>
+        <p>
+          You retain ownership of your calendar data and any other content you make available
+          through the Service. You grant us a limited license to process that data solely to provide
+          and improve the Service, as described in our Privacy Policy.
+        </p>
+        <p>
+          You are responsible for the accuracy of your calendar events and for choosing titles and
+          settings that produce the tracking results you want.
+        </p>
+      </section>
+
+      <section className="space-y-3">
+        <h2>6. Third-party services</h2>
+        <p>
+          The Service depends on third-party providers, including Google, Vercel, Supabase, and
+          Resend. Your use of Google services remains subject to Google’s terms and privacy
+          policies. We are not responsible for outages, changes, or decisions by third-party
+          providers that affect the Service.
+        </p>
+      </section>
+
+      <section className="space-y-3">
+        <h2>7. Intellectual property</h2>
+        <p>
+          Vrema, including its branding, interface, and software, is owned by Jayson Feldman or its
+          licensors. These Terms do not grant you any right to use our name, logo, or branding
+          except as needed to use the Service.
+        </p>
+      </section>
+
+      <section className="space-y-3">
+        <h2>8. No professional advice</h2>
+        <p>
+          Vrema provides time tracking tools and summaries. It does not provide legal, tax,
+          accounting, employment, or other professional advice. You are responsible for how you use
+          reports or exports generated by the Service.
+        </p>
+      </section>
+
+      <section className="space-y-3">
+        <h2>9. Disclaimer of warranties</h2>
+        <p>
+          The Service is provided on an “as is” and “as available” basis, without warranties of any
+          kind, whether express, implied, or statutory, including implied warranties of
+          merchantability, fitness for a particular purpose, and non-infringement.
+        </p>
+        <p>
+          We do not warrant that the Service will be uninterrupted, error-free, secure, or that
+          time tracking results will be complete or accurate for every calendar setup.
+        </p>
+      </section>
+
+      <section className="space-y-3">
+        <h2>10. Limitation of liability</h2>
+        <p>
+          To the maximum extent permitted by law, Jayson Feldman will not be liable for any
+          indirect, incidental, special, consequential, or punitive damages, or for any loss of
+          profits, revenue, data, goodwill, or business opportunities, arising out of or related to
+          your use of the Service.
+        </p>
+        <p>
+          To the maximum extent permitted by law, our total liability for any claim arising out of
+          or relating to the Service or these Terms is limited to the greater of (a) the amount you
+          paid us for the Service in the 12 months before the claim, or (b) fifty euros (€50).
+        </p>
+        <p>
+          Nothing in these Terms excludes or limits liability that cannot be excluded or limited
+          under applicable law, including liability for death or personal injury caused by
+          negligence, or for fraud.
+        </p>
+      </section>
+
+      <section className="space-y-3">
+        <h2>11. Indemnity</h2>
+        <p>
+          You agree to indemnify and hold harmless Jayson Feldman from claims, damages, losses, and
+          expenses (including reasonable legal fees) arising out of your use of the Service, your
+          content, or your violation of these Terms or applicable law.
+        </p>
+      </section>
+
+      <section className="space-y-3">
+        <h2>12. Termination</h2>
+        <p>
+          You may stop using the Service at any time and revoke Google access. We may suspend or
+          stop providing the Service, or end your access, at any time if needed for maintenance,
+          security, legal compliance, or if you violate these Terms.
+        </p>
+        <p>
+          Sections that by their nature should survive termination will survive, including
+          intellectual property, disclaimers, limitation of liability, indemnity, and governing law.
+        </p>
+      </section>
+
+      <section className="space-y-3">
+        <h2>13. Changes to the Service or Terms</h2>
+        <p>
+          We may update these Terms from time to time. We will post the updated Terms on this page
+          and revise the effective date. If you continue using the Service after the updated Terms
+          become effective, you accept the changes.
+        </p>
+      </section>
+
+      <section className="space-y-3">
+        <h2>14. Governing law and disputes</h2>
+        <p>
+          These Terms are governed by the laws of the Netherlands, without regard to conflict of
+          law rules. Courts in the Netherlands have exclusive jurisdiction over disputes arising
+          out of or relating to these Terms or the Service, unless mandatory consumer protection
+          law gives you the right to bring proceedings in another place.
+        </p>
+      </section>
+
+      <section className="space-y-3">
+        <h2>15. Contact</h2>
+        <p>
+          Questions about these Terms can be sent to{' '}
+          <a
+            href="mailto:jaysonfeldman@gmail.com"
+            className="underline underline-offset-2 hover:text-neutral-950"
+          >
+            jaysonfeldman@gmail.com
+          </a>
+          .
+        </p>
+      </section>
+    </LegalPage>
+  );
+}

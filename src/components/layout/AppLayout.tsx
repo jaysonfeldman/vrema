@@ -15,7 +15,7 @@ import { sound } from '@/lib/sounds';
 import { cn } from '@/lib/utils';
 
 const pageTitles: Record<string, string> = {
-  '/': 'Dashboard',
+  '/app': 'Dashboard',
   '/projects': 'Projects',
   '/guide': 'Guide',
   '/feedback': 'Feedback',
@@ -33,8 +33,7 @@ export default function AppLayout() {
   const { syncCalendar, lastSynced } = useCalendarSync();
   const { isLoading } = useSharedState();
 
-  const isDashboard = location.pathname === '/';
-
+  const isDashboard = location.pathname === '/app';
   const handleSync = async () => {
     sound.click();
     try {
@@ -48,7 +47,7 @@ export default function AppLayout() {
   const handleSignOut = () => {
     sound.swoosh();
     signOut();
-    navigate('/login', { replace: true });
+    navigate('/', { replace: true });
   };
 
   return (

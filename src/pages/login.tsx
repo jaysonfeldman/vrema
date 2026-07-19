@@ -1,4 +1,4 @@
-import { Navigate } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { useGoogleAuth } from '@/providers/GoogleAuthProvider';
 import { Button } from '@/components/ui/button';
 
@@ -29,7 +29,7 @@ export default function Login() {
   const { signIn, signInDev, authState, isDevAuthBypass } = useGoogleAuth();
 
   if (authState.isAuthenticated) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/app" replace />;
   }
 
   const authenticateGoogle = () => {
@@ -75,13 +75,13 @@ export default function Login() {
       <footer className="pb-8 text-center text-xs text-neutral-400">
         <span>Vrema © {new Date().getFullYear()}</span>
         <span className="mx-2">·</span>
-        <a href="#" className="hover:text-neutral-600">
+        <Link to="/privacy" className="hover:text-neutral-600">
           Privacy
-        </a>
+        </Link>
         <span className="mx-2">·</span>
-        <a href="#" className="hover:text-neutral-600">
+        <Link to="/terms" className="hover:text-neutral-600">
           Terms
-        </a>
+        </Link>
       </footer>
     </div>
   );

@@ -3,11 +3,14 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { GoogleAuthProvider, useGoogleAuth } from '@/providers/GoogleAuthProvider';
 import { ThemeProvider } from '@/providers/ThemeProvider';
 import Dashboard from '@/pages/Index';
+import Home from '@/pages/Home';
 import Login from '@/pages/login';
 import Activities from '@/pages/Activities';
 import Guide from '@/pages/Guide';
 import Feedback from '@/pages/Feedback';
 import ProjectDetail from '@/pages/ProjectDetail';
+import Privacy from '@/pages/Privacy';
+import Terms from '@/pages/Terms';
 import NotFound from '@/pages/NotFound';
 import AppLayout from '@/components/layout/AppLayout';
 import { Toaster } from '@/components/ui/toaster';
@@ -31,13 +34,16 @@ function App() {
   return (
     <ThemeProvider>
       <QueryClientProvider client={queryClient}>
-        <TooltipProvider delayDuration={300}>
+        <TooltipProvider delayDuration={400}>
           <Router>
             <GoogleAuthProvider>
               <Toaster />
               <Sonner />
               <Routes>
+                <Route path="/" element={<Home />} />
                 <Route path="/login" element={<Login />} />
+                <Route path="/privacy" element={<Privacy />} />
+                <Route path="/terms" element={<Terms />} />
                 <Route
                   element={
                     <ProtectedRoute>
@@ -45,8 +51,8 @@ function App() {
                     </ProtectedRoute>
                   }
                 >
-                  <Route path="/" element={<Dashboard />} />
-                  <Route path="/projects" element={<Navigate to="/" replace />} />
+                  <Route path="/app" element={<Dashboard />} />
+                  <Route path="/projects" element={<Navigate to="/app" replace />} />
                   <Route path="/projects/:projectId" element={<ProjectDetail />} />
                   <Route path="/activities" element={<Activities />} />
                   <Route path="/guide" element={<Guide />} />

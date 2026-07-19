@@ -46,7 +46,6 @@ export default function ActivityBar({ activities, size = 'sm', showLegend = true
           <WithTooltip
             key={activity.id ?? activity.type}
             content={`#${activity.type} · ${formatHours(activity.hours)}`}
-            delayDuration={100}
           >
             <div
               className="h-full transition-all"
