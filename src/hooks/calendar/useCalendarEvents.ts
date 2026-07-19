@@ -6,7 +6,6 @@ import {
   parseEventTitle 
 } from '@/services/googleCalendarService';
 import { saveCalendarEventsToSupabase } from '@/services/calendarEventService';
-import { toast } from '@/components/ui/use-toast';
 import { GoogleCalendarEvent, FilterOptions, Project } from '@/lib/types';
 
 export function useCalendarEvents() {
@@ -21,11 +20,6 @@ export function useCalendarEvents() {
     setSyncError(null);
     
     if (!authState.isAuthenticated) {
-      toast({
-        variant: "destructive",
-        title: "Not authenticated",
-        description: "Please connect to Google Calendar first",
-      });
       return;
     }
 
@@ -85,23 +79,11 @@ export function useCalendarEvents() {
       setFilteredEvents(validEvents);
       setLastSynced(new Date());
       
-      toast({
-        title: "Calendar synced",
-        description: `Found ${validEvents.length} events from your Google Calendar${
-          saveResult.success ? ` and saved ${saveResult.count} to database` : ''
-        }`,
-      });
-      
       return { events: validEvents };
     } catch (error) {
       console.error('Error syncing calendar:', error);
       const errorMessage = error instanceof Error ? error.message : 'Could not sync with Google Calendar';
       setSyncError(errorMessage);
-      toast({
-        variant: "destructive",
-        title: "Sync failed",
-        description: errorMessage,
-      });
     } finally {
       setIsLoading(false);
     }

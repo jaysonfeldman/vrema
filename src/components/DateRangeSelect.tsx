@@ -1,5 +1,6 @@
 import { useSharedState } from '@/hooks/useSharedState';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { WithTooltip } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 
 export const rangeLabels: Record<string, string> = {
@@ -20,17 +21,21 @@ export default function DateRangeSelect({ className }: { className?: string }) {
   const { filters, updateFilters } = useSharedState();
 
   return (
-    <Select value={filters.dateRange} onValueChange={(value: any) => updateFilters({ dateRange: value })}>
-      <SelectTrigger className={cn(selectTriggerClass, className)}>
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent align="end" className="min-w-[9rem] rounded-xl border-surface p-1 shadow-elevated">
-        {Object.entries(rangeLabels).map(([value, label]) => (
-          <SelectItem key={value} value={value} className="rounded-lg text-sm">
-            {label}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+    <WithTooltip content="Filter by date range" side="bottom">
+      <div className={cn('inline-flex', className)}>
+        <Select value={filters.dateRange} onValueChange={(value: any) => updateFilters({ dateRange: value })}>
+          <SelectTrigger className={cn(selectTriggerClass)}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent align="end" className="min-w-[9rem] rounded-xl border-surface p-1 shadow-elevated">
+            {Object.entries(rangeLabels).map(([value, label]) => (
+              <SelectItem key={value} value={value} className="rounded-lg text-sm">
+                {label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+    </WithTooltip>
   );
 }

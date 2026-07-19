@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 
-const FALLBACK_COLORS = ['#22C55E', '#6EE7B7', '#7ED3FC', '#FEF18B', '#FED8AA', '#D946EF'];
+const FALLBACK_COLORS = ['#22C55F', '#6EE7B7', '#7ED3FC', '#FEF18B', '#FED8AA', '#D946EF'];
 
 export default function Activities() {
   const { activityColors } = useSharedState();

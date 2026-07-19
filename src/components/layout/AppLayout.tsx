@@ -10,18 +10,19 @@ import { LogoutIcon } from '@/components/icons/logout';
 import { useGoogleAuth } from '@/providers/GoogleAuthProvider';
 import { useCalendarSync } from '@/hooks/useCalendarSync';
 import { useSharedState } from '@/hooks/useSharedState';
-import { useToast } from '@/components/ui/use-toast';
+import { WithTooltip } from '@/components/ui/tooltip';
 import { sound } from '@/lib/sounds';
 import { cn } from '@/lib/utils';
 
 const pageTitles: Record<string, string> = {
   '/': 'Dashboard',
   '/projects': 'Projects',
-  '/activities': 'Activities',
+  '/guide': 'Guide',
+  '/feedback': 'Feedback',
 };
 
 function getPageTitle(pathname: string): string {
-  if (pathname.startsWith('/projects/')) return 'Project Detail';
+  if (pathname.startsWith('/projects/')) return 'Project';
   return pageTitles[pathname] ?? 'Vrema';
 }
 
@@ -31,7 +32,6 @@ export default function AppLayout() {
   const { signOut } = useGoogleAuth();
   const { syncCalendar, lastSynced } = useCalendarSync();
   const { isLoading } = useSharedState();
-  const { toast } = useToast();
 
   const isDashboard = location.pathname === '/';
 
@@ -40,10 +40,8 @@ export default function AppLayout() {
     try {
       await syncCalendar();
       sound.success();
-      toast({ title: 'Calendar synced', description: 'Your events have been updated.' });
     } catch {
       sound.error();
-      toast({ title: 'Sync failed', description: 'Could not sync your calendar.', variant: 'destructive' });
     }
   };
 
@@ -58,43 +56,61 @@ export default function AppLayout() {
       <AppSidebar />
       <div className="flex min-w-0 flex-1 flex-col bg-canvas">
         <header className="flex h-14 shrink-0 items-center gap-2 px-4 md:px-6">
-          <SidebarTrigger className="-ml-1" />
+          <WithTooltip content="Toggle sidebar" side="bottom">
+            <SidebarTrigger className="-ml-1" />
+          </WithTooltip>
           <Separator orientation="vertical" className="mr-2 h-4" />
           <h1 className="text-sm font-medium text-muted-foreground">{getPageTitle(location.pathname)}</h1>
 
           <div className="ml-auto flex items-center gap-2">
             {lastSynced && (
-              <Badge
-                variant="secondary"
-                className="hidden items-center gap-1.5 font-normal text-muted-foreground sm:inline-flex"
+              <WithTooltip
+                content={`Last synced ${new Date(lastSynced).toLocaleString()}`}
+                side="bottom"
               >
-                <span className="relative flex size-1.5">
-                  <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                  <span className="relative inline-flex size-1.5 rounded-full bg-emerald-500" />
+                <span className="hidden sm:inline-flex">
+                  <Badge
+                    variant="secondary"
+                    className="inline-flex items-center gap-1.5 font-normal text-muted-foreground"
+                  >
+                    <span className="relative flex size-1.5">
+                      <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                      <span className="relative inline-flex size-1.5 rounded-full bg-emerald-500" />
+                    </span>
+                    Synced {new Date(lastSynced).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </Badge>
                 </span>
-                Synced {new Date(lastSynced).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-              </Badge>
+              </WithTooltip>
             )}
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-6 gap-1.5 px-2.5 text-xs active:scale-[0.97] transition-transform"
-              onClick={handleSync}
-              disabled={isLoading}
+            <WithTooltip
+              content={isLoading ? 'Syncing Google Calendar…' : 'Sync Google Calendar'}
+              side="bottom"
             >
-              <RefreshCWIcon size={12} className={cn(isLoading && '[&_svg]:animate-spin')} />
-              <span className="hidden sm:inline">{isLoading ? 'Syncing…' : 'Sync'}</span>
-            </Button>
+              <span className="inline-flex">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-6 gap-1.5 px-2.5 text-xs active:scale-[0.97] transition-transform"
+                  onClick={handleSync}
+                  disabled={isLoading}
+                >
+                  <RefreshCWIcon size={12} className={cn(isLoading && '[&_svg]:animate-spin')} />
+                  <span className="hidden sm:inline">{isLoading ? 'Syncing…' : 'Sync'}</span>
+                </Button>
+              </span>
+            </WithTooltip>
             <ThemeToggle />
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleSignOut}
-              title="Sign out"
-              className="active:scale-[0.97] transition-transform"
-            >
-              <LogoutIcon size={16} />
-            </Button>
+            <WithTooltip content="Sign out" side="bottom">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleSignOut}
+                className="active:scale-[0.97] transition-transform"
+              >
+                <LogoutIcon size={16} />
+                <span className="sr-only">Sign out</span>
+              </Button>
+            </WithTooltip>
           </div>
         </header>
 

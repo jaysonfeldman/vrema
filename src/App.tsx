@@ -4,8 +4,9 @@ import { GoogleAuthProvider, useGoogleAuth } from '@/providers/GoogleAuthProvide
 import { ThemeProvider } from '@/providers/ThemeProvider';
 import Dashboard from '@/pages/Index';
 import Login from '@/pages/login';
-import Projects from '@/pages/Projects';
 import Activities from '@/pages/Activities';
+import Guide from '@/pages/Guide';
+import Feedback from '@/pages/Feedback';
 import ProjectDetail from '@/pages/ProjectDetail';
 import NotFound from '@/pages/NotFound';
 import AppLayout from '@/components/layout/AppLayout';
@@ -30,7 +31,7 @@ function App() {
   return (
     <ThemeProvider>
       <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
+        <TooltipProvider delayDuration={300}>
           <Router>
             <GoogleAuthProvider>
               <Toaster />
@@ -45,9 +46,11 @@ function App() {
                   }
                 >
                   <Route path="/" element={<Dashboard />} />
-                  <Route path="/projects" element={<Projects />} />
+                  <Route path="/projects" element={<Navigate to="/" replace />} />
                   <Route path="/projects/:projectId" element={<ProjectDetail />} />
                   <Route path="/activities" element={<Activities />} />
+                  <Route path="/guide" element={<Guide />} />
+                  <Route path="/feedback" element={<Feedback />} />
                 </Route>
                 <Route path="*" element={<NotFound />} />
               </Routes>

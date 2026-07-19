@@ -10,12 +10,18 @@ import ProjectsOverview from '@/components/ProjectsOverview';
 import RecentEventsTable from '@/components/RecentEventsTable';
 import DateRangeSelect, { rangeLabels } from '@/components/DateRangeSelect';
 import DashboardBanner from '@/components/DashboardBanner';
+import { Button } from '@/components/ui/button';
+import { WithTooltip } from '@/components/ui/tooltip';
+import { UploadIcon, type UploadIconHandle } from '@/components/icons/upload';
+import { useToast } from '@/hooks/use-toast';
 
 export default function Dashboard() {
   const { authState } = useGoogleAuth();
   const { syncCalendar } = useCalendarSync();
   const { lastSynced, filters } = useSharedState();
   const { filteredProjects } = useProjectStats();
+  const { toast } = useToast();
+  const uploadIconRef = React.useRef<UploadIconHandle>(null);
 
   React.useEffect(() => {
     if (authState.isAuthenticated && !lastSynced) {
@@ -40,6 +46,24 @@ export default function Dashboard() {
 
   const firstName = authState.user?.name?.split(' ')[0];
 
+  const handleExportHours = () => {
+    const rangeLabel = rangeLabels[filters.dateRange];
+    const rows = [
+      ['Project', 'Hours'],
+      ...filteredProjects.map((project) => [project.name, formatHours(project.totalHours)]),
+      ['Total', formatHours(totalHours)],
+    ];
+    const csv = rows.map((row) => row.map((cell) => `"${cell.replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `vrema-hours-${rangeLabel.toLowerCase().replace(/\s+/g, '-')}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+    toast({ title: 'Hours exported', description: `Downloaded CSV for ${rangeLabel.toLowerCase()}.` });
+  };
+
   return (
     <div className="flex flex-1 flex-col overflow-auto">
       <DashboardBanner />
@@ -50,24 +74,38 @@ export default function Dashboard() {
           <section className="space-y-6">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="space-y-1">
-                <p className="text-xs text-muted-foreground">
+                <p className="text-base font-semibold tracking-tight text-foreground/30">
                   Welcome back{firstName ? `, ${firstName}` : ''}
                 </p>
                 <h2 className="text-2xl font-semibold tracking-tight md:text-[1.75rem]">
-                  Your time at a glance
+                  Your timesheet
                 </h2>
               </div>
-              <DateRangeSelect className="mt-0.5" />
+              <WithTooltip content="Download hours as CSV">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleExportHours}
+                  onMouseEnter={() => uploadIconRef.current?.startAnimation()}
+                  onMouseLeave={() => uploadIconRef.current?.stopAnimation()}
+                  className="gap-1.5 rounded-lg border-[#ebebeb] bg-white text-neutral-950 shadow-sm hover:bg-neutral-50 hover:text-neutral-950 active:scale-[0.97] dark:border-white/10 dark:bg-transparent dark:text-white dark:hover:bg-white/5 dark:hover:text-white"
+                >
+                  <UploadIcon ref={uploadIconRef} size={14} className="shrink-0" />
+                  Export hours
+                </Button>
+              </WithTooltip>
             </div>
 
             <div className="space-y-4">
-              <div className="flex items-end gap-3">
-                <span className="font-mono text-5xl font-semibold tracking-tight tabular-nums md:text-6xl">
-                  {formatHours(totalHours)}
-                </span>
-                <span className="mb-1.5 text-sm text-muted-foreground">
-                  {rangeLabels[filters.dateRange].toLowerCase()}
-                </span>
+              <div className="flex items-end justify-between gap-4">
+                <div className="flex items-end gap-2.5">
+                  <span className="font-mono text-5xl font-semibold leading-none tracking-tight tabular-nums md:text-6xl">
+                    {formatHours(totalHours)}
+                  </span>
+                  <span className="mb-1 text-sm text-muted-foreground md:mb-1.5">total hours</span>
+                </div>
+                <DateRangeSelect className="mb-1 md:mb-1.5" />
               </div>
 
               {totalHours > 0 ? (
@@ -75,7 +113,7 @@ export default function Dashboard() {
               ) : (
                 <p className="text-sm text-muted-foreground">
                   No tracked time yet. Name calendar events like{' '}
-                  <code className="rounded-md bg-muted px-1.5 py-0.5 text-xs">mx#design user flows</code>{' '}
+                  <code className="rounded-md bg-muted px-1.5 py-0.5 text-xs">vrema#design homepage mockups</code>{' '}
                   to get started.
                 </p>
               )}

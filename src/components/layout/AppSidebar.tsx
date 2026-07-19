@@ -13,15 +13,15 @@ import {
 } from '@/components/ui/sidebar';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { HomeIcon } from '@/components/icons/home';
-import { FolderKanbanIcon } from '@/components/icons/folder-kanban';
-import { ActivityIcon } from '@/components/icons/activity';
+import { BookTextIcon } from '@/components/icons/book-text';
+import { MessageSquareIcon } from '@/components/icons/message-square';
 import { useGoogleAuth } from '@/providers/GoogleAuthProvider';
 import { sound } from '@/lib/sounds';
 
 const navItems = [
   { title: 'Dashboard', url: '/', icon: HomeIcon, end: true },
-  { title: 'Projects', url: '/projects', icon: FolderKanbanIcon },
-  { title: 'Activities', url: '/activities', icon: ActivityIcon },
+  { title: 'Guide', url: '/guide', icon: BookTextIcon },
+  { title: 'Feedback', url: '/feedback', icon: MessageSquareIcon },
 ];
 
 export function AppSidebar() {

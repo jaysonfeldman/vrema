@@ -9,6 +9,7 @@ import {
   DropdownMenuSeparator
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
+import { WithTooltip } from '@/components/ui/tooltip';
 import { MoreVertical } from 'lucide-react';
 import {
   AlertDialog,
@@ -48,11 +49,14 @@ const ProjectCardMenu: React.FC<ProjectCardMenuProps> = ({
   return (
     <>
       <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon" className="h-8 w-8 p-0">
-            <MoreVertical className="h-4 w-4" />
-          </Button>
-        </DropdownMenuTrigger>
+        <WithTooltip content="Project options">
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8 p-0">
+              <MoreVertical className="h-4 w-4" />
+              <span className="sr-only">Project options</span>
+            </Button>
+          </DropdownMenuTrigger>
+        </WithTooltip>
         <DropdownMenuContent align="end">
           <DropdownMenuItem onClick={onEdit}>
             <Edit className="mr-2 h-4 w-4" />

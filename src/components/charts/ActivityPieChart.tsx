@@ -14,7 +14,7 @@ interface ActivityPieChartProps {
   className?: string;
 }
 
-const FALLBACK_COLORS = ['#22C55E', '#6EE7B7', '#7ED3FC', '#FEF18B', '#FED8AA', '#D946EF'];
+const FALLBACK_COLORS = ['#22C55F', '#6EE7B7', '#7ED3FC', '#FEF18B', '#FED8AA', '#D946EF'];
 
 export default function ActivityPieChart({ project, className }: ActivityPieChartProps) {
   const { activityColors } = useSharedState();

@@ -8,6 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
 import { FolderOpenIcon } from '@/components/icons/folder-open';
 import { selectTriggerClass } from '@/components/DateRangeSelect';
+import { WithTooltip } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { Project } from '@/lib/types';
 import { useToast } from '@/components/ui/use-toast';
@@ -67,18 +68,22 @@ export default function ProjectsOverview({ title = 'Projects' }: ProjectsOvervie
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-base font-medium">{title}</h2>
         {sortedProjects.length > 0 && (
-          <Select value={sortBy} onValueChange={(v) => setSortBy(v as typeof sortBy)}>
-            <SelectTrigger className={cn(selectTriggerClass)}>
-              <SelectValue placeholder="Sort" />
-            </SelectTrigger>
-            <SelectContent align="end" className="min-w-[9rem] rounded-xl border-surface p-1 shadow-elevated">
-              {sortOptions.map((option) => (
-                <SelectItem key={option.value} value={option.value} className="rounded-lg text-sm">
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <WithTooltip content="Sort projects" side="bottom">
+            <div className="inline-flex">
+              <Select value={sortBy} onValueChange={(v) => setSortBy(v as typeof sortBy)}>
+                <SelectTrigger className={cn(selectTriggerClass)}>
+                  <SelectValue placeholder="Sort" />
+                </SelectTrigger>
+                <SelectContent align="end" className="min-w-[9rem] rounded-xl border-surface p-1 shadow-elevated">
+                  {sortOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value} className="rounded-lg text-sm">
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </WithTooltip>
         )}
       </div>
 
@@ -89,8 +94,8 @@ export default function ProjectsOverview({ title = 'Projects' }: ProjectsOvervie
             <h3 className="text-sm font-medium">No projects yet</h3>
             <p className="max-w-md text-xs text-muted-foreground">
               Name calendar events like{' '}
-              <code className="rounded-md bg-muted px-1.5 py-0.5 text-xs">mx#design user flows</code> —
-              <span className="font-medium"> mx</span> is the project,{' '}
+              <code className="rounded-md bg-muted px-1.5 py-0.5 text-xs">vrema#design homepage mockups</code>
+              . <span className="font-medium">vrema</span> is the project,{' '}
               <span className="font-medium">design</span> the activity.
             </p>
           </CardContent>

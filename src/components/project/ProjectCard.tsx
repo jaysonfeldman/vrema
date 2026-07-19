@@ -8,6 +8,7 @@ import ActivityBar from '@/components/ActivityBar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { SettingsIcon } from '@/components/icons/settings';
+import { WithTooltip } from '@/components/ui/tooltip';
 import { sound } from '@/lib/sounds';
 
 interface ProjectCardProps {
@@ -34,18 +35,21 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, className, style, on
       whileHover={{ y: -2 }}
       transition={{ type: 'spring', stiffness: 400, damping: 28 }}
     >
-      <Button
-        variant="ghost"
-        size="icon"
-        className="absolute right-2 top-2 h-7 w-7 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100"
-        onClick={(e) => {
-          e.stopPropagation();
-          sound.pop();
-          onUpdateProject?.(project);
-        }}
-      >
-        <SettingsIcon size={14} />
-      </Button>
+      <WithTooltip content="Project settings" side="left">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="absolute right-2 top-2 h-7 w-7 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100"
+          onClick={(e) => {
+            e.stopPropagation();
+            sound.pop();
+            onUpdateProject?.(project);
+          }}
+        >
+          <SettingsIcon size={14} />
+          <span className="sr-only">Project settings</span>
+        </Button>
+      </WithTooltip>
 
       <button
         type="button"

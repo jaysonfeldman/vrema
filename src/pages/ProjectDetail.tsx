@@ -1,21 +1,21 @@
 import { useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ChevronLeft, Calendar, Clock } from 'lucide-react';
+import { ChevronLeft, Clock } from 'lucide-react';
 import { useSharedState } from '@/hooks/useSharedState';
 import { useProjectStats } from '@/hooks/useProjectStats';
 import { parseEventTitle, formatEventDate, calculateDuration } from '@/services/googleCalendarService';
 import { formatHours } from '@/lib/eventStats';
+import ActivityBar, { useActivityColor } from '@/components/ActivityBar';
 import ActivityPieChart from '@/components/charts/ActivityPieChart';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { cn } from '@/lib/utils';
 
 export default function ProjectDetail() {
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
   const { events } = useSharedState();
   const { allProjects } = useProjectStats();
+  const getColor = useActivityColor();
 
   const project = allProjects.find((p) => p.id === projectId) ?? null;
 
@@ -30,91 +30,132 @@ export default function ProjectDetail() {
       .sort((a, b) => new Date(b.start!.dateTime!).getTime() - new Date(a.start!.dateTime!).getTime());
   }, [events, project]);
 
+  const goBack = () => navigate('/');
+
   if (!project) {
     return (
-      <div className="space-y-4">
-        <Button variant="outline" size="sm" onClick={() => navigate('/projects')}>
-          <ChevronLeft className="h-4 w-4" /> Back to projects
+      <div className="mx-auto w-full max-w-3xl space-y-6 pt-6 md:pt-8">
+        <Button variant="ghost" size="sm" className="-ml-2 gap-1" onClick={goBack}>
+          <ChevronLeft className="size-4" />
+          Back to dashboard
         </Button>
-        <p className="py-12 text-center text-muted-foreground">Project not found.</p>
+        <p className="py-12 text-center text-sm text-muted-foreground">Project not found.</p>
       </div>
     );
   }
 
-  return (
-    <div className="space-y-6">
-      <Button variant="ghost" size="sm" className="-ml-2" onClick={() => navigate('/projects')}>
-        <ChevronLeft className="h-4 w-4" /> Back to projects
-      </Button>
+  const activities = [...project.activities]
+    .filter((a) => a.hours > 0)
+    .sort((a, b) => b.hours - a.hours);
 
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h2 className="text-2xl font-semibold tracking-tight">{project.name}</h2>
-          <div className="mt-2 flex flex-wrap items-center gap-2">
-            <Badge variant="secondary">
-              <Clock className="mr-1 h-3 w-3" />
-              {formatHours(project.totalHours)}
-            </Badge>
-            <Badge variant="secondary">
-              <Calendar className="mr-1 h-3 w-3" />
-              {projectEvents.length} events
-            </Badge>
+  return (
+    <div className="mx-auto w-full max-w-3xl space-y-8 pt-6 md:pt-8">
+      <div className="space-y-4">
+        <Button variant="ghost" size="sm" className="-ml-2 gap-1 text-muted-foreground" onClick={goBack}>
+          <ChevronLeft className="size-4" />
+          Back to dashboard
+        </Button>
+
+        <header className="space-y-4">
+          <div className="space-y-1">
+            <p className="text-base font-semibold tracking-tight text-foreground/30">Project</p>
+            <h1 className="text-2xl font-semibold tracking-tight md:text-[1.75rem]">{project.name}</h1>
           </div>
-        </div>
+
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div className="flex items-end gap-2.5">
+              <span className="font-mono text-4xl font-semibold leading-none tracking-tight tabular-nums md:text-5xl">
+                {formatHours(project.totalHours)}
+              </span>
+              <span className="mb-1 text-sm text-muted-foreground">total hours</span>
+            </div>
+            <p className="mb-1 text-sm text-muted-foreground">
+              {projectEvents.length} event{projectEvents.length === 1 ? '' : 's'}
+            </p>
+          </div>
+
+          {activities.length > 0 && <ActivityBar activities={activities} size="lg" />}
+        </header>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-3">
-        <Card className="lg:col-span-1">
-          <CardHeader>
-            <CardTitle className="text-base">Activity split</CardTitle>
-          </CardHeader>
-          <CardContent className="flex justify-center">
-            <ActivityPieChart project={project} />
-          </CardContent>
-        </Card>
+      <div className="grid gap-8 lg:grid-cols-[200px_1fr] lg:gap-10">
+        <section className="space-y-3">
+          <h2 className="text-base font-medium">Activities</h2>
+          {activities.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No activities yet.</p>
+          ) : (
+            <div className="flex flex-col items-start gap-4">
+              <ActivityPieChart project={project} className="!mx-0" />
+              <ul className="w-full space-y-2">
+                {activities.map((activity) => (
+                  <li key={activity.id ?? activity.type} className="flex items-center justify-between gap-3 text-sm">
+                    <span className="flex min-w-0 items-center gap-2">
+                      <span
+                        className="size-2 shrink-0 rounded-sm"
+                        style={{ backgroundColor: getColor(activity.type) }}
+                      />
+                      <span className="truncate text-muted-foreground">#{activity.type}</span>
+                    </span>
+                    <span className="font-mono text-xs font-medium tabular-nums">
+                      {formatHours(activity.hours)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </section>
 
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="text-base">Events</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Activity</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead className="text-right">Duration</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {projectEvents.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={4} className="py-6 text-center text-muted-foreground">
-                      No events found for this project.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  projectEvents.map((event) => {
-                    const { activityType, description } = parseEventTitle(event.summary ?? '');
-                    return (
-                      <TableRow key={event.id}>
-                        <TableCell>
-                          <Badge variant="outline">#{activityType}</Badge>
-                        </TableCell>
-                        <TableCell>{description || '—'}</TableCell>
-                        <TableCell className="text-muted-foreground">{formatEventDate(event.start!.dateTime!)}</TableCell>
-                        <TableCell className="text-right font-mono">
-                          {calculateDuration(event.start!.dateTime!, event.end!.dateTime!)}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })
-                )}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+        <section className="space-y-3">
+          <h2 className="text-base font-medium">Events</h2>
+          {projectEvents.length === 0 ? (
+            <p className="rounded-xl bg-[#f6f6f6] px-4 py-8 text-center text-sm text-muted-foreground dark:bg-white/[0.04]">
+              No events found for this project.
+            </p>
+          ) : (
+            <ul className="divide-y divide-[#ebebeb] overflow-hidden rounded-xl bg-[#f6f6f6] dark:divide-white/[0.06] dark:bg-white/[0.04]">
+              {projectEvents.map((event) => {
+                const { activityType, description } = parseEventTitle(event.summary ?? '');
+                return (
+                  <li
+                    key={event.id}
+                    className="flex flex-col gap-1 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
+                  >
+                    <div className="min-w-0 space-y-0.5">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span
+                          className={cn(
+                            'inline-flex items-center gap-1.5 rounded-md px-1.5 py-0.5 text-xs font-medium'
+                          )}
+                          style={{
+                            backgroundColor: `${getColor(activityType)}18`,
+                            color: getColor(activityType),
+                          }}
+                        >
+                          <span
+                            className="size-1.5 rounded-full"
+                            style={{ backgroundColor: getColor(activityType) }}
+                          />
+                          #{activityType}
+                        </span>
+                        <span className="truncate text-sm text-foreground">
+                          {description || '—'}
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {formatEventDate(event.start!.dateTime!)}
+                      </p>
+                    </div>
+                    <span className="inline-flex items-center gap-1 font-mono text-xs font-medium tabular-nums text-muted-foreground sm:shrink-0">
+                      <Clock className="size-3" />
+                      {calculateDuration(event.start!.dateTime!, event.end!.dateTime!)}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
       </div>
     </div>
   );

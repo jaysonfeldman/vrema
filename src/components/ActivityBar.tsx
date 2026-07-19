@@ -1,6 +1,7 @@
 import { useSharedState } from '@/hooks/useSharedState';
 import { formatHours } from '@/lib/eventStats';
 import { cn } from '@/lib/utils';
+import { WithTooltip } from '@/components/ui/tooltip';
 
 interface ActivityLike {
   id?: string;
@@ -8,7 +9,7 @@ interface ActivityLike {
   hours: number;
 }
 
-const FALLBACK_COLORS = ['#22C55E', '#6EE7B7', '#7ED3FC', '#FEF18B', '#FED8AA', '#D946EF'];
+const FALLBACK_COLORS = ['#22C55F', '#6EE7B7', '#7ED3FC', '#FEF18B', '#FED8AA', '#D946EF'];
 
 export function useActivityColor() {
   const { activityColors } = useSharedState();
@@ -42,15 +43,19 @@ export default function ActivityBar({ activities, size = 'sm', showLegend = true
     <div className={cn('space-y-2', className)}>
       <div className={cn('flex w-full overflow-hidden rounded-full bg-muted', size === 'lg' ? 'h-2.5' : 'h-2')}>
         {sorted.map((activity) => (
-          <div
+          <WithTooltip
             key={activity.id ?? activity.type}
-            className="h-full transition-all"
-            style={{
-              width: `${Math.max((activity.hours / total) * 100, 2)}%`,
-              backgroundColor: getColor(activity.type),
-            }}
-            title={`#${activity.type} · ${formatHours(activity.hours)}`}
-          />
+            content={`#${activity.type} · ${formatHours(activity.hours)}`}
+            delayDuration={100}
+          >
+            <div
+              className="h-full transition-all"
+              style={{
+                width: `${Math.max((activity.hours / total) * 100, 2)}%`,
+                backgroundColor: getColor(activity.type),
+              }}
+            />
+          </WithTooltip>
         ))}
       </div>
 
