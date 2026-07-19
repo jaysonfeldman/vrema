@@ -1,8 +1,15 @@
 import { useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
+import { useTheme } from 'next-themes';
 
-/** Shell for the public interactive product preview. Theme follows the in-app toggle. */
+/** Shell for the public interactive product preview. Defaults to dark on the landing embed. */
 export default function DemoRoot() {
+  const { setTheme } = useTheme();
+
+  useEffect(() => {
+    setTheme('dark');
+  }, [setTheme]);
+
   useEffect(() => {
     const root = document.documentElement;
     const body = document.body;

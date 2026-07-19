@@ -140,14 +140,6 @@ export default function Home() {
               className="absolute inset-0 h-full w-full border-0 bg-canvas"
               loading="lazy"
             />
-            <div
-              aria-hidden
-              className="pointer-events-none absolute inset-x-0 bottom-0 h-[26%]"
-              style={{
-                background:
-                  'linear-gradient(to bottom, transparent 0%, transparent 28%, rgba(11,11,12,0.35) 55%, rgba(11,11,12,0.78) 78%, #0b0b0c 100%)',
-              }}
-            />
           </div>
         </div>
       </div>
