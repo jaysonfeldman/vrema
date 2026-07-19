@@ -27,7 +27,6 @@ export default function Home() {
 
       <main className="mx-auto w-full max-w-3xl px-6 pb-16 pt-6 md:pt-10">
         <section className="space-y-5">
-          <p className="text-sm font-medium text-neutral-500">Application name: Vrema</p>
           <h1 className="max-w-2xl text-4xl font-semibold tracking-tight md:text-5xl">
             Vrema
           </h1>
