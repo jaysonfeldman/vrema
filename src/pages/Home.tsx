@@ -27,13 +27,15 @@ export default function Home() {
 
       <main className="mx-auto w-full max-w-3xl px-6 pb-16 pt-6 md:pt-10">
         <section className="space-y-5">
+          <p className="text-sm font-medium text-neutral-500">Application name: Vrema</p>
           <h1 className="max-w-2xl text-4xl font-semibold tracking-tight md:text-5xl">
             Vrema
           </h1>
           <p className="max-w-2xl text-lg leading-relaxed text-neutral-600">
-            Turn your Google Calendar into a clear time tracker. Block time as you normally would,
-            give each event a short title, and sync. Vrema turns those events into projects,
-            activities, and hours. No timers to start or stop.
+            Vrema is a time tracking application. Its purpose is to help you track work time from
+            Google Calendar by turning calendar events into projects, activities, and hours. Block
+            time as you normally would, give each event a short title, and sync. No timers to start
+            or stop.
           </p>
           <div className="flex flex-wrap items-center gap-3 pt-1">
             <Button
@@ -52,16 +54,20 @@ export default function Home() {
         </section>
 
         <section className="mt-14 space-y-4">
+          <h2 className="text-xl font-semibold tracking-tight">Purpose of Vrema</h2>
+          <p className="text-[15px] leading-relaxed text-neutral-600">
+            The purpose of Vrema is time tracking for freelancers, consultants, and anyone who plans
+            work in Google Calendar. Vrema reads your calendar events and organizes them into
+            projects, activities, and hours so you can review dashboards and export timesheets.
+          </p>
+        </section>
+
+        <section className="mt-12 space-y-4">
           <h2 className="text-xl font-semibold tracking-tight">What Vrema does</h2>
           <div className="space-y-3 text-[15px] leading-relaxed text-neutral-600">
             <p>
-              Vrema is a time tracking app for freelancers, consultants, and anyone who already
-              plans their work in Google Calendar. Instead of starting and stopping timers, you
-              work from your calendar.
-            </p>
-            <p>
-              After you connect your Google account, Vrema reads your calendar events and
-              organizes them into:
+              After you connect your Google account, Vrema reads your calendar events and organizes
+              them into:
             </p>
             <ul className="list-disc space-y-2 pl-5">
               <li>
