@@ -13,6 +13,7 @@ import { useSharedState } from '@/hooks/useSharedState';
 import { WithTooltip } from '@/components/ui/tooltip';
 import { sound } from '@/lib/sounds';
 import { cn } from '@/lib/utils';
+import { stripDemoPrefix } from '@/lib/app-paths';
 
 const pageTitles: Record<string, string> = {
   '/app': 'Dashboard',
@@ -23,18 +24,19 @@ const pageTitles: Record<string, string> = {
 };
 
 function getPageTitle(pathname: string): string {
-  if (pathname.startsWith('/projects/')) return 'Project';
-  return pageTitles[pathname] ?? 'Vrema';
+  const path = stripDemoPrefix(pathname);
+  if (path.startsWith('/projects/')) return 'Project';
+  return pageTitles[path] ?? 'Vrema';
 }
 
 export default function AppLayout() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { signOut } = useGoogleAuth();
+  const { signOut, isDemoMode } = useGoogleAuth();
   const { syncCalendar, lastSynced } = useCalendarSync();
   const { isLoading } = useSharedState();
 
-  const isDashboard = location.pathname === '/app';
+  const isDashboard = stripDemoPrefix(location.pathname) === '/app';
   const handleSync = async () => {
     sound.click();
     try {
@@ -46,15 +48,16 @@ export default function AppLayout() {
   };
 
   const handleSignOut = () => {
+    if (isDemoMode) return;
     sound.swoosh();
     signOut();
     navigate('/', { replace: true });
   };
 
   return (
-    <SidebarProvider className="bg-canvas has-[[data-variant=inset]]:!bg-canvas">
+    <SidebarProvider className="h-svh overflow-hidden bg-canvas has-[[data-variant=inset]]:!bg-canvas">
       <AppSidebar />
-      <div className="flex min-w-0 flex-1 flex-col bg-canvas">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-canvas">
         <header className="flex h-14 shrink-0 items-center gap-2 px-4 md:px-6">
           <WithTooltip content="Toggle sidebar" side="bottom">
             <SidebarTrigger className="-ml-1" />
@@ -100,25 +103,34 @@ export default function AppLayout() {
               </span>
             </WithTooltip>
             <ThemeToggle />
-            <WithTooltip content="Sign out" side="bottom">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleSignOut}
-                className="active:scale-[0.97] transition-transform"
-              >
-                <LogoutIcon size={16} />
-                <span className="sr-only">Sign out</span>
-              </Button>
-            </WithTooltip>
+            {!isDemoMode && (
+              <WithTooltip content="Sign out" side="bottom">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleSignOut}
+                  className="active:scale-[0.97] transition-transform"
+                >
+                  <LogoutIcon size={16} />
+                  <span className="sr-only">Sign out</span>
+                </Button>
+              </WithTooltip>
+            )}
           </div>
         </header>
 
-        <div className="min-h-0 flex-1 overflow-hidden bg-surface shadow-panel md:m-4 md:mt-0 md:min-h-[calc(100svh-3.5rem-1rem)] md:rounded-2xl">
+        <div
+          className={cn(
+            'flex min-h-0 flex-1 flex-col overflow-hidden bg-surface shadow-panel md:m-4 md:mt-0 md:rounded-2xl',
+            isDemoMode ? 'md:min-h-0' : 'md:min-h-[calc(100svh-3.5rem-1rem)]'
+          )}
+        >
           {isDashboard ? (
-            <Outlet />
+            <div className={cn('min-h-0 flex-1 overflow-auto', isDemoMode && 'hide-scrollbar')}>
+              <Outlet />
+            </div>
           ) : (
-            <div className="flex-1 overflow-auto p-4 md:p-6">
+            <div className={cn('min-h-0 flex-1 overflow-auto p-4 md:p-6', isDemoMode && 'hide-scrollbar')}>
               <div className="mx-auto w-full max-w-5xl">
                 <Outlet />
               </div>

@@ -9,10 +9,12 @@ import ActivityBar, { useActivityColor } from '@/components/ActivityBar';
 import ActivityPieChart from '@/components/charts/ActivityPieChart';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { useAppPath } from '@/lib/app-paths';
 
 export default function ProjectDetail() {
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
+  const appPath = useAppPath();
   const { events } = useSharedState();
   const { allProjects } = useProjectStats();
   const getColor = useActivityColor();
@@ -30,7 +32,7 @@ export default function ProjectDetail() {
       .sort((a, b) => new Date(b.start!.dateTime!).getTime() - new Date(a.start!.dateTime!).getTime());
   }, [events, project]);
 
-  const goBack = () => navigate('/app');
+  const goBack = () => navigate(appPath('/app'));
 
   if (!project) {
     return (

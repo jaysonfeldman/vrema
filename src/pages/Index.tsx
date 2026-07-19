@@ -69,7 +69,7 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="flex flex-1 flex-col overflow-auto">
+    <div className="flex min-h-full flex-col">
       <DashboardBanner />
 
       <div className="relative z-10 -mt-40 flex-1 px-4 pb-6 md:-mt-52 md:px-8 md:pb-8">

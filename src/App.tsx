@@ -4,6 +4,7 @@ import { GoogleAuthProvider, useGoogleAuth } from '@/providers/GoogleAuthProvide
 import { ThemeProvider } from '@/providers/ThemeProvider';
 import Dashboard from '@/pages/Index';
 import Home from '@/pages/Home';
+import About from '@/pages/About';
 import Login from '@/pages/login';
 import Activities from '@/pages/Activities';
 import Guide from '@/pages/Guide';
@@ -12,6 +13,7 @@ import Categories from '@/pages/Categories';
 import ProjectDetail from '@/pages/ProjectDetail';
 import Privacy from '@/pages/Privacy';
 import Terms from '@/pages/Terms';
+import DemoRoot from '@/pages/DemoApp';
 import NotFound from '@/pages/NotFound';
 import AppLayout from '@/components/layout/AppLayout';
 import { Toaster } from '@/components/ui/toaster';
@@ -42,9 +44,24 @@ function App() {
               <Sonner />
               <Routes>
                 <Route path="/" element={<Home />} />
+                <Route path="/about" element={<About />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/privacy" element={<Privacy />} />
                 <Route path="/terms" element={<Terms />} />
+
+                <Route path="/demo" element={<DemoRoot />}>
+                  <Route element={<AppLayout />}>
+                    <Route index element={<Navigate to="app" replace />} />
+                    <Route path="app" element={<Dashboard />} />
+                    <Route path="projects" element={<Navigate to="app" replace />} />
+                    <Route path="projects/:projectId" element={<ProjectDetail />} />
+                    <Route path="activities" element={<Activities />} />
+                    <Route path="categories" element={<Categories />} />
+                    <Route path="guide" element={<Guide />} />
+                    <Route path="feedback" element={<Feedback />} />
+                  </Route>
+                </Route>
+
                 <Route
                   element={
                     <ProtectedRoute>

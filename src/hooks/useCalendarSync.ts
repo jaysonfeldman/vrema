@@ -3,6 +3,7 @@ import { useGoogleAuth } from '@/providers/GoogleAuthProvider';
 import { useSharedState } from './useSharedState';
 import { GoogleCalendarEvent } from '@/lib/types';
 import { DEV_ACCESS_TOKEN, devCalendarEvents } from '@/lib/dev-auth';
+import { DEMO_ACCESS_TOKEN, demoCalendarEvents } from '@/lib/demo-data';
 import { parseEventTitle } from '@/services/googleCalendarService';
 import { getDateRange } from '@/lib/eventStats';
 
@@ -31,7 +32,9 @@ export const useCalendarSync = () => {
 
       let calendarEvents: GoogleCalendarEvent[];
 
-      if (accessToken === DEV_ACCESS_TOKEN) {
+      if (accessToken === DEMO_ACCESS_TOKEN) {
+        calendarEvents = demoCalendarEvents;
+      } else if (accessToken === DEV_ACCESS_TOKEN) {
         calendarEvents = devCalendarEvents;
       } else {
         // Fetch a wide window so month/year filters have data:

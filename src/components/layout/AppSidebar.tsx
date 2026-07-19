@@ -1,5 +1,4 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { Palette } from 'lucide-react';
 import {
   Sidebar,
   SidebarContent,
@@ -14,14 +13,16 @@ import {
 } from '@/components/ui/sidebar';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { HomeIcon } from '@/components/icons/home';
+import { LayoutGridIcon } from '@/components/icons/layout-grid';
 import { BookTextIcon } from '@/components/icons/book-text';
 import { MessageSquareIcon } from '@/components/icons/message-square';
 import { useGoogleAuth } from '@/providers/GoogleAuthProvider';
 import { sound } from '@/lib/sounds';
+import { useAppPath } from '@/lib/app-paths';
 
 const navItems = [
   { title: 'Dashboard', url: '/app', icon: HomeIcon, end: true },
-  { title: 'Categories', url: '/categories', icon: Palette },
+  { title: 'Categories', url: '/categories', icon: LayoutGridIcon },
   { title: 'Guide', url: '/guide', icon: BookTextIcon },
   { title: 'Feedback', url: '/feedback', icon: MessageSquareIcon },
 ];
@@ -29,6 +30,7 @@ const navItems = [
 export function AppSidebar() {
   const { authState } = useGoogleAuth();
   const location = useLocation();
+  const appPath = useAppPath();
 
   const user = authState.user;
   const displayName = user?.name ?? 'User';
@@ -37,8 +39,9 @@ export function AppSidebar() {
   const initials = displayName.charAt(0).toUpperCase() || 'U';
 
   const isItemActive = (item: (typeof navItems)[number]) => {
-    if (item.end) return location.pathname === item.url;
-    return location.pathname === item.url || location.pathname.startsWith(`${item.url}/`);
+    const target = appPath(item.url);
+    if (item.end) return location.pathname === target;
+    return location.pathname === target || location.pathname.startsWith(`${target}/`);
   };
 
   return (
@@ -63,7 +66,7 @@ export function AppSidebar() {
                     tooltip={item.title}
                     className="!rounded-[6px] data-[active=true]:bg-elevated data-[active=true]:font-medium data-[active=true]:text-sidebar-foreground data-[active=true]:shadow-[0_0_0_1px_var(--surface-border)] dark:data-[active=true]:shadow-[0_0_0_1px_var(--surface-border)]"
                   >
-                    <NavLink to={item.url} end={item.end} onClick={() => sound.click()}>
+                    <NavLink to={appPath(item.url)} end={item.end} onClick={() => sound.click()}>
                       <item.icon size={16} />
                       <span>{item.title}</span>
                     </NavLink>

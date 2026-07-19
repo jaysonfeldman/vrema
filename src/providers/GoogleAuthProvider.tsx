@@ -1,7 +1,8 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useGoogleLogin } from '@react-oauth/google';
 import { DEV_ACCESS_TOKEN, isDevAuthBypass } from '@/lib/dev-auth';
+import { DEMO_ACCESS_TOKEN, demoUser } from '@/lib/demo-data';
 
 interface User {
   id: string;
@@ -24,6 +25,7 @@ interface GoogleAuthContextType {
   signOut: () => void;
   getAccessToken: () => Promise<string>;
   isDevAuthBypass: boolean;
+  isDemoMode: boolean;
 }
 
 const GoogleAuthContext = createContext<GoogleAuthContextType | undefined>(undefined);
@@ -43,8 +45,18 @@ const emptyState: AuthState = {
   expiresAt: null,
 };
 
+const demoAuthState: AuthState = {
+  isAuthenticated: true,
+  user: demoUser,
+  accessToken: DEMO_ACCESS_TOKEN,
+  expiresAt: null,
+};
+
 export function GoogleAuthProvider({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
+  const location = useLocation();
+  const isDemoMode = location.pathname.startsWith('/demo');
+
   const [authState, setAuthState] = useState<AuthState>(() => {
     const savedAuth = localStorage.getItem('googleAuth');
     if (!savedAuth) {
@@ -53,14 +65,12 @@ export function GoogleAuthProvider({ children }: { children: React.ReactNode }) 
 
     const parsed = JSON.parse(savedAuth) as AuthState;
 
-    // Ignore a stale dev-bypass session when dev mode is off (and vice versa).
     const isDevSession = parsed.accessToken === DEV_ACCESS_TOKEN;
     if (isDevSession !== isDevAuthBypass) {
       localStorage.removeItem('googleAuth');
       return emptyState;
     }
 
-    // Drop expired real sessions so the user is prompted to sign in again.
     if (!isDevSession && parsed.expiresAt && Date.now() >= parsed.expiresAt) {
       localStorage.removeItem('googleAuth');
       return emptyState;
@@ -70,12 +80,13 @@ export function GoogleAuthProvider({ children }: { children: React.ReactNode }) 
   });
 
   useEffect(() => {
+    if (isDemoMode) return;
     if (authState.isAuthenticated) {
       localStorage.setItem('googleAuth', JSON.stringify(authState));
     } else {
       localStorage.removeItem('googleAuth');
     }
-  }, [authState]);
+  }, [authState, isDemoMode]);
 
   const handleSignOut = () => {
     setAuthState(emptyState);
@@ -147,10 +158,13 @@ export function GoogleAuthProvider({ children }: { children: React.ReactNode }) 
   };
 
   const signOut = () => {
+    if (isDemoMode) return;
     handleSignOut();
   };
 
   const getAccessToken = async (): Promise<string> => {
+    if (isDemoMode) return DEMO_ACCESS_TOKEN;
+
     if (authState.accessToken === DEV_ACCESS_TOKEN) {
       return DEV_ACCESS_TOKEN;
     }
@@ -167,17 +181,21 @@ export function GoogleAuthProvider({ children }: { children: React.ReactNode }) 
     return authState.accessToken;
   };
 
+  const value = useMemo(
+    () => ({
+      authState: isDemoMode ? demoAuthState : authState,
+      signIn,
+      signInDev,
+      signOut,
+      getAccessToken,
+      isDevAuthBypass,
+      isDemoMode,
+    }),
+    [authState, isDemoMode]
+  );
+
   return (
-    <GoogleAuthContext.Provider
-      value={{
-        authState,
-        signIn,
-        signInDev,
-        signOut,
-        getAccessToken,
-        isDevAuthBypass,
-      }}
-    >
+    <GoogleAuthContext.Provider value={value}>
       {children}
     </GoogleAuthContext.Provider>
   );

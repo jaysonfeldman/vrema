@@ -3,18 +3,18 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vrema</title>
+    <title>Vrema — Time-tracking, Reinvented</title>
     <meta
       name="description"
-      content="Vrema is a time tracking app that turns your Google Calendar events into projects, activities, and hours."
+      content="Vrema turns your existing calendar into a smart time tracker. No timers to start, no timesheets to fill."
     />
     <meta name="application-name" content="Vrema" />
     <meta name="author" content="Vrema" />
     <meta property="og:site_name" content="Vrema" />
-    <meta property="og:title" content="Vrema" />
+    <meta property="og:title" content="Vrema — Time-tracking, Reinvented" />
     <meta
       property="og:description"
-      content="Vrema is a time tracking app that turns your Google Calendar events into projects, activities, and hours."
+      content="Vrema turns your existing calendar into a smart time tracker. No timers to start, no timesheets to fill."
     />
     <meta property="og:url" content="https://vrema.dev/" />
     <meta property="og:image" content="/vrema-logo.png?v=5" />
@@ -28,28 +28,42 @@
       rel="stylesheet"
     />
     <style>
+      @font-face {
+        font-family: 'Inter Display';
+        font-style: normal;
+        font-weight: 600;
+        font-display: swap;
+        src: url(https://cdn.jsdelivr.net/fontsource/fonts/inter-display@5.2.5/latin-600-normal.woff2)
+          format('woff2');
+      }
+      @font-face {
+        font-family: 'Inter Display';
+        font-style: normal;
+        font-weight: 500;
+        font-display: swap;
+        src: url(https://cdn.jsdelivr.net/fontsource/fonts/inter-display@5.2.5/latin-500-normal.woff2)
+          format('woff2');
+      }
       body {
         margin: 0;
         font-family: Inter, system-ui, sans-serif;
-        background: #f7f7f7;
-        color: #0a0a0a;
+        background: #000000;
+        color: #fafafa;
       }
       .seo {
-        max-width: 48rem;
+        max-width: 28rem;
         margin: 0 auto;
-        padding: 2rem 1.5rem 4rem;
+        padding: 4rem 1.5rem;
+        text-align: center;
         line-height: 1.6;
       }
       .seo h1 {
         font-size: 2.5rem;
-        margin: 0 0 0.75rem;
-      }
-      .seo h2 {
-        font-size: 1.25rem;
-        margin: 2rem 0 0.75rem;
+        letter-spacing: -0.03em;
+        margin: 0 0 1rem;
       }
       .seo a {
-        color: #171717;
+        color: #fafafa;
       }
     </style>
   </head>
@@ -57,73 +71,19 @@
   <body>
     <div id="root">
       <main class="seo">
-        <p><strong>Application name:</strong> Vrema</p>
-        <h1>Vrema</h1>
+        <img src="/vrema-logo.png?v=5" alt="Vrema" width="72" height="72" />
+        <h1>Time-tracking, Reinvented</h1>
         <p>
-          Vrema is a time tracking application. Its purpose is to help you track work time from
-          Google Calendar by turning calendar events into projects, activities, and hours. You
-          block time on your calendar as usual, give each event a short title, and sync. Vrema
-          categorizes that time for you. No timers to start or stop.
+          Vrema turns your existing calendar into a smart time tracker. No timers to start, no
+          timesheets to fill.
         </p>
         <p>
-          <a href="/login">Get started with Google</a>
-          ·
           <a href="/about">About Vrema</a>
           ·
-          <a href="/privacy">Privacy Policy</a>
+          <a href="/login">Sign in</a>
           ·
-          <a href="/terms">Terms of Service</a>
+          <a href="/privacy">Privacy</a>
         </p>
-
-        <h2>Purpose of Vrema</h2>
-        <p>
-          The purpose of Vrema is time tracking for freelancers, consultants, and anyone who
-          plans work in Google Calendar. Vrema reads your calendar events and organizes them into
-          projects, activities, and billable or logged hours so you can review dashboards and
-          export timesheets.
-        </p>
-
-        <h2>What Vrema does</h2>
-        <ul>
-          <li>Projects, based on the project name in each event title</li>
-          <li>Activities, based on the activity tag after the hashtag</li>
-          <li>Hours, based on each event start and end time</li>
-        </ul>
-
-        <h2>How it works</h2>
-        <ol>
-          <li>Sign in with Google and grant read-only calendar access.</li>
-          <li>Title calendar events using this format: project#activity description</li>
-          <li>Example: vrema#design landing page</li>
-          <li>Sync from Vrema so your projects, activities, and hours update automatically.</li>
-        </ol>
-
-        <h2>Why Vrema requests Google user data</h2>
-        <p>
-          Vrema requests Google account profile and email to sign you in. Vrema requests read-only
-          Google Calendar and calendar events access to fetch event titles and times, then
-          calculate projects, activities, and hours. Vrema does not create, edit, or delete
-          calendar events. Vrema does not sell Google user data and does not use it for
-          advertising. Use of Google user data complies with the Google API Services User Data
-          Policy, including the Limited Use requirements.
-        </p>
-        <p>Full details are in our <a href="/privacy">Privacy Policy</a>.</p>
-
-        <h2>Who Vrema is for</h2>
-        <p>
-          Vrema is for people who already use Google Calendar to plan client work, project blocks,
-          and meetings, and who want those blocks converted into a clean timesheet without a
-          separate timer workflow.
-        </p>
-
-        <footer>
-          <p>Operated by Jayson Feldman · jaysonfeldman@gmail.com</p>
-          <p>
-            Vrema © 2026 ·
-            <a href="/privacy">Privacy Policy</a> ·
-            <a href="/terms">Terms of Service</a>
-          </p>
-        </footer>
       </main>
     </div>
     <!-- IMPORTANT: DO NOT REMOVE THIS SCRIPT TAG OR THIS HTML COMMENT! -->

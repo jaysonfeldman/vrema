@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { SettingsIcon } from '@/components/icons/settings';
 import { WithTooltip } from '@/components/ui/tooltip';
 import { sound } from '@/lib/sounds';
+import { useAppPath } from '@/lib/app-paths';
 
 interface ProjectCardProps {
   project: Project;
@@ -21,6 +22,7 @@ interface ProjectCardProps {
 
 const ProjectCard: React.FC<ProjectCardProps> = ({ project, className, style, onUpdateProject }) => {
   const navigate = useNavigate();
+  const appPath = useAppPath();
   const filterLabel = project.filterTerm?.trim();
   const showFilterBadge =
     !!filterLabel && filterLabel.toLowerCase() !== project.name.toLowerCase();
@@ -55,7 +57,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, className, style, on
         type="button"
         onClick={() => {
           sound.click();
-          navigate(`/projects/${project.id}`);
+          navigate(appPath(`/projects/${project.id}`));
         }}
         className="min-w-0 text-left"
       >
