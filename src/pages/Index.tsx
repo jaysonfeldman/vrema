@@ -1,6 +1,5 @@
 import React from 'react';
 import { useGoogleAuth } from '@/providers/GoogleAuthProvider';
-import { useAuth } from '@/providers/AuthProvider';
 import { useSharedState } from '@/hooks/useSharedState';
 import { useCalendarSync } from '@/hooks/useCalendarSync';
 import { useProjectStats } from '@/hooks/useProjectStats';
@@ -14,7 +13,6 @@ import DashboardBanner from '@/components/DashboardBanner';
 
 export default function Dashboard() {
   const { authState } = useGoogleAuth();
-  const { user: supabaseUser } = useAuth();
   const { syncCalendar } = useCalendarSync();
   const { lastSynced, filters } = useSharedState();
   const { filteredProjects } = useProjectStats();
@@ -40,8 +38,7 @@ export default function Dashboard() {
     return Array.from(map.values());
   }, [filteredProjects]);
 
-  const firstName =
-    authState.user?.name?.split(' ')[0] ?? supabaseUser?.name?.split(' ')[0];
+  const firstName = authState.user?.name?.split(' ')[0];
 
   return (
     <div className="flex flex-1 flex-col overflow-auto">

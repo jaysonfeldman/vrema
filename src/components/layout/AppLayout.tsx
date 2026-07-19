@@ -8,7 +8,6 @@ import { ThemeToggle } from '@/components/theme-toggle';
 import { RefreshCWIcon } from '@/components/icons/refresh-cw';
 import { LogoutIcon } from '@/components/icons/logout';
 import { useGoogleAuth } from '@/providers/GoogleAuthProvider';
-import { useAuth } from '@/providers/AuthProvider';
 import { useCalendarSync } from '@/hooks/useCalendarSync';
 import { useSharedState } from '@/hooks/useSharedState';
 import { useToast } from '@/components/ui/use-toast';
@@ -29,8 +28,7 @@ function getPageTitle(pathname: string): string {
 export default function AppLayout() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { signOut: signOutGoogle } = useGoogleAuth();
-  const { signOut: signOutSupabase } = useAuth();
+  const { signOut } = useGoogleAuth();
   const { syncCalendar, lastSynced } = useCalendarSync();
   const { isLoading } = useSharedState();
   const { toast } = useToast();
@@ -49,10 +47,9 @@ export default function AppLayout() {
     }
   };
 
-  const handleSignOut = async () => {
+  const handleSignOut = () => {
     sound.swoosh();
-    await signOutSupabase();
-    signOutGoogle();
+    signOut();
     navigate('/login', { replace: true });
   };
 

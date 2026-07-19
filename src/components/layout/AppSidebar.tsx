@@ -16,7 +16,6 @@ import { HomeIcon } from '@/components/icons/home';
 import { FolderKanbanIcon } from '@/components/icons/folder-kanban';
 import { ActivityIcon } from '@/components/icons/activity';
 import { useGoogleAuth } from '@/providers/GoogleAuthProvider';
-import { useAuth } from '@/providers/AuthProvider';
 import { sound } from '@/lib/sounds';
 
 const navItems = [
@@ -27,10 +26,9 @@ const navItems = [
 
 export function AppSidebar() {
   const { authState } = useGoogleAuth();
-  const { user: supabaseUser } = useAuth();
   const location = useLocation();
 
-  const user = authState.user ?? supabaseUser;
+  const user = authState.user;
   const displayName = user?.name ?? 'User';
   const displayEmail = user?.email ?? '';
   const displayImage = user?.imageUrl ?? '';

@@ -1,11 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useGoogleAuth } from '@/providers/GoogleAuthProvider';
-import { useAuth } from '@/providers/AuthProvider';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { useToast } from '@/hooks/use-toast';
-import { cn } from '@/lib/utils';
 
 function GoogleIcon({ className }: { className?: string }) {
   return (
@@ -30,39 +25,10 @@ function GoogleIcon({ className }: { className?: string }) {
   );
 }
 
-function LoginFooter() {
-  return (
-    <footer className="pb-8 text-center text-xs text-neutral-400">
-      <span>Vrema © {new Date().getFullYear()}</span>
-      <span className="mx-2">·</span>
-      <a href="#" className="hover:text-neutral-600">
-        Privacy
-      </a>
-      <span className="mx-2">·</span>
-      <a href="#" className="hover:text-neutral-600">
-        Terms
-      </a>
-    </footer>
-  );
-}
-
 export default function Login() {
   const { signIn, signInDev, authState, isDevAuthBypass } = useGoogleAuth();
-  const { isAuthenticated: hasSupabaseSession, signInWithEmail } = useAuth();
-  const { toast } = useToast();
-  const [email, setEmail] = useState('');
-  const [sentTo, setSentTo] = useState<string | null>(null);
-  const [isSending, setIsSending] = useState(false);
-  const [resendState, setResendState] = useState<'idle' | 'sending' | 'sent'>('idle');
-  const resendTimers = useRef<number[]>([]);
 
-  useEffect(() => {
-    return () => {
-      resendTimers.current.forEach((id) => window.clearTimeout(id));
-    };
-  }, []);
-
-  if (authState.isAuthenticated || hasSupabaseSession) {
+  if (authState.isAuthenticated) {
     return <Navigate to="/" replace />;
   }
 
@@ -71,148 +37,52 @@ export default function Login() {
     else signIn();
   };
 
-  const sendMagicLink = async (address: string) => {
-    const { error } = await signInWithEmail(address);
-    if (error) {
-      toast({
-        title: 'Could not send link',
-        description: error.message,
-        variant: 'destructive',
-      });
-      return false;
-    }
-
-    toast({
-      title: 'Sign-in link sent',
-      description: `Check ${address} for your link.`,
-    });
-    return true;
-  };
-
-  const handleContinue = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const trimmed = email.trim();
-    if (!trimmed || !trimmed.includes('@') || isSending) return;
-
-    setIsSending(true);
-    const ok = await sendMagicLink(trimmed);
-    setIsSending(false);
-
-    if (ok) {
-      setSentTo(trimmed);
-      setResendState('idle');
-    }
-  };
-
-  const handleResend = async () => {
-    if (!sentTo || resendState !== 'idle') return;
-
-    setResendState('sending');
-    const ok = await sendMagicLink(sentTo);
-
-    resendTimers.current.forEach((id) => window.clearTimeout(id));
-    if (ok) {
-      resendTimers.current = [
-        window.setTimeout(() => setResendState('sent'), 200),
-        window.setTimeout(() => setResendState('idle'), 3000),
-      ];
-    } else {
-      setResendState('idle');
-    }
-  };
-
   return (
     <div className="relative flex min-h-svh flex-col bg-[#f7f7f7] text-neutral-950 antialiased">
       <div className="flex flex-1 flex-col items-center justify-center px-6 py-16">
-        {sentTo ? (
-          <div className="flex w-full max-w-[360px] flex-col items-center animate-in fade-in zoom-in-95 duration-300">
-            <div className="mb-6 space-y-2 text-center">
-              <h1 className="text-[1.75rem] font-semibold tracking-tight">Check your inbox</h1>
-              <p className="text-[15px] text-neutral-500">
-                We sent a sign in link to <span className="text-neutral-700">{sentTo}</span>
-              </p>
-            </div>
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={handleResend}
-              disabled={resendState !== 'idle'}
-              className="h-9 rounded-lg px-4 text-sm font-medium"
-            >
-              {resendState === 'sent' ? 'Sent' : resendState === 'sending' ? 'Sending…' : 'Resend'}
-            </Button>
-            <button
-              type="button"
-              onClick={() => setSentTo(null)}
-              className="mt-6 text-sm text-neutral-400 hover:text-neutral-600"
-            >
-              Use a different email
-            </button>
+        <div className="flex w-full max-w-[360px] flex-col items-center">
+          <img
+            src="/vrema-logo.png?v=5"
+            alt="Vrema"
+            className="mb-5 size-20 drop-shadow-sm"
+          />
+
+          <div className="mb-9 space-y-2 text-center">
+            <h1 className="text-[32px] font-semibold leading-tight tracking-tight">
+              Welcome to Vrema
+            </h1>
+            <p className="mx-auto max-w-[320px] text-balance text-[14px] leading-relaxed text-neutral-500">
+              Turn your calendar into an effortless timetracker
+            </p>
           </div>
-        ) : (
-          <div className="flex w-full max-w-[360px] flex-col items-center">
-            <img
-              src="/vrema-logo.png?v=5"
-              alt="Vrema"
-              className="mb-5 size-20 drop-shadow-sm"
-            />
 
-            <div className="mb-9 space-y-2 text-center">
-              <h1 className="text-[32px] font-semibold leading-tight tracking-tight">
-                Welcome to Vrema
-              </h1>
-              <p className="mx-auto max-w-[320px] text-balance text-[14px] leading-relaxed text-neutral-500">
-                Turn your calendar into an effortless timetracker
-              </p>
-            </div>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={authenticateGoogle}
+            className="h-11 w-full rounded-xl border-neutral-200 bg-white text-sm font-medium text-neutral-950 shadow-sm hover:bg-neutral-50 hover:text-neutral-950"
+          >
+            <GoogleIcon className="mr-2 h-4 w-4" />
+            Continue with Google
+          </Button>
 
-            <div className="w-full space-y-3">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={authenticateGoogle}
-                className="h-11 w-full rounded-xl border-neutral-200 bg-white text-sm font-medium text-neutral-950 shadow-sm hover:bg-neutral-50 hover:text-neutral-950"
-              >
-                <GoogleIcon className="mr-2 h-4 w-4" />
-                Continue with Google
-              </Button>
-
-              <div className="flex items-center gap-3 py-1">
-                <div className="h-px flex-1 bg-neutral-200" />
-                <span className="text-[10px] font-medium uppercase tracking-wider text-neutral-400">
-                  Or
-                </span>
-                <div className="h-px flex-1 bg-neutral-200" />
-              </div>
-
-              <form onSubmit={handleContinue} className="space-y-3">
-                <Input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Email..."
-                  autoComplete="email"
-                  required
-                  className={cn(
-                    'login-email h-11 rounded-xl border-neutral-200 bg-white px-4 text-sm text-neutral-950 shadow-sm',
-                    'placeholder:text-neutral-400',
-                    'focus-visible:ring-1 focus-visible:ring-neutral-950/10 focus-visible:ring-offset-0'
-                  )}
-                />
-                <Button
-                  type="submit"
-                  disabled={isSending}
-                  className="h-11 w-full rounded-xl bg-neutral-950 text-sm font-medium text-white shadow-[0_6px_20px_rgba(0,0,0,0.14)] hover:bg-neutral-900"
-                >
-                  {isSending ? 'Sending…' : 'Continue'}
-                </Button>
-              </form>
-            </div>
-          </div>
-        )}
+          <p className="mt-4 text-center text-xs text-neutral-400">
+            Google Calendar access is required to track your time.
+          </p>
+        </div>
       </div>
 
-      <LoginFooter />
+      <footer className="pb-8 text-center text-xs text-neutral-400">
+        <span>Vrema © {new Date().getFullYear()}</span>
+        <span className="mx-2">·</span>
+        <a href="#" className="hover:text-neutral-600">
+          Privacy
+        </a>
+        <span className="mx-2">·</span>
+        <a href="#" className="hover:text-neutral-600">
+          Terms
+        </a>
+      </footer>
     </div>
   );
 }
