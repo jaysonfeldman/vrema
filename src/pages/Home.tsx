@@ -45,6 +45,12 @@ export default function Home() {
               <Link to="/login">Get started with Google</Link>
             </Button>
             <Link
+              to="/about"
+              className="text-sm font-medium text-neutral-600 underline underline-offset-4 hover:text-neutral-950"
+            >
+              About Vrema
+            </Link>
+            <Link
               to="/privacy"
               className="text-sm font-medium text-neutral-600 underline underline-offset-4 hover:text-neutral-950"
             >
