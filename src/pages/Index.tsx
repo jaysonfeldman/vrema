@@ -18,7 +18,7 @@ import { useToast } from '@/hooks/use-toast';
 export default function Dashboard() {
   const { authState } = useGoogleAuth();
   const { syncCalendar } = useCalendarSync();
-  const { lastSynced, filters } = useSharedState();
+  const { lastSynced, filters, ensureActivityColors } = useSharedState();
   const { filteredProjects } = useProjectStats();
   const { toast } = useToast();
   const uploadIconRef = React.useRef<UploadIconHandle>(null);
@@ -43,6 +43,10 @@ export default function Dashboard() {
       });
     return Array.from(map.values());
   }, [filteredProjects]);
+
+  React.useEffect(() => {
+    ensureActivityColors(activities.map((a) => a.type));
+  }, [activities, ensureActivityColors]);
 
   const firstName = authState.user?.name?.split(' ')[0];
 

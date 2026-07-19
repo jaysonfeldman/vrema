@@ -8,6 +8,7 @@ import Login from '@/pages/login';
 import Activities from '@/pages/Activities';
 import Guide from '@/pages/Guide';
 import Feedback from '@/pages/Feedback';
+import Categories from '@/pages/Categories';
 import ProjectDetail from '@/pages/ProjectDetail';
 import Privacy from '@/pages/Privacy';
 import Terms from '@/pages/Terms';
@@ -55,6 +56,7 @@ function App() {
                   <Route path="/projects" element={<Navigate to="/app" replace />} />
                   <Route path="/projects/:projectId" element={<ProjectDetail />} />
                   <Route path="/activities" element={<Activities />} />
+                  <Route path="/categories" element={<Categories />} />
                   <Route path="/guide" element={<Guide />} />
                   <Route path="/feedback" element={<Feedback />} />
                 </Route>

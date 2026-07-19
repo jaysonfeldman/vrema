@@ -1,4 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom';
+import { Palette } from 'lucide-react';
 import {
   Sidebar,
   SidebarContent,
@@ -20,6 +21,7 @@ import { sound } from '@/lib/sounds';
 
 const navItems = [
   { title: 'Dashboard', url: '/app', icon: HomeIcon, end: true },
+  { title: 'Categories', url: '/categories', icon: Palette },
   { title: 'Guide', url: '/guide', icon: BookTextIcon },
   { title: 'Feedback', url: '/feedback', icon: MessageSquareIcon },
 ];

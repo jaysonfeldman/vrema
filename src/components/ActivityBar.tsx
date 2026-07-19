@@ -1,5 +1,6 @@
 import { useSharedState } from '@/hooks/useSharedState';
 import { formatHours } from '@/lib/eventStats';
+import { COLOR_PALETTE } from '@/lib/activityColors';
 import { cn } from '@/lib/utils';
 import { WithTooltip } from '@/components/ui/tooltip';
 
@@ -9,15 +10,13 @@ interface ActivityLike {
   hours: number;
 }
 
-const FALLBACK_COLORS = ['#22C55F', '#6EE7B7', '#7ED3FC', '#FEF18B', '#FED8AA', '#D946EF'];
-
 export function useActivityColor() {
   const { activityColors } = useSharedState();
   return (type: string) => {
     const match = activityColors.find((ac) => ac.type.toLowerCase() === type.toLowerCase());
     if (match) return match.color;
     const hash = type.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    return FALLBACK_COLORS[hash % FALLBACK_COLORS.length];
+    return COLOR_PALETTE[hash % COLOR_PALETTE.length];
   };
 }
 

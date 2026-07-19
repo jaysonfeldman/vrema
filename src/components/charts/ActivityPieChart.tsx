@@ -1,6 +1,7 @@
 import { PieChart, Pie, Cell, Label } from 'recharts';
 import { Project } from '@/lib/types';
 import { formatHours } from '@/lib/eventStats';
+import { COLOR_PALETTE } from '@/lib/activityColors';
 import { useSharedState } from '@/hooks/useSharedState';
 import {
   ChartContainer,
@@ -14,8 +15,6 @@ interface ActivityPieChartProps {
   className?: string;
 }
 
-const FALLBACK_COLORS = ['#22C55F', '#6EE7B7', '#7ED3FC', '#FEF18B', '#FED8AA', '#D946EF'];
-
 export default function ActivityPieChart({ project, className }: ActivityPieChartProps) {
   const { activityColors } = useSharedState();
 
@@ -27,7 +26,7 @@ export default function ActivityPieChart({ project, className }: ActivityPieChar
       hours: activity.hours,
       fill:
         activityColors.find((entry) => entry.type.toLowerCase() === activity.type.toLowerCase())?.color
-        ?? FALLBACK_COLORS[index % FALLBACK_COLORS.length],
+        ?? COLOR_PALETTE[index % COLOR_PALETTE.length],
     }));
 
   const chartConfig = chartData.reduce<ChartConfig>((config, item) => {

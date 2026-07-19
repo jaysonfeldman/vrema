@@ -17,6 +17,7 @@ import { cn } from '@/lib/utils';
 const pageTitles: Record<string, string> = {
   '/app': 'Dashboard',
   '/projects': 'Projects',
+  '/categories': 'Categories',
   '/guide': 'Guide',
   '/feedback': 'Feedback',
 };
