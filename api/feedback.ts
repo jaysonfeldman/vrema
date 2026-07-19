@@ -34,7 +34,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const typeLabel = TYPE_LABELS[type ?? ''] ?? type ?? 'Feedback';
-  const to = process.env.FEEDBACK_TO_EMAIL || 'hi@jaysonfeldman.com';
+  const to = process.env.FEEDBACK_TO_EMAIL || 'jaysonfeldman@gmail.com';
   const from = process.env.FEEDBACK_FROM_EMAIL || 'Vrema <onboarding@resend.dev>';
 
   const resend = new Resend(apiKey);

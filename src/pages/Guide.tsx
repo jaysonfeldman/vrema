@@ -1,14 +1,27 @@
 import { useState } from 'react';
+import { useTheme } from 'next-themes';
 import { CalendarDays, Clock, FolderKanban, Hash, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 type Segment = 'project' | 'hash' | 'activity' | 'description';
 
 const tones = {
-  green: { bg: '#22C55F2E', text: '#15803D' },
-  amber: { bg: '#FED8AA88', text: '#C2410C' },
-  blue: { bg: '#7ED3FC55', text: '#0369A1' },
-  muted: { bg: '#e8e8e8', text: '#525252' },
+  green: {
+    light: { bg: '#22C55F2E', text: '#15803D' },
+    dark: { bg: 'rgba(34, 197, 95, 0.18)', text: '#86EFAC' },
+  },
+  amber: {
+    light: { bg: '#FED8AA88', text: '#C2410C' },
+    dark: { bg: 'rgba(251, 146, 60, 0.18)', text: '#FDBA74' },
+  },
+  blue: {
+    light: { bg: '#7ED3FC55', text: '#0369A1' },
+    dark: { bg: 'rgba(56, 189, 248, 0.18)', text: '#7DD3FC' },
+  },
+  muted: {
+    light: { bg: '#e8e8e8', text: '#525252' },
+    dark: { bg: 'rgba(255, 255, 255, 0.08)', text: '#A1A1AA' },
+  },
 } as const;
 
 const segmentTone: Record<Segment, keyof typeof tones> = {
@@ -17,6 +30,11 @@ const segmentTone: Record<Segment, keyof typeof tones> = {
   activity: 'amber',
   description: 'blue',
 };
+
+function useToneMode() {
+  const { resolvedTheme } = useTheme();
+  return resolvedTheme === 'dark' ? 'dark' : 'light';
+}
 
 function Pill({
   tone,
@@ -27,7 +45,8 @@ function Pill({
   children: React.ReactNode;
   onHover?: (active: boolean) => void;
 }) {
-  const { bg, text } = tones[tone];
+  const mode = useToneMode();
+  const { bg, text } = tones[tone][mode];
   return (
     <span
       className="inline-flex cursor-default items-center rounded-md px-2.5 py-0.5 font-mono text-[0.9em] font-medium transition-opacity hover:opacity-90"
@@ -49,9 +68,10 @@ function ExamplePart({
   active: Segment | null;
   children: React.ReactNode;
 }) {
+  const mode = useToneMode();
   const isActive = active === segment;
   const isDimmed = active !== null && !isActive;
-  const color = tones[segmentTone[segment]].text;
+  const color = tones[segmentTone[segment]][mode].text;
 
   return (
     <span
