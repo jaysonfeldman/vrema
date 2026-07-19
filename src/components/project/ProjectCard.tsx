@@ -1,11 +1,14 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import { motion } from 'motion/react';
 import { Project } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { useSharedState } from '@/hooks/useSharedState';
 import { formatHours } from '@/lib/eventStats';
-import ActivityPieChart from '@/components/charts/ActivityPieChart';
-import { Button } from '../ui/button';
-import { Settings2 } from 'lucide-react';
+import ActivityBar from '@/components/ActivityBar';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { SettingsIcon } from '@/components/icons/settings';
+import { sound } from '@/lib/sounds';
 
 interface ProjectCardProps {
   project: Project;
@@ -15,119 +18,59 @@ interface ProjectCardProps {
   onDeleteProject?: (projectId: string) => void;
 }
 
-const ProjectCard: React.FC<ProjectCardProps> = ({ 
-  project, 
-  className,
-  style,
-  onUpdateProject
-}) => {
-  const { activityColors } = useSharedState();
-
-  const formatCurrency = (amount: number): string => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'EUR',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
-
-  // Get activity color from shared state
-  const getActivityColor = (type: string): string => {
-    const activityColor = activityColors.find(ac => ac.type.toLowerCase() === type.toLowerCase());
-    if (activityColor) return activityColor.color;
-    
-    // For any unlisted activity type, deterministically assign one of the alternate colors
-    const alternateColors = ['#FEF18B', '#FED8AA', '#7ED3FC'];
-    const hash = type.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    return alternateColors[hash % alternateColors.length];
-  };
-
-  // Calculate total value
-  const totalValue = project.hourlyRate ? project.totalHours * project.hourlyRate : 0;
-
-  // Sort activities by hours
-  const sortedActivities = [...project.activities]
-    .sort((a, b) => b.hours - a.hours);
+const ProjectCard: React.FC<ProjectCardProps> = ({ project, className, style, onUpdateProject }) => {
+  const navigate = useNavigate();
+  const filterLabel = project.filterTerm?.trim();
+  const showFilterBadge =
+    !!filterLabel && filterLabel.toLowerCase() !== project.name.toLowerCase();
 
   return (
-    <div className={cn('rounded-lg overflow-hidden bg-[#272729] text-white p-6', className)} style={style}>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-start justify-between">
-          <div>
-            <h3 className="text-lg font-medium mb-1">{project.name}</h3>
-            <div className="bg-zinc-700/50 px-2 py-0.5 rounded text-xs text-zinc-400 w-fit">
-              {project.filterTerm || project.name.toLowerCase()}
-            </div>
-          </div>
-          
-          <div className="flex items-center">
-            <Button 
-              variant="ghost" 
-              size="icon"
-              className="text-zinc-400 hover:text-white hover:bg-zinc-800"
-              onClick={() => onUpdateProject?.(project)}
-            >
-              <Settings2 className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
+    <motion.div
+      className={cn(
+        'border-gradient-inner group relative flex h-full flex-col justify-between gap-4 rounded-2xl bg-gradient-to-b from-[#FAFAFA] to-[#F4F4F5] p-4 dark:from-[#2a2e2f] dark:to-[#222627]',
+        className
+      )}
+      style={style}
+      whileHover={{ y: -2 }}
+      transition={{ type: 'spring', stiffness: 400, damping: 28 }}
+    >
+      <Button
+        variant="ghost"
+        size="icon"
+        className="absolute right-2 top-2 h-7 w-7 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100"
+        onClick={(e) => {
+          e.stopPropagation();
+          sound.pop();
+          onUpdateProject?.(project);
+        }}
+      >
+        <SettingsIcon size={14} />
+      </Button>
 
-        {/* Time and Budget */}
-        <div className="grid grid-cols-3 gap-6">
-          <div>
-            <p className="text-sm text-zinc-400 mb-1">Time logged</p>
-            <p className="font-mono text-2xl">{formatHours(project.totalHours)}</p>
-          </div>
-          
-          <div>
-            <p className="text-sm text-zinc-400 mb-1">Total value</p>
-            <p className="font-mono text-2xl text-emerald-400">
-              {formatCurrency(totalValue)}
-            </p>
-          </div>
-          
-          <div>
-            <p className="text-sm text-zinc-400 mb-1">Budget left</p>
-            {project.budgetHours ? (
-              <>
-                <p className="font-mono text-2xl text-amber-500">
-                  {formatHours(project.budgetHours - project.totalHours)}
-                </p>
-                <p className="text-xs text-zinc-500 mt-1">
-                  /month
-                </p>
-              </>
-            ) : (
-              <p className="font-mono text-2xl text-zinc-500">—</p>
-            )}
-          </div>
+      <button
+        type="button"
+        onClick={() => {
+          sound.click();
+          navigate(`/projects/${project.id}`);
+        }}
+        className="min-w-0 text-left"
+      >
+        <div className="flex min-w-0 items-center gap-2 pr-8">
+          <h3 className="truncate text-sm font-medium">{project.name}</h3>
+          {showFilterBadge && (
+            <Badge variant="secondary" className="shrink-0 text-xs font-normal">
+              {filterLabel}
+            </Badge>
+          )}
         </div>
+        <p className="mt-1.5 font-mono text-base font-semibold tabular-nums">
+          {formatHours(project.totalHours)}
+        </p>
+      </button>
 
-        {/* Activities */}
-        <div className="grid grid-cols-[140px_1fr] gap-4 items-center">
-          <ActivityPieChart project={project} />
-
-          <div>
-            <p className="text-sm text-zinc-400 mb-2">Activities</p>
-            <div className="flex flex-wrap gap-1">
-              {sortedActivities.map((activity) => (
-                <div
-                  key={activity.id}
-                  className="flex items-center space-x-0.5 px-1.5 py-0.5 rounded text-[10px] text-black"
-                  style={{ backgroundColor: getActivityColor(activity.type) }}
-                >
-                  <span className="font-mono">{formatHours(activity.hours)}</span>
-                  <span>#{activity.type}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+      <ActivityBar activities={project.activities} />
+    </motion.div>
   );
 };
 
-export default ProjectCard; 
+export default ProjectCard;

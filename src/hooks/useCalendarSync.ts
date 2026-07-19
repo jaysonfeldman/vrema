@@ -4,6 +4,7 @@ import { useSharedState } from './useSharedState';
 import { GoogleCalendarEvent } from '@/lib/types';
 import { DEV_ACCESS_TOKEN, devCalendarEvents } from '@/lib/dev-auth';
 import { parseEventTitle } from '@/services/googleCalendarService';
+import { getDateRange } from '@/lib/eventStats';
 
 export const useCalendarSync = () => {
   const { authState, getAccessToken } = useGoogleAuth();
@@ -89,16 +90,15 @@ export const useCalendarSync = () => {
         });
       }
 
-      if (filters.startDate && filters.endDate) {
-        filtered = filtered.filter((event) => {
-          if (!event.start?.dateTime) {
-            return false;
-          }
+      const { startDate, endDate } = getDateRange(filters.dateRange);
+      filtered = filtered.filter((event) => {
+        if (!event.start?.dateTime) {
+          return false;
+        }
 
-          const eventStart = new Date(event.start.dateTime);
-          return eventStart >= filters.startDate! && eventStart <= filters.endDate!;
-        });
-      }
+        const eventStart = new Date(event.start.dateTime);
+        return eventStart >= startDate && eventStart <= endDate;
+      });
 
       setFilteredEvents(filtered);
     };

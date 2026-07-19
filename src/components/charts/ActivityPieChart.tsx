@@ -68,7 +68,7 @@ export default function ActivityPieChart({ project, className }: ActivityPieChar
           outerRadius={72}
           paddingAngle={2}
           strokeWidth={2}
-          stroke="#272729"
+          stroke="hsl(var(--background))"
         >
           {chartData.map((entry) => (
             <Cell key={entry.activity} fill={entry.fill} />
@@ -81,10 +81,10 @@ export default function ActivityPieChart({ project, className }: ActivityPieChar
 
               return (
                 <text x={viewBox.cx} y={viewBox.cy} textAnchor="middle" dominantBaseline="middle">
-                  <tspan x={viewBox.cx} y={viewBox.cy} className="fill-white text-lg font-mono font-semibold">
+                  <tspan x={viewBox.cx} y={viewBox.cy} className="fill-foreground text-lg font-mono font-semibold">
                     {formatHours(project.totalHours)}
                   </tspan>
-                  <tspan x={viewBox.cx} y={(viewBox.cy ?? 0) + 18} className="fill-zinc-400 text-[10px]">
+                  <tspan x={viewBox.cx} y={(viewBox.cy ?? 0) + 18} className="fill-muted-foreground text-[10px]">
                     total
                   </tspan>
                 </text>

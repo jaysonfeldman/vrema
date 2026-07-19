@@ -8,8 +8,6 @@ interface FilterOptions {
   activity: string;
   selectedProjects: string[];
   selectedActivities: string[];
-  startDate?: Date;
-  endDate?: Date;
 }
 
 interface ActivityColor {
@@ -48,8 +46,6 @@ export const useSharedState = create<SharedState>((set) => ({
     activity: 'All',
     selectedProjects: [],
     selectedActivities: [],
-    startDate: new Date(),
-    endDate: new Date()
   },
   lastSynced: null,
   isLoading: false,

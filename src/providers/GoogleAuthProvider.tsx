@@ -80,7 +80,6 @@ export function GoogleAuthProvider({ children }: { children: React.ReactNode }) 
   const handleSignOut = () => {
     setAuthState(emptyState);
     localStorage.removeItem('googleAuth');
-    navigate('/login', { replace: true });
   };
 
   const login = useGoogleLogin({

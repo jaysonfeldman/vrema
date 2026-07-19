@@ -117,8 +117,9 @@ export default {
         'slide-right': 'slide-right 0.5s ease-out'
 			},
       fontFamily: {
-        sans: ['Inter', 'sans-serif'],
-        mono: ['JetBrains Mono', 'monospace']
+        sans: ['"Inter"', 'system-ui', 'sans-serif'],
+        display: ['"Inter"', 'system-ui', 'sans-serif'],
+        mono: ['"Inter"', 'system-ui', 'sans-serif'],
       }
 		}
 	},

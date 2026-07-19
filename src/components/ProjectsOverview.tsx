@@ -3,23 +3,32 @@ import { useSharedState } from '@/hooks/useSharedState';
 import { useProjectStats } from '@/hooks/useProjectStats';
 import ProjectCard from '@/components/project/ProjectCard';
 import ProjectSettingsDialog from '@/components/project/ProjectSettingsDialog';
-import { Button } from './ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { LayoutGrid } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Card, CardContent } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
+import { FolderOpenIcon } from '@/components/icons/folder-open';
+import { selectTriggerClass } from '@/components/DateRangeSelect';
+import { cn } from '@/lib/utils';
 import { Project } from '@/lib/types';
-import { useToast } from './ui/use-toast';
+import { useToast } from '@/components/ui/use-toast';
 
-export default function ProjectsOverview() {
+interface ProjectsOverviewProps {
+  title?: string;
+}
+
+const sortOptions = [
+  { value: 'most', label: 'Most hours' },
+  { value: 'least', label: 'Least hours' },
+  { value: 'az', label: 'Name A–Z' },
+  { value: 'za', label: 'Name Z–A' },
+] as const;
+
+export default function ProjectsOverview({ title = 'Projects' }: ProjectsOverviewProps) {
   const { isLoading, customProjects, setCustomProjects } = useSharedState();
   const { filteredProjects } = useProjectStats();
-  const [sortBy, setSortBy] = React.useState('Most tracked hours');
+  const [sortBy, setSortBy] = React.useState<(typeof sortOptions)[number]['value']>('most');
   const [selectedProject, setSelectedProject] = React.useState<Project | null>(null);
   const { toast } = useToast();
-
-  const handleUpdateProject = (project: Project) => {
-    setSelectedProject(project);
-  };
 
   const handleSaveProjectSettings = (updatedProject: Project) => {
     const existing = customProjects.find((project) => project.id === updatedProject.id);
@@ -28,21 +37,17 @@ export default function ProjectsOverview() {
       : [...customProjects, updatedProject];
 
     setCustomProjects(nextProjects);
-    toast({
-      title: "Project updated",
-      description: "Project settings have been saved successfully.",
-    });
+    toast({ title: 'Project updated', description: 'Project settings have been saved.' });
   };
 
   const sortedProjects = React.useMemo(() => {
     const projects = [...filteredProjects];
-
     switch (sortBy) {
-      case 'Least tracked hours':
+      case 'least':
         return projects.sort((a, b) => a.totalHours - b.totalHours);
-      case 'Name (A-Z)':
+      case 'az':
         return projects.sort((a, b) => a.name.localeCompare(b.name));
-      case 'Name (Z-A)':
+      case 'za':
         return projects.sort((a, b) => b.name.localeCompare(a.name));
       default:
         return projects.sort((a, b) => b.totalHours - a.totalHours);
@@ -51,73 +56,52 @@ export default function ProjectsOverview() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
-
-  if (!sortedProjects || sortedProjects.length === 0) {
-    return (
-      <div className="text-center py-12">
-        <h3 className="text-lg font-medium">No projects found</h3>
-        <p className="text-muted-foreground mt-2">
-          Name calendar events like <code className="text-zinc-700">mx#design user flows</code><br />
-          where <strong>mx</strong> is the project, <strong>design</strong> is the activity, and <strong>user flows</strong> is the description.
-        </p>
+      <div className="flex items-center justify-center py-10">
+        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="space-y-1">
-          <h2 className="text-xl font-medium">Projects</h2>
-          <div className="flex items-center space-x-4">
-            <button className="text-sm text-gray-900 hover:underline">
-              add project
-            </button>
-            <button className="text-sm text-gray-900 hover:underline">
-              all projects
-            </button>
-          </div>
-        </div>
-        
-        <div className="flex items-center space-x-4">
-          <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Sort by" />
+    <section className="space-y-3">
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-base font-medium">{title}</h2>
+        {sortedProjects.length > 0 && (
+          <Select value={sortBy} onValueChange={(v) => setSortBy(v as typeof sortBy)}>
+            <SelectTrigger className={cn(selectTriggerClass)}>
+              <SelectValue placeholder="Sort" />
             </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="Most tracked hours">Most tracked hours</SelectItem>
-              <SelectItem value="Least tracked hours">Least tracked hours</SelectItem>
-              <SelectItem value="Name (A-Z)">Name (A-Z)</SelectItem>
-              <SelectItem value="Name (Z-A)">Name (Z-A)</SelectItem>
+            <SelectContent align="end" className="min-w-[9rem] rounded-xl border-surface p-1 shadow-elevated">
+              {sortOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value} className="rounded-lg text-sm">
+                  {option.label}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
-          
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-[100px] justify-center"
-          >
-            <LayoutGrid className="h-4 w-4 mr-2" />
-            Cards
-          </Button>
+        )}
+      </div>
+
+      {sortedProjects.length === 0 ? (
+        <Card className="rounded-2xl border-dashed">
+          <CardContent className="flex flex-col items-center justify-center gap-2 py-10 text-center">
+            <FolderOpenIcon size={24} className="text-muted-foreground" />
+            <h3 className="text-sm font-medium">No projects yet</h3>
+            <p className="max-w-md text-xs text-muted-foreground">
+              Name calendar events like{' '}
+              <code className="rounded-md bg-muted px-1.5 py-0.5 text-xs">mx#design user flows</code> —
+              <span className="font-medium"> mx</span> is the project,{' '}
+              <span className="font-medium">design</span> the activity.
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {sortedProjects.map((project) => (
+            <ProjectCard key={project.id} project={project} onUpdateProject={setSelectedProject} />
+          ))}
         </div>
-      </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {sortedProjects.map((project) => (
-          <ProjectCard
-            key={project.id}
-            project={project}
-            onUpdateProject={handleUpdateProject}
-            className="h-full"
-          />
-        ))}
-      </div>
+      )}
 
       {selectedProject && (
         <ProjectSettingsDialog
@@ -127,6 +111,6 @@ export default function ProjectsOverview() {
           onSave={handleSaveProjectSettings}
         />
       )}
-    </div>
+    </section>
   );
 }
