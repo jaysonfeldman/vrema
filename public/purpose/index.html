@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vrema — Time tracking with Google Calendar</title>
+    <meta
+      name="description"
+      content="Vrema is a time tracking application that turns your Google Calendar events into projects, activities, and hours."
+    />
+    <meta name="application-name" content="Vrema" />
+    <meta name="author" content="Vrema" />
+    <meta property="og:site_name" content="Vrema" />
+    <meta property="og:title" content="Vrema" />
+    <meta
+      property="og:description"
+      content="Vrema is a time tracking application that turns your Google Calendar events into projects, activities, and hours."
+    />
+    <meta property="og:url" content="https://vrema.dev/purpose" />
+    <meta property="og:image" content="/vrema-logo.png?v=5" />
+    <link rel="canonical" href="https://vrema.dev/purpose" />
+    <link rel="icon" type="image/png" href="/vrema-logo.png?v=5" />
+    <style>
+      body {
+        margin: 0;
+        font-family: Inter, system-ui, sans-serif;
+        background: #f7f7f7;
+        color: #262626;
+        line-height: 1.65;
+      }
+      main {
+        max-width: 42rem;
+        margin: 0 auto;
+        padding: 3rem 1.5rem 4rem;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 1.5rem;
+      }
+      .brand img {
+        width: 2rem;
+        height: 2rem;
+      }
+      .brand-name {
+        color: #0a0a0a;
+        font-size: 1.25rem;
+        font-weight: 600;
+      }
+      h1 {
+        color: #0a0a0a;
+        font-size: 2.25rem;
+        letter-spacing: -0.03em;
+        margin: 0 0 0.75rem;
+      }
+      h2 {
+        color: #0a0a0a;
+        font-size: 1.125rem;
+        margin: 2rem 0 0.75rem;
+      }
+      p,
+      li {
+        margin: 0 0 0.75rem;
+      }
+      ul,
+      ol {
+        margin: 0 0 0.75rem;
+        padding-left: 1.25rem;
+      }
+      a {
+        color: #171717;
+      }
+      code {
+        background: #fff;
+        border-radius: 0.25rem;
+        font-size: 0.875rem;
+        padding: 0.15rem 0.4rem;
+      }
+      footer {
+        margin-top: 2.5rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid #e5e5e5;
+        color: #737373;
+        font-size: 0.875rem;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="brand">
+        <img src="/vrema-logo.png?v=5" alt="Vrema logo" />
+        <span class="brand-name">Vrema</span>
+      </div>
+
+      <h1>Vrema</h1>
+      <p>
+        Vrema is a time tracking application. Its purpose is to help you track work time from
+        Google Calendar by turning calendar events into projects, activities, and hours. You block
+        time on your calendar as usual, give each event a short title, and sync. Vrema categorizes
+        that time for you. No timers to start or stop.
+      </p>
+      <p>
+        <a href="/login">Get started with Google</a>
+        ·
+        <a href="/privacy">Privacy Policy</a>
+        ·
+        <a href="/terms">Terms of Service</a>
+      </p>
+
+      <h2>Purpose of Vrema</h2>
+      <p>
+        The purpose of Vrema is time tracking for freelancers, consultants, and anyone who plans
+        work in Google Calendar. Vrema reads your calendar events and organizes them into projects,
+        activities, and hours so you can review dashboards and export timesheets.
+      </p>
+
+      <h2>What Vrema does</h2>
+      <p>
+        After you connect your Google account, Vrema reads your calendar events and organizes them
+        into:
+      </p>
+      <ul>
+        <li><strong>Projects</strong>, based on the project name in each event title</li>
+        <li><strong>Activities</strong>, based on the activity tag after the hashtag</li>
+        <li><strong>Hours</strong>, based on each event’s start and end time</li>
+      </ul>
+
+      <h2>How it works</h2>
+      <ol>
+        <li>Sign in with Google and grant read-only calendar access.</li>
+        <li>Title calendar events using this format: <code>project#activity description</code></li>
+        <li>Example: <code>vrema#design landing page</code></li>
+        <li>Sync from Vrema so your projects, activities, and hours update automatically.</li>
+      </ol>
+
+      <h2>Why Vrema requests Google user data</h2>
+      <p>
+        Vrema asks for access to your Google account profile and Google Calendar so it can provide
+        its core time tracking features:
+      </p>
+      <ul>
+        <li>
+          <strong>Basic profile and email</strong> are used to sign you in and show your account in
+          the app.
+        </li>
+        <li>
+          <strong>Read-only Google Calendar and calendar events access</strong> is used to fetch
+          event titles and times, then calculate projects, activities, and hours.
+        </li>
+      </ul>
+      <p>
+        Vrema does not create, edit, or delete calendar events. Calendar access is read-only. Vrema
+        does not sell Google user data and does not use it for advertising. Use of Google user data
+        complies with the Google API Services User Data Policy, including the Limited Use
+        requirements.
+      </p>
+      <p>Full details are in our <a href="/privacy">Privacy Policy</a>.</p>
+
+      <h2>Who Vrema is for</h2>
+      <p>
+        Vrema is for people who already use Google Calendar to plan client work, project blocks, and
+        meetings, and who want those blocks converted into a clean timesheet without a separate
+        timer workflow.
+      </p>
+
+      <footer>
+        <p>
+          Operated by Jayson Feldman ·
+          <a href="mailto:jaysonfeldman@gmail.com">jaysonfeldman@gmail.com</a>
+        </p>
+        <p>
+          <a href="/">Vrema</a> ·
+          <a href="/privacy">Privacy Policy</a> ·
+          <a href="/terms">Terms of Service</a>
+        </p>
+      </footer>
+    </main>
+  </body>
+</html>
