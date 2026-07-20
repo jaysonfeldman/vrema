@@ -21,9 +21,22 @@ export default function DemoEmbed() {
   const [searchParams] = useSearchParams();
   const isLight = searchParams.get('theme') === 'light';
   const theme = isLight ? 'light' : 'dark';
-  const bg = isLight ? LIGHT_BG : DARK_BG;
 
   const [scale, setScale] = useState(1);
+  const [bg, setBg] = useState(isLight ? LIGHT_BG : DARK_BG);
+
+  // Keep the letterbox background in sync with the inner app's live theme
+  // (e.g. after the user toggles inside the embed).
+  useEffect(() => {
+    const onMessage = (event: MessageEvent) => {
+      const data = event.data as { type?: string; theme?: string } | null;
+      if (data?.type === 'vrema-theme') {
+        setBg(data.theme === 'light' ? LIGHT_BG : DARK_BG);
+      }
+    };
+    window.addEventListener('message', onMessage);
+    return () => window.removeEventListener('message', onMessage);
+  }, []);
 
   useEffect(() => {
     const update = () => {

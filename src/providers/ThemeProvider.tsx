@@ -5,13 +5,8 @@ function isPreviewPath() {
   return typeof window !== 'undefined' && window.location.pathname.startsWith('/preview');
 }
 
-/**
- * When the preview is opened with an explicit ?theme=light|dark (i.e. a Framer
- * embed), force that theme. forcedTheme makes next-themes ignore localStorage
- * entirely, so the light and dark embeds can't contaminate each other's stored
- * theme. Without a param (the landing preview), theme behaves normally.
- */
-function forcedPreviewTheme(): 'light' | 'dark' | undefined {
+/** ?theme=light|dark on a preview URL (i.e. a Framer embed), else undefined. */
+function previewThemeParam(): 'light' | 'dark' | undefined {
   if (typeof window === 'undefined') return undefined;
   if (!window.location.pathname.startsWith('/preview')) return undefined;
   const theme = new URLSearchParams(window.location.search).get('theme');
@@ -20,15 +15,20 @@ function forcedPreviewTheme(): 'light' | 'dark' | undefined {
 
 export function ThemeProvider({ children, ...props }: ComponentProps<typeof NextThemesProvider>) {
   const preview = isPreviewPath();
-  const forcedTheme = forcedPreviewTheme();
+  const param = previewThemeParam();
+
+  // Each embed gets its OWN storage key so the light and dark embeds can't
+  // overwrite each other's theme. The toggle still works and persists per key.
+  const storageKey = preview
+    ? `vrema-preview-theme${param ? `-${param}` : ''}`
+    : 'theme';
 
   return (
     <NextThemesProvider
       attribute="class"
-      defaultTheme={preview ? 'dark' : 'light'}
+      defaultTheme={preview ? (param ?? 'dark') : 'light'}
       enableSystem={!preview}
-      storageKey={preview ? 'vrema-preview-theme' : 'theme'}
-      forcedTheme={forcedTheme}
+      storageKey={storageKey}
       disableTransitionOnChange
       {...props}
     >

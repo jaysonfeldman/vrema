@@ -1,24 +1,27 @@
 import { useEffect } from 'react';
-import { Outlet, useSearchParams } from 'react-router-dom';
+import { Outlet } from 'react-router-dom';
 import { useTheme } from 'next-themes';
 
 /**
  * Product preview shell (rendered inside an iframe).
- * - Landing iframe (/preview/app): dark by default
- * - Framer embed (/demo -> /preview/app?theme=light|dark): follows the param
  *
- * Theme is fully owned by next-themes. The only visual tweak is the canvas
- * tint, handled purely in CSS via `.preview-shell` (see index.css), so the
- * sidebar, header, surfaces and canvas always share one theme.
+ * The theme (and its default per embed) is owned by ThemeProvider via the
+ * ?theme URL param + a per-embed storage key, so the in-app toggle works and
+ * persists without embeds clobbering each other. The only visual tweak here is
+ * the canvas tint, handled purely in CSS via `.preview-shell` (see index.css),
+ * so the sidebar, header, surfaces and canvas always share one theme.
+ *
+ * We also broadcast the resolved theme to the parent frame so the /demo embed
+ * shell can keep its letterbox background in sync when the toggle is used.
  */
 export default function DemoPreview() {
-  const { setTheme } = useTheme();
-  const [searchParams] = useSearchParams();
-  const requestedLight = searchParams.get('theme') === 'light';
+  const { resolvedTheme } = useTheme();
 
   useEffect(() => {
-    setTheme(requestedLight ? 'light' : 'dark');
-  }, [requestedLight, setTheme]);
+    if (resolvedTheme && window.parent !== window) {
+      window.parent.postMessage({ type: 'vrema-theme', theme: resolvedTheme }, '*');
+    }
+  }, [resolvedTheme]);
 
   useEffect(() => {
     const root = document.documentElement;

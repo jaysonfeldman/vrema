@@ -67,13 +67,20 @@
       }
     </style>
     <script>
-      // Preview/embed anti-flash: apply the theme synchronously from the URL so
-      // a dark embed never paints light (and vice versa) before React mounts.
+      // Preview/embed anti-flash: apply the theme synchronously before React
+      // mounts so a dark embed never paints light (and vice versa). Prefers a
+      // persisted toggle (per-embed storage key), falling back to the URL param.
       (function () {
         try {
           if (window.location.pathname.indexOf('/preview') === 0) {
-            var theme = new URLSearchParams(window.location.search).get('theme');
-            var isLight = theme === 'light'; // preview defaults to dark
+            var param = new URLSearchParams(window.location.search).get('theme');
+            var key = 'vrema-preview-theme' + (param ? '-' + param : '');
+            var stored = null;
+            try {
+              stored = window.localStorage.getItem(key);
+            } catch (e) {}
+            var effective = stored || param || 'dark'; // preview defaults to dark
+            var isLight = effective === 'light';
             var canvas = isLight ? '#f2f2f2' : '#151818';
             if (!isLight) document.documentElement.classList.add('dark');
             document.documentElement.style.backgroundColor = canvas;
