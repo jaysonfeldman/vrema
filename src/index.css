@@ -308,12 +308,14 @@
   height: 0;
 }
 
-/* Demo embed stage is a fixed 1280×820 desktop composition */
+/* Nested demo stage: lock to desktop composition size */
 html.demo-embed,
 html.demo-embed body,
 html.demo-embed #root {
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
+  width: 1280px !important;
+  height: 820px !important;
+  min-width: 1280px !important;
+  min-height: 820px !important;
+  overflow: hidden !important;
   background: hsl(var(--canvas));
 }
