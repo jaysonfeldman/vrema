@@ -4,13 +4,13 @@ import { useTheme } from 'next-themes';
 
 /**
  * Shell for the public interactive product preview at /demo.
- * Same experience as the homepage iframe. Safe to embed on Framer and other sites.
+ * Defaults to light theme for homepage and Framer embeds.
  */
 export default function DemoRoot() {
   const { setTheme } = useTheme();
 
   useEffect(() => {
-    setTheme('dark');
+    setTheme('light');
   }, [setTheme]);
 
   useEffect(() => {
