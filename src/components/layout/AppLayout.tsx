@@ -132,7 +132,7 @@ export default function AppLayout() {
 
         <div
           className={cn(
-            'flex min-h-0 flex-1 flex-col overflow-hidden bg-surface shadow-panel md:m-4 md:mt-0 md:rounded-2xl',
+            'flex min-h-0 flex-1 flex-col overflow-hidden bg-surface shadow-panel md:mx-4 md:mb-0 md:mt-0 md:rounded-t-2xl',
             isDemoMode ? 'md:min-h-0' : 'md:min-h-[calc(100svh-3.5rem-1rem)]'
           )}
         >
