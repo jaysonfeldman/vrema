@@ -264,6 +264,8 @@ const SidebarTrigger = React.forwardRef<
   React.ComponentProps<typeof Button>
 >(({ className, onClick, ...props }, ref) => {
   const { toggleSidebar, open } = useSidebar()
+  const closeIconRef = React.useRef<{ startAnimation: () => void; stopAnimation: () => void }>(null)
+  const openIconRef = React.useRef<{ startAnimation: () => void; stopAnimation: () => void }>(null)
 
   return (
     <Button
@@ -277,9 +279,21 @@ const SidebarTrigger = React.forwardRef<
         onClick?.(event)
         toggleSidebar()
       }}
+      onMouseEnter={() => {
+        if (open) closeIconRef.current?.startAnimation()
+        else openIconRef.current?.startAnimation()
+      }}
+      onMouseLeave={() => {
+        if (open) closeIconRef.current?.stopAnimation()
+        else openIconRef.current?.stopAnimation()
+      }}
       {...props}
     >
-      {open ? <PanelLeftCloseIcon size={16} /> : <PanelLeftOpenIcon size={16} />}
+      {open ? (
+        <PanelLeftCloseIcon ref={closeIconRef} size={16} />
+      ) : (
+        <PanelLeftOpenIcon ref={openIconRef} size={16} />
+      )}
       <span className="sr-only">Toggle Sidebar</span>
     </Button>
   )

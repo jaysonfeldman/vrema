@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { Separator } from '@/components/ui/separator';
@@ -5,8 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { AppSidebar } from '@/components/layout/AppSidebar';
 import { ThemeToggle } from '@/components/theme-toggle';
-import { RefreshCWIcon } from '@/components/icons/refresh-cw';
-import { LogoutIcon } from '@/components/icons/logout';
+import { RefreshCWIcon, type RefreshCWIconHandle } from '@/components/icons/refresh-cw';
+import { LogoutIcon, type LogoutIconHandle } from '@/components/icons/logout';
 import { useGoogleAuth } from '@/providers/GoogleAuthProvider';
 import { useCalendarSync } from '@/hooks/useCalendarSync';
 import { useSharedState } from '@/hooks/useSharedState';
@@ -35,6 +36,8 @@ export default function AppLayout() {
   const { signOut, isDemoMode } = useGoogleAuth();
   const { syncCalendar, lastSynced } = useCalendarSync();
   const { isLoading } = useSharedState();
+  const syncIconRef = useRef<RefreshCWIconHandle>(null);
+  const logoutIconRef = useRef<LogoutIconHandle>(null);
 
   const isDashboard = stripDemoPrefix(location.pathname) === '/app';
   const handleSync = async () => {
@@ -96,8 +99,14 @@ export default function AppLayout() {
                   className="h-6 gap-1.5 px-2.5 text-xs active:scale-[0.97] transition-transform"
                   onClick={handleSync}
                   disabled={isLoading}
+                  onMouseEnter={() => syncIconRef.current?.startAnimation()}
+                  onMouseLeave={() => syncIconRef.current?.stopAnimation()}
                 >
-                  <RefreshCWIcon size={12} className={cn(isLoading && '[&_svg]:animate-spin')} />
+                  <RefreshCWIcon
+                    ref={syncIconRef}
+                    size={12}
+                    className={cn(isLoading && '[&_svg]:animate-spin')}
+                  />
                   <span className="hidden sm:inline">{isLoading ? 'Syncing…' : 'Sync'}</span>
                 </Button>
               </span>
@@ -110,8 +119,10 @@ export default function AppLayout() {
                   size="icon"
                   onClick={handleSignOut}
                   className="active:scale-[0.97] transition-transform"
+                  onMouseEnter={() => logoutIconRef.current?.startAnimation()}
+                  onMouseLeave={() => logoutIconRef.current?.stopAnimation()}
                 >
-                  <LogoutIcon size={16} />
+                  <LogoutIcon ref={logoutIconRef} size={16} />
                   <span className="sr-only">Sign out</span>
                 </Button>
               </WithTooltip>

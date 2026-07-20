@@ -1,3 +1,4 @@
+import { useRef, type ComponentType, type Ref } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
   Sidebar,
@@ -20,12 +21,62 @@ import { useGoogleAuth } from '@/providers/GoogleAuthProvider';
 import { sound } from '@/lib/sounds';
 import { useAppPath } from '@/lib/app-paths';
 
-const navItems = [
+type AnimIconHandle = {
+  startAnimation: () => void;
+  stopAnimation: () => void;
+};
+
+type AnimIconProps = {
+  size?: number;
+  className?: string;
+};
+
+const navItems: {
+  title: string;
+  url: string;
+  icon: ComponentType<AnimIconProps & { ref?: Ref<AnimIconHandle> }>;
+  end?: boolean;
+}[] = [
   { title: 'Dashboard', url: '/app', icon: HomeIcon, end: true },
   { title: 'Categories', url: '/categories', icon: LayoutGridIcon },
   { title: 'Guide', url: '/guide', icon: BookTextIcon },
   { title: 'Feedback', url: '/feedback', icon: MessageSquareIcon },
 ];
+
+function SidebarNavItem({
+  item,
+  isActive,
+  to,
+}: {
+  item: (typeof navItems)[number];
+  isActive: boolean;
+  to: string;
+}) {
+  const iconRef = useRef<AnimIconHandle>(null);
+  const Icon = item.icon;
+
+  return (
+    <SidebarMenuItem>
+      <SidebarMenuButton
+        asChild
+        isActive={isActive}
+        tooltip={item.title}
+        className="!rounded-[6px] data-[active=true]:bg-elevated data-[active=true]:font-medium data-[active=true]:text-sidebar-foreground data-[active=true]:shadow-[0_0_0_1px_var(--surface-border)] dark:data-[active=true]:shadow-[0_0_0_1px_var(--surface-border)]"
+      >
+        <NavLink
+          to={to}
+          end={item.end}
+          onClick={() => sound.click()}
+          onMouseEnter={() => iconRef.current?.startAnimation()}
+          onMouseLeave={() => iconRef.current?.stopAnimation()}
+        >
+          <Icon ref={iconRef} size={16} />
+          <span>{item.title}</span>
+        </NavLink>
+      </SidebarMenuButton>
+    </SidebarMenuItem>
+  );
+}
 
 export function AppSidebar() {
   const { authState } = useGoogleAuth();
@@ -59,19 +110,12 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {navItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={isItemActive(item)}
-                    tooltip={item.title}
-                    className="!rounded-[6px] data-[active=true]:bg-elevated data-[active=true]:font-medium data-[active=true]:text-sidebar-foreground data-[active=true]:shadow-[0_0_0_1px_var(--surface-border)] dark:data-[active=true]:shadow-[0_0_0_1px_var(--surface-border)]"
-                  >
-                    <NavLink to={appPath(item.url)} end={item.end} onClick={() => sound.click()}>
-                      <item.icon size={16} />
-                      <span>{item.title}</span>
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
+                <SidebarNavItem
+                  key={item.title}
+                  item={item}
+                  isActive={isItemActive(item)}
+                  to={appPath(item.url)}
+                />
               ))}
             </SidebarMenu>
           </SidebarGroupContent>
