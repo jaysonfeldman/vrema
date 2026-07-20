@@ -1,12 +1,17 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useSharedState } from '@/hooks/useSharedState';
 import { getDateRange, getEventDurationHours, formatHours } from '@/lib/eventStats';
 import { parseEventTitle, formatEventDate } from '@/services/googleCalendarService';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+
+const PAGE_SIZE = 6;
 
 export default function RecentEventsTable() {
   const { events, filters } = useSharedState();
+  const [page, setPage] = useState(0);
 
   const recentEvents = useMemo(() => {
     const { startDate, endDate } = getDateRange(filters.dateRange);
@@ -25,6 +30,21 @@ export default function RecentEventsTable() {
           new Date(b.start!.dateTime!).getTime() - new Date(a.start!.dateTime!).getTime()
       );
   }, [events, filters.dateRange]);
+
+  const pageCount = Math.max(1, Math.ceil(recentEvents.length / PAGE_SIZE));
+
+  // Keep the current page valid when the underlying data changes.
+  useEffect(() => {
+    setPage((prev) => Math.min(prev, pageCount - 1));
+  }, [pageCount]);
+
+  const pageEvents = useMemo(
+    () => recentEvents.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE),
+    [recentEvents, page]
+  );
+
+  const rangeStart = recentEvents.length === 0 ? 0 : page * PAGE_SIZE + 1;
+  const rangeEnd = Math.min(recentEvents.length, page * PAGE_SIZE + PAGE_SIZE);
 
   return (
     <section className="space-y-3">
@@ -54,7 +74,7 @@ export default function RecentEventsTable() {
                 </TableCell>
               </TableRow>
             ) : (
-              recentEvents.map((event) => {
+              pageEvents.map((event) => {
                 const { projectName, activityType, description } = parseEventTitle(
                   event.summary ?? ''
                 );
@@ -84,6 +104,39 @@ export default function RecentEventsTable() {
           </TableBody>
         </Table>
       </div>
+
+      {recentEvents.length > PAGE_SIZE && (
+        <div className="flex items-center justify-between gap-3 px-1">
+          <span className="text-xs text-muted-foreground">
+            {rangeStart}–{rangeEnd} of {recentEvents.length}
+          </span>
+          <div className="flex items-center gap-1.5">
+            <Button
+              variant="outline"
+              size="icon"
+              className="size-7 active:scale-[0.97] transition-transform"
+              onClick={() => setPage((p) => Math.max(0, p - 1))}
+              disabled={page === 0}
+            >
+              <ChevronLeft className="size-4" />
+              <span className="sr-only">Previous page</span>
+            </Button>
+            <span className="min-w-[3.5rem] text-center text-xs tabular-nums text-muted-foreground">
+              {page + 1} / {pageCount}
+            </span>
+            <Button
+              variant="outline"
+              size="icon"
+              className="size-7 active:scale-[0.97] transition-transform"
+              onClick={() => setPage((p) => Math.min(pageCount - 1, p + 1))}
+              disabled={page >= pageCount - 1}
+            >
+              <ChevronRight className="size-4" />
+              <span className="sr-only">Next page</span>
+            </Button>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
