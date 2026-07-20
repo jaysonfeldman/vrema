@@ -52,7 +52,7 @@ function App() {
                 <Route path="/demo" element={<DemoRoot />}>
                   <Route element={<AppLayout />}>
                     <Route index element={<Dashboard />} />
-                    <Route path="app" element={<Navigate to="/demo" replace />} />
+                    <Route path="app" element={<Dashboard />} />
                     <Route path="projects" element={<Navigate to="/demo" replace />} />
                     <Route path="projects/:projectId" element={<ProjectDetail />} />
                     <Route path="activities" element={<Activities />} />
