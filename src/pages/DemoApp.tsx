@@ -29,7 +29,7 @@ function EmbedFrame() {
   }, []);
 
   return (
-    <div className="h-svh w-full overflow-hidden bg-canvas">
+    <div className="h-svh w-full overflow-hidden" style={{ background: '#F2F2F2' }}>
       <iframe
         title="Vrema demo"
         src="/demo/app?stage=1"
@@ -40,6 +40,7 @@ function EmbedFrame() {
           width: DESIGN_WIDTH,
           height: DESIGN_HEIGHT,
           transform: `scale(${scale})`,
+          background: '#F2F2F2',
         }}
       />
     </div>
@@ -112,9 +113,10 @@ export default function DemoRoot() {
     <div
       className={
         isStage
-          ? 'hide-scrollbar hide-scrollbar-deep h-[820px] w-[1280px] overflow-hidden bg-canvas text-foreground'
-          : 'hide-scrollbar hide-scrollbar-deep h-svh overflow-hidden bg-canvas text-foreground'
+          ? 'hide-scrollbar hide-scrollbar-deep h-[820px] w-[1280px] overflow-hidden text-foreground'
+          : 'hide-scrollbar hide-scrollbar-deep h-svh overflow-hidden text-foreground'
       }
+      style={{ background: '#F2F2F2' }}
     >
       <Outlet />
     </div>
