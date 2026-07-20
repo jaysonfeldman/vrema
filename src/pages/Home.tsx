@@ -133,11 +133,11 @@ export default function Home() {
       {/* Product preview — side margins, taller frame */}
       <div className="relative z-10 mt-16 w-full animate-[fade-up_0.8s_ease-out_0.28s_both] md:mt-20">
         <div className="relative left-1/2 h-[min(820px,88vh)] w-screen max-w-none -translate-x-1/2 overflow-hidden px-6 sm:px-10 md:px-16 lg:px-24">
-          <div className="relative mx-auto h-full w-full max-w-[1280px] overflow-hidden rounded-lg md:rounded-xl">
+          <div className="relative mx-auto h-full w-full max-w-[1280px] overflow-hidden rounded-lg bg-[#151818] md:rounded-xl">
             <iframe
               title="Vrema interactive preview"
               src="/preview/app"
-              className="absolute inset-0 h-full w-full border-0 bg-canvas"
+              className="absolute inset-0 h-full w-full border-0 bg-[#151818]"
               loading="lazy"
             />
           </div>
