@@ -2,19 +2,18 @@ import { useEffect, useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import { useTheme } from 'next-themes';
 
-/** Native demo composition size (matches homepage preview). */
+/** Native desktop composition — same as homepage preview. */
 const DESIGN_WIDTH = 1280;
 const DESIGN_HEIGHT = 820;
 
 /**
- * Shell for /demo.
- * - Full tab: normal app layout
- * - Iframe (Framer, homepage): keeps the desktop UI and scales it to fit the frame
- *   so it stays proportional on any responsive container size
+ * /demo shell.
+ * In iframes (Framer / homepage): render a fixed desktop UI and scale it to fit
+ * the frame without clipping. Sidebar stays open like the real desktop app.
  */
 export default function DemoRoot() {
   const { setTheme } = useTheme();
-  const [frame, setFrame] = useState({ scale: 1, embed: false });
+  const [embedScale, setEmbedScale] = useState<number | null>(null);
 
   useEffect(() => {
     setTheme('light');
@@ -33,27 +32,32 @@ export default function DemoRoot() {
   }, []);
 
   useEffect(() => {
-    const update = () => {
-      const embed = window.self !== window.top;
-      if (!embed) {
-        setFrame({ scale: 1, embed: false });
-        return;
-      }
+    const inIframe = window.self !== window.top;
+    if (!inIframe) {
+      setEmbedScale(null);
+      document.documentElement.classList.remove('demo-embed');
+      return;
+    }
 
+    document.documentElement.classList.add('demo-embed');
+
+    const update = () => {
       const scale = Math.min(
         window.innerWidth / DESIGN_WIDTH,
         window.innerHeight / DESIGN_HEIGHT
       );
-
-      setFrame({ scale: Math.max(scale, 0.25), embed: true });
+      setEmbedScale(Math.max(0.2, scale));
     };
 
     update();
     window.addEventListener('resize', update);
-    return () => window.removeEventListener('resize', update);
+    return () => {
+      window.removeEventListener('resize', update);
+      document.documentElement.classList.remove('demo-embed');
+    };
   }, []);
 
-  if (!frame.embed) {
+  if (embedScale == null) {
     return (
       <div className="hide-scrollbar hide-scrollbar-deep h-svh overflow-hidden bg-canvas text-foreground">
         <Outlet />
@@ -62,14 +66,14 @@ export default function DemoRoot() {
   }
 
   return (
-    <div className="flex h-svh w-full items-center justify-center overflow-hidden bg-canvas text-foreground">
+    <div className="relative h-svh w-full overflow-hidden bg-canvas text-foreground">
       <div
-        className="hide-scrollbar hide-scrollbar-deep shrink-0 overflow-hidden"
+        className="hide-scrollbar hide-scrollbar-deep absolute left-0 top-0 overflow-hidden"
         style={{
           width: DESIGN_WIDTH,
           height: DESIGN_HEIGHT,
-          transform: `scale(${frame.scale})`,
-          transformOrigin: 'center center',
+          transform: `scale(${embedScale})`,
+          transformOrigin: 'top left',
         }}
       >
         <Outlet />

@@ -6,6 +6,7 @@ import { PanelLeftOpenIcon } from '@/components/icons/panel-left-open';
 import { sound } from '@/lib/sounds';
 
 import { useIsMobile } from "@/hooks/use-mobile"
+import { useIsDemoMode } from "@/lib/app-paths"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -67,12 +68,15 @@ const SidebarProvider = React.forwardRef<
     },
     ref
   ) => {
-    const isMobile = useIsMobile()
+    const isDemo = useIsDemoMode()
+    const isMobileViewport = useIsMobile()
+    // Demo embeds run in a narrow iframe; keep desktop sidebar layout anyway.
+    const isMobile = isDemo ? false : isMobileViewport
     const [openMobile, setOpenMobile] = React.useState(false)
 
     // This is the internal state of the sidebar.
     // We use openProp and setOpenProp for control from outside the component.
-    const [_open, _setOpen] = React.useState(defaultOpen)
+    const [_open, _setOpen] = React.useState(isDemo ? true : defaultOpen)
     const open = openProp ?? _open
     const setOpen = React.useCallback(
       (value: boolean | ((value: boolean) => boolean)) => {
@@ -176,6 +180,7 @@ const Sidebar = React.forwardRef<
     ref
   ) => {
     const { isMobile, state, openMobile, setOpenMobile } = useSidebar()
+    const isDemo = useIsDemoMode()
 
     if (collapsible === "none") {
       return (
@@ -215,7 +220,11 @@ const Sidebar = React.forwardRef<
     return (
       <div
         ref={ref}
-        className="group peer hidden md:block text-sidebar-foreground"
+        className={cn(
+          "group peer text-sidebar-foreground",
+          // Demo iframes are narrow; still show the desktop sidebar (don't wait for md:)
+          isDemo ? "block" : "hidden md:block"
+        )}
         data-state={state}
         data-collapsible={state === "collapsed" ? collapsible : ""}
         data-variant={variant}
@@ -224,7 +233,8 @@ const Sidebar = React.forwardRef<
         {/* This is what handles the sidebar gap on desktop */}
         <div
           className={cn(
-            "duration-200 relative h-svh w-[--sidebar-width] bg-transparent transition-[width] ease-linear",
+            "duration-200 relative w-[--sidebar-width] bg-transparent transition-[width] ease-linear",
+            isDemo ? "h-full" : "h-svh",
             "group-data-[collapsible=offcanvas]:w-0",
             "group-data-[side=right]:rotate-180",
             variant === "floating" || variant === "inset"
@@ -234,7 +244,10 @@ const Sidebar = React.forwardRef<
         />
         <div
           className={cn(
-            "duration-200 fixed inset-y-0 z-10 hidden h-svh w-[--sidebar-width] transition-[left,right,width] ease-linear md:flex",
+            "duration-200 z-10 w-[--sidebar-width] transition-[left,right,width] ease-linear",
+            isDemo
+              ? "absolute inset-y-0 flex"
+              : "fixed inset-y-0 hidden h-svh md:flex",
             side === "left"
               ? "left-0 group-data-[collapsible=offcanvas]:left-[calc(var(--sidebar-width)*-1)]"
               : "right-0 group-data-[collapsible=offcanvas]:right-[calc(var(--sidebar-width)*-1)]",
