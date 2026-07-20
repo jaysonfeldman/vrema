@@ -9,10 +9,17 @@ export function useAppPath() {
   const isDemo = useIsDemoMode();
   return (path: string) => {
     const normalized = path.startsWith('/') ? path : `/${path}`;
-    return isDemo ? `/demo${normalized}` : normalized;
+    if (!isDemo) return normalized;
+    // Demo dashboard lives at /demo (not /demo/app)
+    if (normalized === '/app') return '/demo';
+    return `/demo${normalized}`;
   };
 }
 
 export function stripDemoPrefix(pathname: string) {
-  return pathname.startsWith('/demo') ? pathname.slice('/demo'.length) || '/' : pathname;
+  if (!pathname.startsWith('/demo')) return pathname;
+  const rest = pathname.slice('/demo'.length) || '/';
+  // /demo and legacy /demo/app both map to the dashboard path
+  if (rest === '/' || rest === '/app') return '/app';
+  return rest;
 }

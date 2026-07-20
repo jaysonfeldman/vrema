@@ -2,7 +2,10 @@ import { useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import { useTheme } from 'next-themes';
 
-/** Shell for the public interactive product preview. Defaults to dark on the landing embed. */
+/**
+ * Shell for the public interactive product preview at /demo.
+ * Same experience as the homepage iframe. Safe to embed on Framer and other sites.
+ */
 export default function DemoRoot() {
   const { setTheme } = useTheme();
 

@@ -136,7 +136,7 @@ export default function Home() {
           <div className="relative mx-auto h-full w-full max-w-[1280px] overflow-hidden rounded-lg md:rounded-xl">
             <iframe
               title="Vrema interactive preview"
-              src="/demo/app"
+              src="/demo"
               className="absolute inset-0 h-full w-full border-0 bg-canvas"
               loading="lazy"
             />
