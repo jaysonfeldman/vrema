@@ -30,7 +30,7 @@ export default function DemoEmbed() {
     <div className="h-svh w-full overflow-hidden" style={{ background: EMBED_BG }}>
       <iframe
         title="Vrema demo"
-        src="/preview/app"
+        src="/preview/app?theme=light"
         width={DESIGN_WIDTH}
         height={DESIGN_HEIGHT}
         className="origin-top-left border-0"
