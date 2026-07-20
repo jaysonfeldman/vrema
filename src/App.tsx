@@ -13,7 +13,8 @@ import Categories from '@/pages/Categories';
 import ProjectDetail from '@/pages/ProjectDetail';
 import Privacy from '@/pages/Privacy';
 import Terms from '@/pages/Terms';
-import DemoRoot from '@/pages/DemoApp';
+import DemoPreview from '@/pages/DemoPreview';
+import DemoEmbed from '@/pages/DemoEmbed';
 import NotFound from '@/pages/NotFound';
 import AppLayout from '@/components/layout/AppLayout';
 import { Toaster } from '@/components/ui/toaster';
@@ -49,11 +50,15 @@ function App() {
                 <Route path="/privacy" element={<Privacy />} />
                 <Route path="/terms" element={<Terms />} />
 
-                <Route path="/demo" element={<DemoRoot />}>
+                {/* Framer embed only — scales the landing preview, does not alter app UI */}
+                <Route path="/demo" element={<DemoEmbed />} />
+
+                {/* Landing-page interactive preview (original desktop app experience) */}
+                <Route path="/preview" element={<DemoPreview />}>
                   <Route element={<AppLayout />}>
-                    <Route index element={<Dashboard />} />
+                    <Route index element={<Navigate to="app" replace />} />
                     <Route path="app" element={<Dashboard />} />
-                    <Route path="projects" element={<Navigate to="/demo" replace />} />
+                    <Route path="projects" element={<Navigate to="/preview/app" replace />} />
                     <Route path="projects/:projectId" element={<ProjectDetail />} />
                     <Route path="activities" element={<Activities />} />
                     <Route path="categories" element={<Categories />} />

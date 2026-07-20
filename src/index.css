@@ -308,17 +308,3 @@
   height: 0;
 }
 
-/* Nested demo stage: lock to desktop composition size */
-html.demo-embed {
-  --canvas: #f2f2f2;
-}
-html.demo-embed,
-html.demo-embed body,
-html.demo-embed #root {
-  width: 1280px !important;
-  height: 820px !important;
-  min-width: 1280px !important;
-  min-height: 820px !important;
-  overflow: hidden !important;
-  background: #f2f2f2;
-}

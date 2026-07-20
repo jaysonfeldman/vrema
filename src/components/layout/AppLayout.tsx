@@ -55,14 +55,7 @@ export default function AppLayout() {
   };
 
   return (
-    <SidebarProvider
-      defaultOpen
-      open={isDemoMode ? true : undefined}
-      className={cn(
-        'overflow-hidden bg-canvas has-[[data-variant=inset]]:!bg-canvas',
-        isDemoMode ? 'relative h-full' : 'h-svh'
-      )}
-    >
+    <SidebarProvider className="h-svh overflow-hidden bg-canvas has-[[data-variant=inset]]:!bg-canvas">
       <AppSidebar />
       <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-canvas">
         <header className="flex h-14 shrink-0 items-center gap-2 px-4 md:px-6">

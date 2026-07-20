@@ -55,7 +55,7 @@ const demoAuthState: AuthState = {
 export function GoogleAuthProvider({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
   const location = useLocation();
-  const isDemoMode = location.pathname.startsWith('/demo');
+  const isDemoMode = location.pathname.startsWith('/preview');
 
   const [authState, setAuthState] = useState<AuthState>(() => {
     const savedAuth = localStorage.getItem('googleAuth');
