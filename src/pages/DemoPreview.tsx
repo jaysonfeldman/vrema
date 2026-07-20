@@ -1,28 +1,24 @@
 import { useEffect } from 'react';
-import type { CSSProperties } from 'react';
 import { Outlet, useSearchParams } from 'react-router-dom';
 import { useTheme } from 'next-themes';
 
-const LIGHT_CANVAS = '#F2F2F2';
-const DARK_CANVAS = '#151818';
-
 /**
- * Product preview shell.
- * - Landing iframe: dark (default)
- * - Framer embed (?theme=light): light with #F2F2F2 canvas
+ * Product preview shell (rendered inside an iframe).
+ * - Landing iframe (/preview/app): dark by default
+ * - Framer embed (/demo -> /preview/app?theme=light|dark): follows the param
  *
- * Theme is owned entirely by next-themes (setTheme). We only scope a --canvas
- * override to this wrapper so the shell tint matches, without touching <html>.
+ * Theme is fully owned by next-themes. The only visual tweak is the canvas
+ * tint, handled purely in CSS via `.preview-shell` (see index.css), so the
+ * sidebar, header, surfaces and canvas always share one theme.
  */
 export default function DemoPreview() {
   const { setTheme } = useTheme();
   const [searchParams] = useSearchParams();
-  const isLight = searchParams.get('theme') === 'light';
-  const canvas = isLight ? LIGHT_CANVAS : DARK_CANVAS;
+  const requestedLight = searchParams.get('theme') === 'light';
 
   useEffect(() => {
-    setTheme(isLight ? 'light' : 'dark');
-  }, [isLight, setTheme]);
+    setTheme(requestedLight ? 'light' : 'dark');
+  }, [requestedLight, setTheme]);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -37,10 +33,7 @@ export default function DemoPreview() {
   }, []);
 
   return (
-    <div
-      className="hide-scrollbar hide-scrollbar-deep h-svh overflow-hidden bg-canvas text-foreground"
-      style={{ '--canvas': canvas, backgroundColor: canvas } as CSSProperties}
-    >
+    <div className="preview-shell hide-scrollbar hide-scrollbar-deep h-svh overflow-hidden bg-canvas text-foreground">
       <Outlet />
     </div>
   );

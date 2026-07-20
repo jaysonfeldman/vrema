@@ -66,6 +66,21 @@
         color: #fafafa;
       }
     </style>
+    <script>
+      // Preview/embed anti-flash: apply the theme synchronously from the URL so
+      // a dark embed never paints light (and vice versa) before React mounts.
+      (function () {
+        try {
+          if (window.location.pathname.indexOf('/preview') === 0) {
+            var theme = new URLSearchParams(window.location.search).get('theme');
+            var isLight = theme === 'light'; // preview defaults to dark
+            var canvas = isLight ? '#f2f2f2' : '#151818';
+            if (!isLight) document.documentElement.classList.add('dark');
+            document.documentElement.style.backgroundColor = canvas;
+          }
+        } catch (e) {}
+      })();
+    </script>
   </head>
 
   <body>

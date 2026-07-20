@@ -125,6 +125,18 @@
     @apply border-border;
   }
 
+  /*
+   * Demo/preview shell canvas tint. Bound to the same .dark class next-themes
+   * toggles, so the canvas can never disagree with the rest of the UI.
+   *   light -> #f2f2f2, dark -> #151818
+   */
+  .preview-shell {
+    --canvas: #f2f2f2;
+  }
+  .dark .preview-shell {
+    --canvas: #151818;
+  }
+
   html {
     font-optical-sizing: auto;
   }
