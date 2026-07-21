@@ -8,10 +8,12 @@ const DARK_BG = '#151818';
 
 /**
  * Framer-only embed at /demo.
- * Theme is driven by the URL so each embed is independent and self-consistent:
- *   /demo            -> dark  (outer bg + inner app both #151818)
- *   /demo?theme=dark -> dark
- *   /demo?theme=light-> light (outer bg + inner app both #f2f2f2)
+ * Theme is driven by the URL so each embed is independent and self-consistent.
+ * Light is the default; only an explicit ?theme=dark starts in dark. The user
+ * can still switch via the in-app color toggle.
+ *   /demo             -> light (outer bg + inner app both #f2f2f2)
+ *   /demo?theme=light -> light
+ *   /demo?theme=dark  -> dark  (outer bg + inner app both #151818)
  *
  * Hosts the untouched preview in a real 1280×820 iframe, then scales that
  * iframe to fit. The outer background always matches the inner theme, so there
@@ -19,7 +21,7 @@ const DARK_BG = '#151818';
  */
 export default function DemoEmbed() {
   const [searchParams] = useSearchParams();
-  const isLight = searchParams.get('theme') === 'light';
+  const isLight = searchParams.get('theme') !== 'dark';
   const theme = isLight ? 'light' : 'dark';
 
   const [scale, setScale] = useState(1);

@@ -14,9 +14,10 @@ import { Button } from '@/components/ui/button';
 import { WithTooltip } from '@/components/ui/tooltip';
 import { UploadIcon, type UploadIconHandle } from '@/components/icons/upload';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
 export default function Dashboard() {
-  const { authState } = useGoogleAuth();
+  const { authState, isDemoMode } = useGoogleAuth();
   const { syncCalendar } = useCalendarSync();
   const { lastSynced, filters, ensureActivityColors } = useSharedState();
   const { filteredProjects } = useProjectStats();
@@ -85,20 +86,31 @@ export default function Dashboard() {
                   Your timesheet
                 </h2>
               </div>
-              <WithTooltip content="Download hours as CSV">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleExportHours}
-                  onMouseEnter={() => uploadIconRef.current?.startAnimation()}
-                  onMouseLeave={() => uploadIconRef.current?.stopAnimation()}
-                  className="gap-1.5 rounded-lg border-[#ebebeb] bg-white text-neutral-950 shadow-sm hover:bg-neutral-50 hover:text-neutral-950 active:scale-[0.97] dark:border-white/10 dark:bg-transparent dark:text-white dark:hover:bg-white/5 dark:hover:text-white"
-                >
-                  <UploadIcon ref={uploadIconRef} size={14} className="shrink-0" />
-                  Export hours
-                </Button>
-              </WithTooltip>
+              {(() => {
+                const exportButton = (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleExportHours}
+                    onMouseEnter={() => uploadIconRef.current?.startAnimation()}
+                    onMouseLeave={() => uploadIconRef.current?.stopAnimation()}
+                    className={cn(
+                      'gap-1.5 rounded-lg border-[#ebebeb] bg-white text-neutral-950 shadow-sm hover:bg-neutral-50 hover:text-neutral-950 active:scale-[0.97] dark:border-white/10 dark:bg-transparent dark:text-white dark:hover:bg-white/5 dark:hover:text-white',
+                      isDemoMode && 'cursor-default active:scale-100'
+                    )}
+                  >
+                    <UploadIcon ref={uploadIconRef} size={14} className="shrink-0" />
+                    Export hours
+                  </Button>
+                );
+
+                return isDemoMode ? (
+                  exportButton
+                ) : (
+                  <WithTooltip content="Download hours as CSV">{exportButton}</WithTooltip>
+                );
+              })()}
             </div>
 
             <div className="space-y-4">
