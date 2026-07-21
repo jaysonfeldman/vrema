@@ -320,3 +320,38 @@
   height: 0;
 }
 
+/*
+ * Invoice export: the printable invoice is portaled to <body> and hidden on
+ * screen. When exporting, we add `printing-invoice` to <body> and call print(),
+ * which hides the app (#root) and shows only the invoice document.
+ */
+/* The shared Input uses display:flex, which leaves the native date picker icon
+ * floating mid-field. Push it to the right edge like a normal date input. */
+input[type='date']::-webkit-calendar-picker-indicator {
+  margin-left: auto;
+  cursor: pointer;
+  opacity: 0.55;
+}
+input[type='date']::-webkit-calendar-picker-indicator:hover {
+  opacity: 0.85;
+}
+
+.invoice-print-doc {
+  display: none;
+}
+
+@media print {
+  body.printing-invoice > #root {
+    display: none !important;
+  }
+  body.printing-invoice .invoice-print-doc {
+    display: block !important;
+    padding: 16mm;
+  }
+  /* Zero page margin so the browser drops its own header/footer (page title,
+   * URL, date). The document supplies its own padding above instead. */
+  @page {
+    margin: 0;
+  }
+}
+

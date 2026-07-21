@@ -17,14 +17,20 @@ export const selectTriggerClass = cn(
   'data-[state=open]:text-foreground'
 );
 
-export default function DateRangeSelect({ className }: { className?: string }) {
+export default function DateRangeSelect({
+  className,
+  triggerClassName,
+}: {
+  className?: string;
+  triggerClassName?: string;
+}) {
   const { filters, updateFilters } = useSharedState();
 
   return (
     <WithTooltip content="Filter by date range" side="bottom">
       <div className={cn('inline-flex', className)}>
         <Select value={filters.dateRange} onValueChange={(value: any) => updateFilters({ dateRange: value })}>
-          <SelectTrigger className={cn(selectTriggerClass)}>
+          <SelectTrigger className={cn(selectTriggerClass, triggerClassName)}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent align="end" className="min-w-[9rem] rounded-xl border-surface p-1 shadow-elevated">
