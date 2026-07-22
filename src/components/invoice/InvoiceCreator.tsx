@@ -103,7 +103,7 @@ export default function InvoiceCreator({
   const [billTo, setBillTo] = React.useState('');
   const [paymentDetails, setPaymentDetails] = React.useState('');
   const [notes, setNotes] = React.useState(
-    "You've found a secret message 🎁\nGo to www.jaysonfeldman.com/gift"
+    "You've found a secret message 🎁\nVisit www.jaysonfeldman.com/gift"
   );
 
   // Switching the time frame changes what's billable, so reset the work list.
