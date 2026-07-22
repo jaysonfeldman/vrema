@@ -1,5 +1,5 @@
 import { ThemeProvider as NextThemesProvider } from 'next-themes';
-import type { ComponentProps } from 'react';
+import { useState, type ComponentProps } from 'react';
 
 function isPreviewPath() {
   return typeof window !== 'undefined' && window.location.pathname.startsWith('/preview');
@@ -22,6 +22,17 @@ export function ThemeProvider({ children, ...props }: ComponentProps<typeof Next
   const storageKey = preview
     ? `vrema-preview-theme${param ? `-${param}` : ''}`
     : 'theme';
+
+  // For a Framer embed (?theme=…), always open in the URL theme on each load.
+  // A viewer's earlier toggle shouldn't leave the marketing embed stuck in the
+  // wrong theme, so we reseed storage once on mount. The in-session toggle
+  // still works and persists until the next reload. Runs once (lazy init).
+  useState(() => {
+    if (preview && param && typeof window !== 'undefined') {
+      window.localStorage.setItem(storageKey, param);
+    }
+    return null;
+  });
 
   return (
     <NextThemesProvider
