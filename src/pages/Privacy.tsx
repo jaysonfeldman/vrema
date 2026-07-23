@@ -119,7 +119,6 @@ export default function Privacy() {
           <li>openid</li>
           <li>https://www.googleapis.com/auth/userinfo.profile</li>
           <li>https://www.googleapis.com/auth/userinfo.email</li>
-          <li>https://www.googleapis.com/auth/calendar.readonly</li>
           <li>https://www.googleapis.com/auth/calendar.events.readonly</li>
         </ul>
       </section>

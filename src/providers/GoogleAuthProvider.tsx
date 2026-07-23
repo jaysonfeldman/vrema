@@ -31,7 +31,6 @@ interface GoogleAuthContextType {
 const GoogleAuthContext = createContext<GoogleAuthContextType | undefined>(undefined);
 
 const SCOPES = [
-  'https://www.googleapis.com/auth/calendar.readonly',
   'https://www.googleapis.com/auth/calendar.events.readonly',
   'openid',
   'profile',
