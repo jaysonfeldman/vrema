@@ -11,6 +11,9 @@ import Guide from '@/pages/Guide';
 import Feedback from '@/pages/Feedback';
 import Categories from '@/pages/Categories';
 import ProjectDetail from '@/pages/ProjectDetail';
+import CalendarPage from '@/pages/Calendar';
+import TeamPage from '@/pages/Team';
+import AcceptInvite from '@/pages/AcceptInvite';
 import Privacy from '@/pages/Privacy';
 import Terms from '@/pages/Terms';
 import DemoPreview from '@/pages/DemoPreview';
@@ -49,6 +52,7 @@ function App() {
                 <Route path="/login" element={<Login />} />
                 <Route path="/privacy" element={<Privacy />} />
                 <Route path="/terms" element={<Terms />} />
+                <Route path="/invite/:token" element={<AcceptInvite />} />
 
                 {/* Framer embed only — scales the landing preview, does not alter app UI */}
                 <Route path="/demo" element={<DemoEmbed />} />
@@ -58,6 +62,8 @@ function App() {
                   <Route element={<AppLayout />}>
                     <Route index element={<Navigate to="app" replace />} />
                     <Route path="app" element={<Dashboard />} />
+                    <Route path="calendar" element={<CalendarPage />} />
+                    <Route path="team" element={<TeamPage />} />
                     <Route path="projects" element={<Navigate to="/preview/app" replace />} />
                     <Route path="projects/:projectId" element={<ProjectDetail />} />
                     <Route path="activities" element={<Activities />} />
@@ -75,6 +81,8 @@ function App() {
                   }
                 >
                   <Route path="/app" element={<Dashboard />} />
+                  <Route path="/calendar" element={<CalendarPage />} />
+                  <Route path="/team" element={<TeamPage />} />
                   <Route path="/projects" element={<Navigate to="/app" replace />} />
                   <Route path="/projects/:projectId" element={<ProjectDetail />} />
                   <Route path="/activities" element={<Activities />} />

@@ -13,6 +13,7 @@ import {
   SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { CalendarDays, Users } from 'lucide-react';
 import { HomeIcon } from '@/components/icons/home';
 import { LayoutGridIcon } from '@/components/icons/layout-grid';
 import { BookTextIcon } from '@/components/icons/book-text';
@@ -31,16 +32,21 @@ type AnimIconProps = {
   className?: string;
 };
 
+type NavIcon = ComponentType<AnimIconProps & { ref?: Ref<AnimIconHandle> }> | ComponentType<{ size?: number; className?: string }>;
+
 const navItems: {
   title: string;
   url: string;
-  icon: ComponentType<AnimIconProps & { ref?: Ref<AnimIconHandle> }>;
+  icon: NavIcon;
   end?: boolean;
+  group: 'general' | 'other';
 }[] = [
-  { title: 'Dashboard', url: '/app', icon: HomeIcon, end: true },
-  { title: 'Categories', url: '/categories', icon: LayoutGridIcon },
-  { title: 'Guide', url: '/guide', icon: BookTextIcon },
-  { title: 'Feedback', url: '/feedback', icon: MessageSquareIcon },
+  { title: 'Dashboard', url: '/app', icon: HomeIcon, end: true, group: 'general' },
+  { title: 'Calendar', url: '/calendar', icon: CalendarDays, group: 'general' },
+  { title: 'Categories', url: '/categories', icon: LayoutGridIcon, group: 'general' },
+  { title: 'Team members', url: '/team', icon: Users, group: 'general' },
+  { title: 'Guide', url: '/guide', icon: BookTextIcon, group: 'other' },
+  { title: 'Feedback', url: '/feedback', icon: MessageSquareIcon, group: 'other' },
 ];
 
 function SidebarNavItem({
@@ -53,7 +59,7 @@ function SidebarNavItem({
   to: string;
 }) {
   const iconRef = useRef<AnimIconHandle>(null);
-  const Icon = item.icon;
+  const Icon = item.icon as ComponentType<AnimIconProps & { ref?: Ref<AnimIconHandle> }>;
 
   return (
     <SidebarMenuItem>
@@ -70,11 +76,41 @@ function SidebarNavItem({
           onMouseEnter={() => iconRef.current?.startAnimation()}
           onMouseLeave={() => iconRef.current?.stopAnimation()}
         >
-          <Icon ref={iconRef} size={16} />
+          <Icon ref={iconRef} size={16} className="size-4 shrink-0" />
           <span>{item.title}</span>
         </NavLink>
       </SidebarMenuButton>
     </SidebarMenuItem>
+  );
+}
+
+function NavGroup({
+  label,
+  items,
+  isItemActive,
+  appPath,
+}: {
+  label: string;
+  items: (typeof navItems)[number][];
+  isItemActive: (item: (typeof navItems)[number]) => boolean;
+  appPath: (path: string) => string;
+}) {
+  return (
+    <SidebarGroup className="px-3 py-3">
+      <SidebarGroupLabel className="px-2">{label}</SidebarGroupLabel>
+      <SidebarGroupContent>
+        <SidebarMenu>
+          {items.map((item) => (
+            <SidebarNavItem
+              key={item.title}
+              item={item}
+              isActive={isItemActive(item)}
+              to={appPath(item.url)}
+            />
+          ))}
+        </SidebarMenu>
+      </SidebarGroupContent>
+    </SidebarGroup>
   );
 }
 
@@ -105,21 +141,18 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent className="gap-0">
-        <SidebarGroup className="px-3 py-3">
-          <SidebarGroupLabel className="px-2">Overview</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {navItems.map((item) => (
-                <SidebarNavItem
-                  key={item.title}
-                  item={item}
-                  isActive={isItemActive(item)}
-                  to={appPath(item.url)}
-                />
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        <NavGroup
+          label="General"
+          items={navItems.filter((item) => item.group === 'general')}
+          isItemActive={isItemActive}
+          appPath={appPath}
+        />
+        <NavGroup
+          label="Other"
+          items={navItems.filter((item) => item.group === 'other')}
+          isItemActive={isItemActive}
+          appPath={appPath}
+        />
       </SidebarContent>
 
       <SidebarFooter className="px-3 pb-3 pt-1">

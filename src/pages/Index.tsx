@@ -12,6 +12,11 @@ import RecentEventsTable from '@/components/RecentEventsTable';
 import DateRangeSelect, { rangeLabels } from '@/components/DateRangeSelect';
 import DashboardBanner from '@/components/DashboardBanner';
 import InvoiceCreator from '@/components/invoice/InvoiceCreator';
+import { HoursScopeToggle } from '@/components/HoursScopeToggle';
+import { TeamHoursBreakdown } from '@/components/TeamHoursBreakdown';
+import { useTeamStore } from '@/hooks/useTeamStore';
+import { Link } from 'react-router-dom';
+import { useAppPath } from '@/lib/app-paths';
 import { Button } from '@/components/ui/button';
 import { WithTooltip } from '@/components/ui/tooltip';
 import { UploadIcon, type UploadIconHandle } from '@/components/icons/upload';
@@ -27,6 +32,8 @@ export default function Dashboard() {
   const { syncCalendar } = useCalendarSync();
   const { lastSynced, filters, ensureActivityColors } = useSharedState();
   const { filteredProjects } = useProjectStats();
+  const hoursScope = useTeamStore((s) => s.hoursScope);
+  const appPath = useAppPath();
   const { toast } = useToast();
   const uploadIconRef = React.useRef<UploadIconHandle>(null);
   const invoiceIconRef = React.useRef<FileTextIconHandle>(null);
@@ -169,25 +176,35 @@ export default function Dashboard() {
                   </div>
 
                   <div className="space-y-4">
-                    <div className="flex items-end justify-between gap-4">
+                    <div className="flex flex-wrap items-end justify-between gap-4">
                       <div className="flex items-end gap-2.5">
                         <span className="font-mono text-5xl font-semibold leading-none tracking-tight tabular-nums md:text-6xl">
                           {formatHours(totalHours)}
                         </span>
-                        <span className="mb-1 text-sm text-muted-foreground md:mb-1.5">total hours</span>
+                        <span className="mb-1 text-sm text-muted-foreground md:mb-1.5">
+                          {hoursScope === 'team' ? 'team hours' : 'total hours'}
+                        </span>
                       </div>
-                      <DateRangeSelect className="mb-1 md:mb-1.5" />
+                      <div className="mb-1 flex items-center gap-2 md:mb-1.5">
+                        <HoursScopeToggle />
+                        <DateRangeSelect />
+                      </div>
                     </div>
 
                     {totalHours > 0 ? (
                       <ActivityBar activities={activities} size="lg" />
                     ) : (
                       <p className="text-sm text-muted-foreground">
-                        No tracked time yet. Name calendar events like{' '}
-                        <code className="rounded-md bg-muted px-1.5 py-0.5 text-xs">vrema#design homepage mockups</code>{' '}
-                        to get started.
+                        No tracked time yet. Drag to create entries on the{' '}
+                        <Link to={appPath('/calendar')} className="font-medium text-foreground underline-offset-4 hover:underline">
+                          calendar
+                        </Link>
+                        , or name Google events like{' '}
+                        <code className="rounded-md bg-muted px-1.5 py-0.5 text-xs">vrema#design homepage mockups</code>.
                       </p>
                     )}
+
+                    <TeamHoursBreakdown />
                   </div>
                 </section>
 

@@ -26,6 +26,10 @@ interface SharedState {
   lastSynced: Date | null;
   isLoading: boolean;
   activityColors: ActivityColor[];
+  /** Explicit project names available in the calendar picker. */
+  managedProjects: string[];
+  /** Project names (lowercase) excluded from stats and pickers after deletion. */
+  excludedProjects: string[];
   setEvents: (events: GoogleCalendarEvent[]) => void;
   setFilteredEvents: (events: GoogleCalendarEvent[]) => void;
   setCustomProjects: (projects: Project[]) => void;
@@ -36,6 +40,9 @@ interface SharedState {
   updateActivityColor: (type: string, color: string) => void;
   ensureActivityColors: (types: string[]) => void;
   applyColorTemplate: (templateId: string, types?: string[]) => void;
+  addManagedProject: (name: string) => void;
+  excludeProject: (name: string) => void;
+  removeActivityType: (type: string) => void;
 }
 
 const defaultActivityColors: ActivityColor[] = [
@@ -65,6 +72,8 @@ export const useSharedState = create<SharedState>()(
       lastSynced: null,
       isLoading: false,
       activityColors: defaultActivityColors,
+      managedProjects: [],
+      excludedProjects: [],
       setEvents: (events) => set({ events }),
       setFilteredEvents: (filteredEvents) => set({ filteredEvents }),
       setCustomProjects: (customProjects) => set({ customProjects }),
@@ -124,10 +133,48 @@ export const useSharedState = create<SharedState>()(
           return { activityColors: next };
         });
       },
+      addManagedProject: (name) => {
+        const trimmed = name.trim();
+        if (!trimmed) return;
+        const key = trimmed.toLowerCase();
+        set((state) => {
+          if (state.managedProjects.some((p) => p.toLowerCase() === key)) {
+            return {
+              excludedProjects: state.excludedProjects.filter((p) => p !== key),
+            };
+          }
+          return {
+            managedProjects: [...state.managedProjects, trimmed],
+            excludedProjects: state.excludedProjects.filter((p) => p !== key),
+          };
+        });
+      },
+      excludeProject: (name) => {
+        const key = name.trim().toLowerCase();
+        if (!key) return;
+        set((state) => ({
+          excludedProjects: state.excludedProjects.includes(key)
+            ? state.excludedProjects
+            : [...state.excludedProjects, key],
+          managedProjects: state.managedProjects.filter((p) => p.toLowerCase() !== key),
+          customProjects: state.customProjects.filter((p) => p.id.toLowerCase() !== key && p.name.toLowerCase() !== key),
+        }));
+      },
+      removeActivityType: (type) => {
+        const key = type.trim().toLowerCase();
+        if (!key) return;
+        set((state) => ({
+          activityColors: state.activityColors.filter((ac) => ac.type.toLowerCase() !== key),
+        }));
+      },
     }),
     {
       name: 'vrema-activity-colors',
-      partialize: (state) => ({ activityColors: state.activityColors }),
+      partialize: (state) => ({
+        activityColors: state.activityColors,
+        managedProjects: state.managedProjects,
+        excludedProjects: state.excludedProjects,
+      }),
     }
   )
 );

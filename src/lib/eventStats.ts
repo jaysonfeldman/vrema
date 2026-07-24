@@ -83,13 +83,16 @@ export function computeProjectsFromEvents(
     if (!projectMap.has(projectId)) {
       projectMap.set(projectId, {
         id: projectId,
-        name: projectName,
-        filterTerm: projectId,
+        name: savedSettings?.name?.trim() || projectName,
+        filterTerm: savedSettings?.filterTerm || projectId,
         totalHours: 0,
         activities: [],
         teamMembers,
         budgetHours: savedSettings?.budgetHours ?? null,
         hourlyRate: savedSettings?.hourlyRate,
+        color: savedSettings?.color,
+        logoUrl: savedSettings?.logoUrl,
+        logoIcon: savedSettings?.logoIcon,
       });
     }
 

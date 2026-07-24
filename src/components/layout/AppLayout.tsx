@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { Separator } from '@/components/ui/separator';
@@ -11,6 +11,7 @@ import { LogoutIcon, type LogoutIconHandle } from '@/components/icons/logout';
 import { useGoogleAuth } from '@/providers/GoogleAuthProvider';
 import { useCalendarSync } from '@/hooks/useCalendarSync';
 import { useSharedState } from '@/hooks/useSharedState';
+import { useTeamStore } from '@/hooks/useTeamStore';
 import { WithTooltip } from '@/components/ui/tooltip';
 import { sound } from '@/lib/sounds';
 import { cn } from '@/lib/utils';
@@ -18,6 +19,8 @@ import { stripDemoPrefix } from '@/lib/app-paths';
 
 const pageTitles: Record<string, string> = {
   '/app': 'Dashboard',
+  '/calendar': 'Calendar',
+  '/team': 'Team members',
   '/projects': 'Projects',
   '/categories': 'Categories',
   '/guide': 'Guide',
@@ -33,13 +36,33 @@ function getPageTitle(pathname: string): string {
 export default function AppLayout() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { signOut, isDemoMode } = useGoogleAuth();
+  const { authState, signOut, isDemoMode } = useGoogleAuth();
   const { syncCalendar, lastSynced } = useCalendarSync();
   const { isLoading } = useSharedState();
+  const ensureOwner = useTeamStore((s) => s.ensureOwner);
+  const seedDemoTeam = useTeamStore((s) => s.seedDemoTeam);
   const syncIconRef = useRef<RefreshCWIconHandle>(null);
   const logoutIconRef = useRef<LogoutIconHandle>(null);
 
-  const isDashboard = stripDemoPrefix(location.pathname) === '/app';
+  useEffect(() => {
+    if (authState.user) {
+      ensureOwner({
+        id: authState.user.id,
+        name: authState.user.name,
+        email: authState.user.email,
+        imageUrl: authState.user.imageUrl,
+      });
+    }
+  }, [authState.user, ensureOwner]);
+
+  useEffect(() => {
+    if (isDemoMode) seedDemoTeam();
+  }, [isDemoMode, seedDemoTeam]);
+
+  const path = stripDemoPrefix(location.pathname);
+  const isDashboard = path === '/app';
+  const isCalendar = path === '/calendar';
+  const isFullBleed = isDashboard || isCalendar;
   const handleSync = async () => {
     sound.click();
     try {
@@ -136,8 +159,14 @@ export default function AppLayout() {
             isDemoMode ? 'md:min-h-0' : 'md:min-h-[calc(100svh-3.5rem-1rem)]'
           )}
         >
-          {isDashboard ? (
-            <div className={cn('min-h-0 flex-1 overflow-auto', isDemoMode && 'hide-scrollbar')}>
+          {isFullBleed ? (
+            <div
+              className={cn(
+                'min-h-0 flex-1',
+                isCalendar ? 'overflow-hidden' : 'overflow-auto',
+                isDemoMode && 'hide-scrollbar'
+              )}
+            >
               <Outlet />
             </div>
           ) : (
