@@ -25,20 +25,23 @@ const sortOptions = [
 ] as const;
 
 export default function ProjectsOverview({ title = 'Projects' }: ProjectsOverviewProps) {
-  const { isLoading, customProjects, setCustomProjects } = useSharedState();
+  const { isLoading, upsertProjectSettings } = useSharedState();
   const { filteredProjects } = useProjectStats();
   const [sortBy, setSortBy] = React.useState<(typeof sortOptions)[number]['value']>('most');
   const [selectedProject, setSelectedProject] = React.useState<Project | null>(null);
   const { toast } = useToast();
 
   const handleSaveProjectSettings = (updatedProject: Project) => {
-    const existing = customProjects.find((project) => project.id === updatedProject.id);
-    const nextProjects = existing
-      ? customProjects.map((project) => (project.id === updatedProject.id ? updatedProject : project))
-      : [...customProjects, updatedProject];
-
-    setCustomProjects(nextProjects);
-    toast({ title: 'Project updated', description: 'Project settings have been saved.' });
+    try {
+      upsertProjectSettings(updatedProject);
+      toast({ title: 'Project updated', description: 'Project settings have been saved.' });
+    } catch {
+      toast({
+        title: 'Couldn’t save logo',
+        description: 'Storage is full. Try a smaller image.',
+        variant: 'destructive',
+      });
+    }
   };
 
   const sortedProjects = React.useMemo(() => {

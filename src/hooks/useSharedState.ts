@@ -17,10 +17,64 @@ export interface ActivityColor {
   color: string;
 }
 
+/** Persisted per-project settings (logos, rates, etc.) keyed by lowercase project id. */
+export interface ProjectSettings {
+  id: string;
+  name?: string;
+  logoUrl?: string;
+  logoIcon?: string;
+  hourlyRate?: number;
+  budgetHours?: number | null;
+  filterTerm?: string;
+  color?: string;
+}
+
+const PROJECT_SETTINGS_KEY = 'vrema-project-settings';
+
+function readProjectSettingsFromStorage(): Record<string, ProjectSettings> {
+  if (typeof window === 'undefined') return {};
+  try {
+    const raw = localStorage.getItem(PROJECT_SETTINGS_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as Record<string, ProjectSettings>;
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeProjectSettingsToStorage(settings: Record<string, ProjectSettings>) {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(PROJECT_SETTINGS_KEY, JSON.stringify(settings));
+  } catch (error) {
+    console.error('Failed to persist project settings (storage full?)', error);
+    throw error;
+  }
+}
+
+function settingsToProjects(settings: Record<string, ProjectSettings>): Project[] {
+  return Object.values(settings).map((item) => ({
+    id: item.id,
+    name: item.name || item.id,
+    filterTerm: item.filterTerm,
+    totalHours: 0,
+    activities: [],
+    teamMembers: [],
+    budgetHours: item.budgetHours ?? undefined,
+    hourlyRate: item.hourlyRate,
+    color: item.color,
+    logoUrl: item.logoUrl,
+    logoIcon: item.logoIcon,
+  }));
+}
+
 interface SharedState {
   events: GoogleCalendarEvent[];
   filteredEvents: GoogleCalendarEvent[];
   customProjects: Project[];
+  /** Source of truth for logos / rates — survives refresh & logout. */
+  projectSettings: Record<string, ProjectSettings>;
   projectFilters: Record<string, string>;
   filters: FilterOptions;
   lastSynced: Date | null;
@@ -33,6 +87,7 @@ interface SharedState {
   setEvents: (events: GoogleCalendarEvent[]) => void;
   setFilteredEvents: (events: GoogleCalendarEvent[]) => void;
   setCustomProjects: (projects: Project[]) => void;
+  upsertProjectSettings: (project: Project) => void;
   setProjectFilters: (filters: Record<string, string>) => void;
   updateFilters: (filters: Partial<FilterOptions>) => void;
   setLastSynced: (date: Date | null) => void;
@@ -54,12 +109,15 @@ const defaultActivityColors: ActivityColor[] = [
   { type: 'other', color: '#D946EF' },
 ];
 
+const initialProjectSettings = readProjectSettingsFromStorage();
+
 export const useSharedState = create<SharedState>()(
   persist(
     (set, get) => ({
       events: [],
       filteredEvents: [],
-      customProjects: [],
+      customProjects: settingsToProjects(initialProjectSettings),
+      projectSettings: initialProjectSettings,
       projectFilters: {},
       filters: {
         searchTerm: '',
@@ -77,6 +135,32 @@ export const useSharedState = create<SharedState>()(
       setEvents: (events) => set({ events }),
       setFilteredEvents: (filteredEvents) => set({ filteredEvents }),
       setCustomProjects: (customProjects) => set({ customProjects }),
+      upsertProjectSettings: (project) => {
+        const id = (project.id || project.name || '').trim().toLowerCase();
+        if (!id) return;
+
+        const nextEntry: ProjectSettings = {
+          id,
+          name: project.name?.trim() || id,
+          logoUrl: project.logoUrl,
+          logoIcon: project.logoIcon,
+          hourlyRate: project.hourlyRate,
+          budgetHours: project.budgetHours ?? null,
+          filterTerm: project.filterTerm,
+          color: project.color,
+        };
+
+        const projectSettings = {
+          ...get().projectSettings,
+          [id]: nextEntry,
+        };
+
+        writeProjectSettingsToStorage(projectSettings);
+        set({
+          projectSettings,
+          customProjects: settingsToProjects(projectSettings),
+        });
+      },
       setProjectFilters: (projectFilters) => set({ projectFilters }),
       updateFilters: (newFilters) =>
         set((state) => ({
@@ -152,13 +236,22 @@ export const useSharedState = create<SharedState>()(
       excludeProject: (name) => {
         const key = name.trim().toLowerCase();
         if (!key) return;
-        set((state) => ({
-          excludedProjects: state.excludedProjects.includes(key)
-            ? state.excludedProjects
-            : [...state.excludedProjects, key],
-          managedProjects: state.managedProjects.filter((p) => p.toLowerCase() !== key),
-          customProjects: state.customProjects.filter((p) => p.id.toLowerCase() !== key && p.name.toLowerCase() !== key),
-        }));
+        set((state) => {
+          const { [key]: _removed, ...rest } = state.projectSettings;
+          try {
+            writeProjectSettingsToStorage(rest);
+          } catch {
+            /* ignore */
+          }
+          return {
+            excludedProjects: state.excludedProjects.includes(key)
+              ? state.excludedProjects
+              : [...state.excludedProjects, key],
+            managedProjects: state.managedProjects.filter((p) => p.toLowerCase() !== key),
+            projectSettings: rest,
+            customProjects: settingsToProjects(rest),
+          };
+        });
       },
       removeActivityType: (type) => {
         const key = type.trim().toLowerCase();
@@ -174,7 +267,36 @@ export const useSharedState = create<SharedState>()(
         activityColors: state.activityColors,
         managedProjects: state.managedProjects,
         excludedProjects: state.excludedProjects,
+        projectSettings: state.projectSettings,
+        customProjects: settingsToProjects(state.projectSettings),
       }),
+      merge: (persisted, current) => {
+        const p = (persisted || {}) as Partial<SharedState>;
+        const fromZustand = p.projectSettings || {};
+        const fromBackup = readProjectSettingsFromStorage();
+        // Prefer whichever has more logo data (backup key is the durable write path).
+        const projectSettings = {
+          ...fromZustand,
+          ...fromBackup,
+          ...Object.fromEntries(
+            Object.entries(fromZustand).map(([id, settings]) => [
+              id,
+              {
+                ...fromBackup[id],
+                ...settings,
+                logoUrl: settings.logoUrl || fromBackup[id]?.logoUrl,
+                logoIcon: settings.logoIcon || fromBackup[id]?.logoIcon,
+              },
+            ])
+          ),
+        };
+        return {
+          ...current,
+          ...p,
+          projectSettings,
+          customProjects: settingsToProjects(projectSettings),
+        };
+      },
     }
   )
 );

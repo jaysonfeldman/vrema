@@ -38,6 +38,7 @@ export default function ProjectSettingsDialog({
     (project.logoIcon as ProjectIconId) || ''
   );
   const [logoMode, setLogoMode] = React.useState<LogoMode>(project.logoUrl ? 'upload' : 'icon');
+  const [logoBusy, setLogoBusy] = React.useState(false);
   const [hourlyRate, setHourlyRate] = React.useState(project.hourlyRate?.toString() || '');
   const [budgetHours, setBudgetHours] = React.useState(project.budgetHours?.toString() || '');
   const [filterTerm, setFilterTerm] = React.useState(project.filterTerm || '');
@@ -48,15 +49,18 @@ export default function ProjectSettingsDialog({
     setLogoUrl(project.logoUrl || '');
     setLogoIcon((project.logoIcon as ProjectIconId) || '');
     setLogoMode(project.logoUrl ? 'upload' : 'icon');
+    setLogoBusy(false);
     setHourlyRate(project.hourlyRate?.toString() || '');
     setBudgetHours(project.budgetHours?.toString() || '');
     setFilterTerm(project.filterTerm || '');
   }, [open, project]);
 
   const handleSave = () => {
+    if (logoBusy) return;
     const usingUpload = logoMode === 'upload' && Boolean(logoUrl.trim());
     const updatedProject: Project = {
       ...project,
+      id: (project.id || project.name || '').toLowerCase(),
       name: name.trim() || project.name,
       logoUrl: usingUpload ? logoUrl.trim() : undefined,
       logoIcon: usingUpload ? undefined : logoIcon || undefined,
@@ -70,14 +74,44 @@ export default function ProjectSettingsDialog({
 
   const handleLogoFile = (file: File | undefined) => {
     if (!file || !file.type.startsWith('image/')) return;
+    setLogoBusy(true);
+
+    const applyDataUrl = (dataUrl: string) => {
+      setLogoUrl(dataUrl);
+      setLogoMode('upload');
+      setLogoBusy(false);
+    };
+
     const reader = new FileReader();
     reader.onload = () => {
-      if (typeof reader.result === 'string') {
-        setLogoUrl(reader.result);
-        setLogoMode('upload');
-        sound.pop();
+      if (typeof reader.result !== 'string') {
+        setLogoBusy(false);
+        return;
       }
+      const raw = reader.result;
+      const img = new Image();
+      img.onload = () => {
+        const max = 192;
+        const scale = Math.min(1, max / Math.max(img.width, img.height));
+        const width = Math.max(1, Math.round(img.width * scale));
+        const height = Math.max(1, Math.round(img.height * scale));
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          setLogoBusy(false);
+          return;
+        }
+        ctx.drawImage(img, 0, 0, width, height);
+        applyDataUrl(canvas.toDataURL('image/jpeg', 0.72));
+      };
+      img.onerror = () => {
+        setLogoBusy(false);
+      };
+      img.src = raw;
     };
+    reader.onerror = () => setLogoBusy(false);
     reader.readAsDataURL(file);
   };
 
@@ -173,6 +207,9 @@ export default function ProjectSettingsDialog({
                     <ImagePlus className="size-3.5" />
                     Upload image
                   </Button>
+                  {logoBusy && (
+                    <span className="text-xs text-muted-foreground">Processing image…</span>
+                  )}
                   {logoUrl && (
                     <Button
                       type="button"
@@ -252,7 +289,9 @@ export default function ProjectSettingsDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={handleSave}>Save changes</Button>
+          <Button onClick={handleSave} disabled={logoBusy}>
+            {logoBusy ? 'Processing…' : 'Save changes'}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

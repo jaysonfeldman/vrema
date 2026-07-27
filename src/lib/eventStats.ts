@@ -78,7 +78,9 @@ export function computeProjectsFromEvents(
 
     const { projectName, activityType, description } = parseEventTitle(event.summary);
     const projectId = projectName.toLowerCase();
-    const savedSettings = settings.find((project) => project.id === projectId);
+    const savedSettings = settings.find(
+      (project) => project.id.toLowerCase() === projectId || project.name.toLowerCase() === projectId
+    );
 
     if (!projectMap.has(projectId)) {
       projectMap.set(projectId, {
