@@ -15,10 +15,12 @@ import {
   entryDurationHours,
   getISOWeekNumber,
   getWeekDays,
+  googleEventsToTimeEntries,
   initialsFromName,
 } from '@/lib/timeEntryUtils';
-import { TimeEntryEditor, entryToDraft, type TimeEntryDraft } from './TimeEntryEditor';
+import { TimeEntryEditor, entryToDraft, isDraftComplete, type TimeEntryDraft } from './TimeEntryEditor';
 import { sound } from '@/lib/sounds';
+import { toast } from '@/hooks/use-toast';
 import type { TimeEntry } from '@/lib/types';
 import { formatHours } from '@/lib/eventStats';
 
@@ -37,17 +39,33 @@ export function TeamRosterView({ weekAnchor, onWeekChange }: Props) {
   const updateTimeEntry = useTeamStore((s) => s.updateTimeEntry);
   const deleteTimeEntry = useTeamStore((s) => s.deleteTimeEntry);
   const addManagedProject = useSharedState((s) => s.addManagedProject);
+  const googleEvents = useSharedState((s) => s.events);
+  const excludedProjects = useSharedState((s) => s.excludedProjects);
   const getColor = useActivityColor();
 
   const draftRef = useRef<TimeEntryDraft | null>(null);
   const [draft, setDraft] = useState<TimeEntryDraft | null>(null);
   const [anchorPos, setAnchorPos] = useState<{ x: number; y: number } | null>(null);
+  const [showRequiredErrors, setShowRequiredErrors] = useState(false);
   draftRef.current = draft;
 
   const days = useMemo(() => getWeekDays(weekAnchor, 1), [weekAnchor]);
   const weekNumber = getISOWeekNumber(weekAnchor);
   const weekStart = days[0];
   const weekEnd = days[6];
+  const ownerId = authState.user?.id ?? 'local-user';
+
+  const excludedSet = useMemo(
+    () => new Set(excludedProjects.map((p) => p.toLowerCase())),
+    [excludedProjects]
+  );
+
+  /** Local entries + Google `#` events attributed to the signed-in owner. */
+  const allEntries = useMemo(() => {
+    const local = timeEntries.filter((e) => e.status === 'confirmed');
+    const fromGoogle = googleEventsToTimeEntries(googleEvents, ownerId, excludedSet);
+    return [...local, ...fromGoogle];
+  }, [timeEntries, googleEvents, ownerId, excludedSet]);
 
   const activeMembers = useMemo(() => {
     const list = members.filter((m) => m.status !== 'pending');
@@ -68,7 +86,7 @@ export function TeamRosterView({ weekAnchor, onWeekChange }: Props) {
   }, [members, authState.user]);
 
   const hoursForMember = (memberId: string) =>
-    timeEntries
+    allEntries
       .filter((e) => {
         if (e.memberId !== memberId) return false;
         const s = new Date(e.startTime);
@@ -77,7 +95,7 @@ export function TeamRosterView({ weekAnchor, onWeekChange }: Props) {
       .reduce((sum, e) => sum + entryDurationHours(e), 0);
 
   const dayTotals = days.map((day) => {
-    const dayEntries = timeEntries.filter((e) => isSameDay(new Date(e.startTime), day));
+    const dayEntries = allEntries.filter((e) => isSameDay(new Date(e.startTime), day));
     const people = new Set(dayEntries.map((e) => e.memberId)).size;
     const hours = dayEntries.reduce((sum, e) => sum + entryDurationHours(e), 0);
     return { people, hours };
@@ -88,6 +106,7 @@ export function TeamRosterView({ weekAnchor, onWeekChange }: Props) {
   const closeEditor = useCallback(() => {
     setDraft(null);
     setAnchorPos(null);
+    setShowRequiredErrors(false);
   }, []);
 
   const saveDraft = useCallback(
@@ -104,7 +123,7 @@ export function TeamRosterView({ weekAnchor, onWeekChange }: Props) {
           projectName,
           projectId: projectName.toLowerCase(),
           activityType,
-          color: current.color,
+          color: undefined,
           startTime: current.startTime,
           endTime: current.endTime,
           status: 'confirmed',
@@ -115,7 +134,6 @@ export function TeamRosterView({ weekAnchor, onWeekChange }: Props) {
           projectName,
           projectId: projectName.toLowerCase(),
           activityType,
-          color: current.color,
           startTime: current.startTime,
           endTime: current.endTime,
           memberId: current.memberId,
@@ -128,17 +146,60 @@ export function TeamRosterView({ weekAnchor, onWeekChange }: Props) {
     [addManagedProject, addTimeEntry, updateTimeEntry]
   );
 
+  const requestSaveOrWarn = useCallback(() => {
+    const current = draftRef.current;
+    if (!current) return false;
+    if (current.id?.startsWith('google-')) {
+      closeEditor();
+      return true;
+    }
+    if (!isDraftComplete(current)) {
+      setShowRequiredErrors(true);
+      return false;
+    }
+    draftRef.current = null;
+    saveDraft(current);
+    closeEditor();
+    return true;
+  }, [closeEditor, saveDraft]);
+
+  /** Click-away: save when complete, otherwise discard (never trap the user). */
   const dismissEditor = useCallback(() => {
     const current = draftRef.current;
     if (!current) return;
     draftRef.current = null;
-    if (current.projectName.trim() && current.activityType.trim()) {
-      saveDraft(current);
+
+    if (current.id?.startsWith('google-')) {
+      closeEditor();
+      return;
     }
+
+    if (isDraftComplete(current)) {
+      saveDraft(current);
+      closeEditor();
+      return;
+    }
+
     closeEditor();
+    const touched =
+      Boolean(current.title.trim()) ||
+      Boolean(current.projectName.trim()) ||
+      Boolean(current.activityType.trim());
+    if (touched) {
+      toast({
+        title: 'Event discarded',
+        description: 'Choose a project and activity to save time entries.',
+      });
+    }
   }, [closeEditor, saveDraft]);
 
+  const discardEditor = useCallback(() => {
+    draftRef.current = null;
+    closeEditor();
+  }, [closeEditor]);
+
   const openEditor = (next: TimeEntryDraft, x: number, y: number) => {
+    setShowRequiredErrors(false);
     setDraft(next);
     setAnchorPos({
       x: Math.min(Math.max(x, 160), window.innerWidth - 160),
@@ -184,7 +245,6 @@ export function TeamRosterView({ weekAnchor, onWeekChange }: Props) {
       clientX,
       clientY
     );
-    sound.pop();
   };
 
   const ghostCell =
@@ -213,7 +273,6 @@ export function TeamRosterView({ weekAnchor, onWeekChange }: Props) {
               size="icon"
               className="size-7 rounded-lg text-muted-foreground"
               onClick={() => {
-                sound.click();
                 onWeekChange(subWeeks(weekAnchor, 1));
               }}
             >
@@ -223,7 +282,6 @@ export function TeamRosterView({ weekAnchor, onWeekChange }: Props) {
               type="button"
               className="h-7 rounded-lg px-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-[#f6f6f6] hover:text-foreground dark:hover:bg-white/[0.06]"
               onClick={() => {
-                sound.click();
                 onWeekChange(new Date());
               }}
             >
@@ -235,7 +293,6 @@ export function TeamRosterView({ weekAnchor, onWeekChange }: Props) {
               size="icon"
               className="size-7 rounded-lg text-muted-foreground"
               onClick={() => {
-                sound.click();
                 onWeekChange(addWeeks(weekAnchor, 1));
               }}
             >
@@ -298,16 +355,16 @@ export function TeamRosterView({ weekAnchor, onWeekChange }: Props) {
                   </div>
 
                   {days.map((day) => {
-                    const cellEntries = timeEntries.filter(
+                    const cellEntries = allEntries.filter(
                       (e) => e.memberId === member.id && isSameDay(new Date(e.startTime), day)
                     );
                     const showGhost =
                       ghostCell &&
                       ghostCell.memberId === member.id &&
                       isSameDay(ghostCell.day, day);
-                    const ghostColor =
-                      draft?.color ||
-                      (draft?.activityType ? getColor(draft.activityType) : '#94A3B8');
+                    const ghostColor = draft?.activityType
+                      ? getColor(draft.activityType)
+                      : '#94A3B8';
 
                     return (
                       <div
@@ -323,13 +380,12 @@ export function TeamRosterView({ weekAnchor, onWeekChange }: Props) {
                             <RosterBlock
                               key={entry.id}
                               entry={entry}
-                              color={entry.color || getColor(entry.activityType)}
+                              color={getColor(entry.activityType)}
                               selected={draft?.id === entry.id}
                               onClick={(ev) => {
                                 ev.stopPropagation();
                                 if (draft && draft.id !== entry.id) dismissEditor();
                                 openEditor(entryToDraft(entry), ev.clientX, ev.clientY);
-                                sound.click();
                               }}
                             />
                           ))}
@@ -418,7 +474,7 @@ export function TeamRosterView({ weekAnchor, onWeekChange }: Props) {
           collisionPadding={16}
           onEscapeKeyDown={(e) => {
             e.preventDefault();
-            closeEditor();
+            discardEditor();
           }}
         >
           <AnimatePresence>
@@ -432,12 +488,22 @@ export function TeamRosterView({ weekAnchor, onWeekChange }: Props) {
                 <TimeEntryEditor
                   draft={draft}
                   isEditing={Boolean(draft.id)}
-                  onChange={(patch) => setDraft((prev) => (prev ? { ...prev, ...patch } : prev))}
+                  readOnly={Boolean(draft.id?.startsWith('google-'))}
+                  showRequiredErrors={showRequiredErrors}
+                  onChange={(patch) => {
+                    setDraft((prev) => (prev ? { ...prev, ...patch } : prev));
+                    if (patch.projectName !== undefined || patch.activityType !== undefined) {
+                      setShowRequiredErrors(false);
+                    }
+                  }}
+                  onSave={
+                    draft.id?.startsWith('google-') ? undefined : () => requestSaveOrWarn()
+                  }
+                  onDiscard={draft.id?.startsWith('google-') ? undefined : discardEditor}
                   onDelete={
-                    draft.id
+                    draft.id && !draft.id.startsWith('google-')
                       ? () => {
                           deleteTimeEntry(draft.id!);
-                          sound.pop();
                           closeEditor();
                         }
                       : undefined

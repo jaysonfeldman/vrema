@@ -12,6 +12,7 @@ import {
   startOfDay,
   startOfWeek,
 } from 'date-fns';
+import { parseEventTitle } from '@/services/googleCalendarService';
 import type { GoogleCalendarEvent, TimeEntry } from '@/lib/types';
 
 export const SNAP_MINUTES = 15;
@@ -93,6 +94,57 @@ export function timeEntryToCalendarEvent(entry: TimeEntry): GoogleCalendarEvent 
     start: { dateTime: entry.startTime },
     end: { dateTime: entry.endTime },
   };
+}
+
+/** Convert a Google `#project#activity` event into a calendar TimeEntry for display. */
+export function googleEventToTimeEntry(
+  event: GoogleCalendarEvent,
+  memberId: string
+): TimeEntry | null {
+  if (!event.summary?.includes('#') || !event.start?.dateTime || !event.end?.dateTime) {
+    return null;
+  }
+
+  const { projectName, activityType, description } = parseEventTitle(event.summary);
+  const startTime = event.start.dateTime;
+  const endTime = event.end.dateTime;
+  if (new Date(endTime).getTime() <= new Date(startTime).getTime()) return null;
+
+  return {
+    id: `google-${event.id}`,
+    title: description || `${projectName} · ${activityType}`,
+    description: description || undefined,
+    projectId: projectName.toLowerCase(),
+    projectName,
+    activityType,
+    startTime,
+    endTime,
+    memberId,
+    status: 'confirmed',
+    source: 'google',
+    createdAt: startTime,
+    updatedAt: startTime,
+  };
+}
+
+/** Map synced Google Calendar events (with `#`) into TimeEntries for the week calendar. */
+export function googleEventsToTimeEntries(
+  events: GoogleCalendarEvent[],
+  memberId: string,
+  excludedProjects: Set<string> = new Set()
+): TimeEntry[] {
+  const entries: TimeEntry[] = [];
+  for (const event of events) {
+    const entry = googleEventToTimeEntry(event, memberId);
+    if (!entry) continue;
+    if (excludedProjects.has(entry.projectName.toLowerCase())) continue;
+    entries.push(entry);
+  }
+  return entries;
+}
+
+export function isGoogleTimeEntry(entry: Pick<TimeEntry, 'id' | 'source'>): boolean {
+  return entry.source === 'google' || entry.id.startsWith('google-');
 }
 
 export function isTimeEntryEventId(id: string): boolean {

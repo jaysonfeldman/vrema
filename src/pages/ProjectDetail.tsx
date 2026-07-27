@@ -1,7 +1,6 @@
 import { useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ChevronLeft, Clock } from 'lucide-react';
-import { useSharedState } from '@/hooks/useSharedState';
 import { useProjectStats } from '@/hooks/useProjectStats';
 import { parseEventTitle, formatEventDate, calculateDuration } from '@/services/googleCalendarService';
 import { formatHours } from '@/lib/eventStats';
@@ -15,22 +14,21 @@ export default function ProjectDetail() {
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
   const appPath = useAppPath();
-  const { events } = useSharedState();
-  const { allProjects } = useProjectStats();
+  const { mergedEvents, allProjects } = useProjectStats();
   const getColor = useActivityColor();
 
   const project = allProjects.find((p) => p.id === projectId) ?? null;
 
   const projectEvents = useMemo(() => {
     if (!project) return [];
-    return events
+    return mergedEvents
       .filter((event) => {
         if (!event.summary || !event.summary.includes('#')) return false;
         const { projectName } = parseEventTitle(event.summary);
         return projectName.toLowerCase() === project.name.toLowerCase();
       })
       .sort((a, b) => new Date(b.start!.dateTime!).getTime() - new Date(a.start!.dateTime!).getTime());
-  }, [events, project]);
+  }, [mergedEvents, project]);
 
   const goBack = () => navigate(appPath('/app'));
 

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useProjectStats } from '@/hooks/useProjectStats';
 import { useSharedState } from '@/hooks/useSharedState';
 import { getDateRange, getEventDurationHours, formatHours } from '@/lib/eventStats';
 import { parseEventTitle, formatEventDate } from '@/services/googleCalendarService';
@@ -10,13 +11,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 const PAGE_SIZE = 6;
 
 export default function RecentEventsTable() {
-  const { events, filters } = useSharedState();
+  const { mergedEvents } = useProjectStats();
+  const { filters } = useSharedState();
   const [page, setPage] = useState(0);
 
   const recentEvents = useMemo(() => {
     const { startDate, endDate } = getDateRange(filters.dateRange);
 
-    return events
+    return mergedEvents
       .filter((event) => {
         if (!event.summary?.includes('#') || !event.start?.dateTime || !event.end?.dateTime) {
           return false;
@@ -29,7 +31,7 @@ export default function RecentEventsTable() {
         (a, b) =>
           new Date(b.start!.dateTime!).getTime() - new Date(a.start!.dateTime!).getTime()
       );
-  }, [events, filters.dateRange]);
+  }, [mergedEvents, filters.dateRange]);
 
   const pageCount = Math.max(1, Math.ceil(recentEvents.length / PAGE_SIZE));
 

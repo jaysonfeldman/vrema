@@ -24,7 +24,7 @@ export interface TeamMember {
 export type TeamMemberRole = 'owner' | 'member';
 export type TeamMemberStatus = 'active' | 'pending';
 
-/** Manual time log created on the calendar (drag-to-create). */
+/** Time log on the calendar — manual (drag-to-create) or from Google Calendar `#` events. */
 export interface TimeEntry {
   id: string;
   title: string;
@@ -38,6 +38,8 @@ export interface TimeEntry {
   endTime: string;
   memberId: string;
   status: 'confirmed' | 'draft';
+  /** Origin of the entry. Google-synced blocks are read-only in the calendar UI. */
+  source?: 'manual' | 'google';
   createdAt: string;
   updatedAt: string;
 }

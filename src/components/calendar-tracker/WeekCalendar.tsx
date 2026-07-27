@@ -21,14 +21,17 @@ import {
   formatCompactTime,
   getISOWeekNumber,
   getWeekDays,
+  googleEventsToTimeEntries,
+  isGoogleTimeEntry,
   minutesFromMidnight,
   minutesToHeight,
   snapMinutes,
   yToMinutesInDay,
   type OverlapPlacement,
 } from '@/lib/timeEntryUtils';
-import { TimeEntryEditor, entryToDraft, type TimeEntryDraft } from './TimeEntryEditor';
+import { TimeEntryEditor, entryToDraft, isDraftComplete, type TimeEntryDraft } from './TimeEntryEditor';
 import { sound } from '@/lib/sounds';
+import { toast } from '@/hooks/use-toast';
 import type { TimeEntry } from '@/lib/types';
 
 const HOURS = Array.from({ length: DAY_END_HOUR - DAY_START_HOUR }, (_, i) => DAY_START_HOUR + i);
@@ -75,6 +78,8 @@ export function WeekCalendar({ weekAnchor, onWeekChange }: Props) {
   const updateTimeEntry = useTeamStore((s) => s.updateTimeEntry);
   const deleteTimeEntry = useTeamStore((s) => s.deleteTimeEntry);
   const addManagedProject = useSharedState((s) => s.addManagedProject);
+  const googleEvents = useSharedState((s) => s.events);
+  const excludedProjects = useSharedState((s) => s.excludedProjects);
   const getColor = useActivityColor();
   const [isDark, setIsDark] = useState(() =>
     typeof document !== 'undefined' ? document.documentElement.classList.contains('dark') : false
@@ -101,6 +106,7 @@ export function WeekCalendar({ weekAnchor, onWeekChange }: Props) {
   const [entryDrag, setEntryDrag] = useState<EntryInteraction | null>(null);
   const [draft, setDraft] = useState<TimeEntryDraft | null>(null);
   const [anchorPos, setAnchorPos] = useState<{ x: number; y: number } | null>(null);
+  const [showRequiredErrors, setShowRequiredErrors] = useState(false);
 
   draftRef.current = draft;
   createDragRef.current = dragging;
@@ -109,10 +115,16 @@ export function WeekCalendar({ weekAnchor, onWeekChange }: Props) {
   const weekNumber = getISOWeekNumber(weekAnchor);
   const userId = authState.user?.id ?? 'local-user';
 
-  const myEntries = useMemo(
-    () => timeEntries.filter((e) => e.memberId === userId),
-    [timeEntries, userId]
+  const excludedSet = useMemo(
+    () => new Set(excludedProjects.map((p) => p.toLowerCase())),
+    [excludedProjects]
   );
+
+  const myEntries = useMemo(() => {
+    const local = timeEntries.filter((e) => e.memberId === userId);
+    const fromGoogle = googleEventsToTimeEntries(googleEvents, userId, excludedSet);
+    return [...local, ...fromGoogle];
+  }, [timeEntries, userId, googleEvents, excludedSet]);
 
   daysRef.current = days;
   entriesRef.current = myEntries;
@@ -158,6 +170,7 @@ export function WeekCalendar({ weekAnchor, onWeekChange }: Props) {
     setDraft(null);
     setAnchorPos(null);
     setDragging(null);
+    setShowRequiredErrors(false);
   }, []);
 
   const saveDraft = useCallback(
@@ -175,7 +188,7 @@ export function WeekCalendar({ weekAnchor, onWeekChange }: Props) {
           projectName,
           projectId: projectName.toLowerCase(),
           activityType,
-          color: current.color,
+          color: undefined,
           startTime: current.startTime,
           endTime: current.endTime,
           status: 'confirmed',
@@ -186,7 +199,6 @@ export function WeekCalendar({ weekAnchor, onWeekChange }: Props) {
           projectName,
           projectId: projectName.toLowerCase(),
           activityType,
-          color: current.color,
           startTime: current.startTime,
           endTime: current.endTime,
           memberId: current.memberId,
@@ -199,14 +211,59 @@ export function WeekCalendar({ weekAnchor, onWeekChange }: Props) {
     [addManagedProject, addTimeEntry, updateTimeEntry]
   );
 
+  const requestSaveOrWarn = useCallback(() => {
+    const current = draftRef.current;
+    if (!current) return false;
+    if (current.id?.startsWith('google-')) {
+      closeEditor();
+      return true;
+    }
+    if (!isDraftComplete(current)) {
+      setShowRequiredErrors(true);
+      return false;
+    }
+    draftRef.current = null;
+    saveDraft(current);
+    closeEditor();
+    return true;
+  }, [closeEditor, saveDraft]);
+
+  /** Click-away: save when complete, otherwise discard (never trap the user). */
   const dismissEditor = useCallback(() => {
     const current = draftRef.current;
     if (!current) return;
     draftRef.current = null;
-    const complete = Boolean(current.projectName.trim() && current.activityType.trim());
-    if (complete) saveDraft(current);
+
+    if (current.id?.startsWith('google-')) {
+      closeEditor();
+      return;
+    }
+
+    if (isDraftComplete(current)) {
+      saveDraft(current);
+      closeEditor();
+      return;
+    }
+
     closeEditor();
+    // Only nudge if they started filling something in — empty cancel stays quiet.
+    const touched =
+      Boolean(current.title.trim()) ||
+      Boolean(current.projectName.trim()) ||
+      Boolean(current.activityType.trim());
+    if (touched) {
+      toast({
+        title: 'Event discarded',
+        description: 'Choose a project and activity to save time entries.',
+      });
+    }
   }, [closeEditor, saveDraft]);
+
+  /** Escape / Discard: always cancel without saving. */
+  const discardEditor = useCallback(() => {
+    draftRef.current = null;
+    closeEditor();
+  }, [closeEditor]);
 
   const openEditor = (
     next: TimeEntryDraft,
@@ -214,6 +271,7 @@ export function WeekCalendar({ weekAnchor, onWeekChange }: Props) {
     _clientY: number,
     selectionTop?: number
   ) => {
+    setShowRequiredErrors(false);
     setDraft(next);
     const y = selectionTop ?? _clientY;
     setAnchorPos({
@@ -268,6 +326,15 @@ export function WeekCalendar({ weekAnchor, onWeekChange }: Props) {
     dayIndex: number
   ) => {
     e.stopPropagation();
+
+    // Google-synced blocks are view-only — open details, no drag/resize.
+    if (isGoogleTimeEntry(entry)) {
+      if (draftRef.current) dismissEditor();
+      setDragging(null);
+      createDragRef.current = null;
+      openEditor(entryToDraft(entry), e.clientX, e.clientY, e.clientY);
+      return;
+    }
 
     // Already dragging this gesture (pointerdown + mousedown both fire)
     if (interactionRef.current?.entryId === entry.id) return;
@@ -370,13 +437,11 @@ export function WeekCalendar({ weekAnchor, onWeekChange }: Props) {
           startTime: start.toISOString(),
           endTime: end.toISOString(),
         });
-        sound.pop();
         return;
       }
 
       if (draftRef.current && draftRef.current.id !== liveEntry.id) dismissEditor();
       openEditor(entryToDraft(liveEntry), clientX, clientY, clientY);
-      sound.click();
     };
 
     const onMove = (ev: MouseEvent | PointerEvent) => {
@@ -461,21 +526,20 @@ export function WeekCalendar({ weekAnchor, onWeekChange }: Props) {
     const selectionTop = colRect.top + minutesToHeight(startMin);
     setDragging(null);
     openEditor(nextDraft, e.clientX, e.clientY, selectionTop);
-    sound.pop();
   };
 
   const handleDelete = () => {
-    if (draft?.id) {
+    if (draft?.id && !draft.id.startsWith('google-')) {
       deleteTimeEntry(draft.id);
-      sound.pop();
     }
     closeEditor();
   };
 
+  const draftIsGoogle = Boolean(draft?.id && draft.id.startsWith('google-'));
+
   const nowMinutes = minutesFromMidnight(now);
   const showNowLine = days.some((d) => isToday(d));
-  const ghostColor =
-    draft?.color || (draft?.activityType ? getColor(draft.activityType) : '#F97316');
+  const ghostColor = draft?.activityType ? getColor(draft.activityType) : '#F97316';
 
   const previewForEntry = (entryId: string) =>
     entryDrag && entryDrag.entryId === entryId ? entryDrag : null;
@@ -497,7 +561,6 @@ export function WeekCalendar({ weekAnchor, onWeekChange }: Props) {
               size="icon"
               className="size-7 rounded-lg text-muted-foreground"
               onClick={() => {
-                sound.click();
                 onWeekChange(subWeeks(weekAnchor, 1));
               }}
             >
@@ -507,7 +570,6 @@ export function WeekCalendar({ weekAnchor, onWeekChange }: Props) {
               type="button"
               className="h-7 rounded-lg px-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-[#f6f6f6] hover:text-foreground dark:hover:bg-white/[0.06]"
               onClick={() => {
-                sound.click();
                 onWeekChange(new Date());
               }}
             >
@@ -519,7 +581,6 @@ export function WeekCalendar({ weekAnchor, onWeekChange }: Props) {
               size="icon"
               className="size-7 rounded-lg text-muted-foreground"
               onClick={() => {
-                sound.click();
                 onWeekChange(addWeeks(weekAnchor, 1));
               }}
             >
@@ -527,7 +588,9 @@ export function WeekCalendar({ weekAnchor, onWeekChange }: Props) {
             </Button>
           </div>
         </div>
-        <p className="text-xs text-muted-foreground">Drag edges to resize · drag body to move</p>
+        <p className="text-xs text-muted-foreground">
+          Google # events + your entries · drag to create
+        </p>
       </div>
 
       <div className={cn('relative min-h-0 flex-1 overflow-hidden rounded-lg border bg-white dark:bg-elevated', GRID_LINE)}>
@@ -634,9 +697,10 @@ export function WeekCalendar({ weekAnchor, onWeekChange }: Props) {
 
                   {dayEntries.map((entry) => {
                     const selected = draft?.id === entry.id;
-                    const color = entry.color || getColor(entry.activityType);
+                    const color = getColor(entry.activityType);
                     const preview = previewForEntry(entry.id);
                     const placement = overlapLayout.get(entry.id);
+                    const fromGoogle = isGoogleTimeEntry(entry);
                     return (
                       <EntryBlock
                         key={entry.id}
@@ -645,6 +709,7 @@ export function WeekCalendar({ weekAnchor, onWeekChange }: Props) {
                         selected={selected}
                         preview={preview}
                         placement={placement}
+                        readOnly={fromGoogle}
                         interacting={Boolean(entryDrag && entryDrag.entryId === entry.id)}
                         onEdgeMouseDown={(mode, ev) =>
                           beginEntryInteraction(entry, mode, ev, dayIndex)
@@ -698,7 +763,7 @@ export function WeekCalendar({ weekAnchor, onWeekChange }: Props) {
           onOpenAutoFocus={(e) => e.preventDefault()}
           onEscapeKeyDown={(e) => {
             e.preventDefault();
-            closeEditor();
+            discardEditor();
           }}
         >
           <AnimatePresence>
@@ -712,8 +777,17 @@ export function WeekCalendar({ weekAnchor, onWeekChange }: Props) {
                 <TimeEntryEditor
                   draft={draft}
                   isEditing={Boolean(draft.id)}
-                  onChange={(patch) => setDraft((prev) => (prev ? { ...prev, ...patch } : prev))}
-                  onDelete={draft.id ? handleDelete : undefined}
+                  readOnly={draftIsGoogle}
+                  showRequiredErrors={showRequiredErrors}
+                  onChange={(patch) => {
+                    setDraft((prev) => (prev ? { ...prev, ...patch } : prev));
+                    if (patch.projectName !== undefined || patch.activityType !== undefined) {
+                      setShowRequiredErrors(false);
+                    }
+                  }}
+                  onSave={draftIsGoogle ? undefined : () => requestSaveOrWarn()}
+                  onDiscard={draftIsGoogle ? undefined : discardEditor}
+                  onDelete={draft.id && !draftIsGoogle ? handleDelete : undefined}
                 />
               </motion.div>
             )}
@@ -734,6 +808,7 @@ function EntryBlock({
   preview,
   placement,
   interacting,
+  readOnly,
   onEdgeMouseDown,
   onBodyMouseDown,
 }: {
@@ -743,6 +818,7 @@ function EntryBlock({
   preview: EntryInteraction | null;
   placement?: OverlapPlacement;
   interacting?: boolean;
+  readOnly?: boolean;
   onEdgeMouseDown: (
     mode: 'resize-start' | 'resize-end',
     e: { clientX: number; clientY: number; stopPropagation: () => void }
@@ -808,12 +884,16 @@ function EntryBlock({
         boxShadow: isStacked
           ? `inset 2px 0 0 ${color}, 0 1px 2px rgba(0,0,0,0.08), 0 3px 8px rgba(0,0,0,0.12)`
           : `inset 2px 0 0 ${color}`,
-        cursor: interacting ? 'grabbing' : 'grab',
+        cursor: readOnly ? 'pointer' : interacting ? 'grabbing' : 'grab',
       }}
       onPointerDown={(e) => {
         if (e.button !== 0) return;
         // stopPropagation only — do NOT preventDefault (that kills mouse events).
         e.stopPropagation();
+        if (readOnly) {
+          onBodyMouseDown(e);
+          return;
+        }
         const rect = e.currentTarget.getBoundingClientRect();
         const y = e.clientY - rect.top;
         if (y <= edge) {
@@ -830,7 +910,7 @@ function EntryBlock({
         onBodyMouseDown(e);
       }}
       onMouseMove={(e) => {
-        if (interacting) return;
+        if (interacting || readOnly) return;
         const rect = e.currentTarget.getBoundingClientRect();
         const y = e.clientY - rect.top;
         e.currentTarget.style.cursor =
