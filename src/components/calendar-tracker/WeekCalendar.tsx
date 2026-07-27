@@ -107,6 +107,8 @@ export function WeekCalendar({ weekAnchor, onWeekChange }: Props) {
   const [draft, setDraft] = useState<TimeEntryDraft | null>(null);
   const [anchorPos, setAnchorPos] = useState<{ x: number; y: number } | null>(null);
   const [showRequiredErrors, setShowRequiredErrors] = useState(false);
+  /** Ignore outside-dismiss from the same click that opened the editor. */
+  const ignoreDismissUntilRef = useRef(0);
 
   draftRef.current = draft;
   createDragRef.current = dragging;
@@ -271,13 +273,15 @@ export function WeekCalendar({ weekAnchor, onWeekChange }: Props) {
     _clientY: number,
     selectionTop?: number
   ) => {
+    // Prevent the opening pointer/click from immediately closing the popover.
+    ignoreDismissUntilRef.current = performance.now() + 400;
     setShowRequiredErrors(false);
-    setDraft(next);
     const y = selectionTop ?? _clientY;
     setAnchorPos({
       x: Math.min(Math.max(clientX, 160), window.innerWidth - 160),
       y: Math.max(72, y - 6),
     });
+    setDraft(next);
   };
 
   const minutesFromColumnEvent = (e: React.PointerEvent, el: HTMLElement) => {
@@ -327,12 +331,36 @@ export function WeekCalendar({ weekAnchor, onWeekChange }: Props) {
   ) => {
     e.stopPropagation();
 
-    // Google-synced blocks are view-only — open details, no drag/resize.
+    // Google-synced blocks are view-only — open details on click (no drag/resize).
+    // Use the same pointerup path as local events so the opening click doesn't
+    // immediately dismiss the popover.
     if (isGoogleTimeEntry(entry)) {
-      if (draftRef.current) dismissEditor();
+      if (interactionRef.current?.entryId === entry.id) return;
+      entryListenersCleanupRef.current?.();
+      entryListenersCleanupRef.current = null;
+      if (draftRef.current && draftRef.current.id !== entry.id) {
+        dismissEditor();
+      }
       setDragging(null);
       createDragRef.current = null;
-      openEditor(entryToDraft(entry), e.clientX, e.clientY, e.clientY);
+
+      let finished = false;
+      const originX = e.clientX;
+      const originY = e.clientY;
+      const onUp = (ev: MouseEvent | PointerEvent) => {
+        if (finished) return;
+        finished = true;
+        window.removeEventListener('pointerup', onUp);
+        window.removeEventListener('mouseup', onUp);
+        entryListenersCleanupRef.current = null;
+        openEditor(entryToDraft(entry), ev.clientX || originX, ev.clientY || originY, ev.clientY || originY);
+      };
+      window.addEventListener('pointerup', onUp);
+      window.addEventListener('mouseup', onUp);
+      entryListenersCleanupRef.current = () => {
+        window.removeEventListener('pointerup', onUp);
+        window.removeEventListener('mouseup', onUp);
+      };
       return;
     }
 
@@ -743,15 +771,18 @@ export function WeekCalendar({ weekAnchor, onWeekChange }: Props) {
       </div>
 
       <Popover
-        open={Boolean(draft)}
+        open={Boolean(draft && anchorPos)}
         onOpenChange={(open) => {
-          if (!open) dismissEditor();
+          if (!open) {
+            if (performance.now() < ignoreDismissUntilRef.current) return;
+            dismissEditor();
+          }
         }}
       >
         <PopoverAnchor asChild>
           <div
             className="pointer-events-none fixed size-0"
-            style={{ left: anchorPos?.x ?? 0, top: anchorPos?.y ?? 0 }}
+            style={{ left: anchorPos?.x ?? -9999, top: anchorPos?.y ?? -9999 }}
           />
         </PopoverAnchor>
         <PopoverContent
@@ -761,6 +792,21 @@ export function WeekCalendar({ weekAnchor, onWeekChange }: Props) {
           sideOffset={10}
           collisionPadding={16}
           onOpenAutoFocus={(e) => e.preventDefault()}
+          onPointerDownOutside={(e) => {
+            if (performance.now() < ignoreDismissUntilRef.current) {
+              e.preventDefault();
+            }
+          }}
+          onInteractOutside={(e) => {
+            if (performance.now() < ignoreDismissUntilRef.current) {
+              e.preventDefault();
+            }
+          }}
+          onFocusOutside={(e) => {
+            if (performance.now() < ignoreDismissUntilRef.current) {
+              e.preventDefault();
+            }
+          }}
           onEscapeKeyDown={(e) => {
             e.preventDefault();
             discardEditor();

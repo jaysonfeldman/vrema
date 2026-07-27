@@ -47,6 +47,7 @@ export function TeamRosterView({ weekAnchor, onWeekChange }: Props) {
   const [draft, setDraft] = useState<TimeEntryDraft | null>(null);
   const [anchorPos, setAnchorPos] = useState<{ x: number; y: number } | null>(null);
   const [showRequiredErrors, setShowRequiredErrors] = useState(false);
+  const ignoreDismissUntilRef = useRef(0);
   draftRef.current = draft;
 
   const days = useMemo(() => getWeekDays(weekAnchor, 1), [weekAnchor]);
@@ -199,12 +200,13 @@ export function TeamRosterView({ weekAnchor, onWeekChange }: Props) {
   }, [closeEditor]);
 
   const openEditor = (next: TimeEntryDraft, x: number, y: number) => {
+    ignoreDismissUntilRef.current = performance.now() + 400;
     setShowRequiredErrors(false);
-    setDraft(next);
     setAnchorPos({
       x: Math.min(Math.max(x, 160), window.innerWidth - 160),
       y: Math.max(72, y - 6),
     });
+    setDraft(next);
   };
 
   const openNewEntry = (
@@ -455,15 +457,18 @@ export function TeamRosterView({ weekAnchor, onWeekChange }: Props) {
       </div>
 
       <Popover
-        open={Boolean(draft)}
+        open={Boolean(draft && anchorPos)}
         onOpenChange={(open) => {
-          if (!open) dismissEditor();
+          if (!open) {
+            if (performance.now() < ignoreDismissUntilRef.current) return;
+            dismissEditor();
+          }
         }}
       >
         <PopoverAnchor asChild>
           <div
             className="pointer-events-none fixed size-0"
-            style={{ left: anchorPos?.x ?? 0, top: anchorPos?.y ?? 0 }}
+            style={{ left: anchorPos?.x ?? -9999, top: anchorPos?.y ?? -9999 }}
           />
         </PopoverAnchor>
         <PopoverContent
@@ -472,6 +477,22 @@ export function TeamRosterView({ weekAnchor, onWeekChange }: Props) {
           align="center"
           sideOffset={10}
           collisionPadding={16}
+          onOpenAutoFocus={(e) => e.preventDefault()}
+          onPointerDownOutside={(e) => {
+            if (performance.now() < ignoreDismissUntilRef.current) {
+              e.preventDefault();
+            }
+          }}
+          onInteractOutside={(e) => {
+            if (performance.now() < ignoreDismissUntilRef.current) {
+              e.preventDefault();
+            }
+          }}
+          onFocusOutside={(e) => {
+            if (performance.now() < ignoreDismissUntilRef.current) {
+              e.preventDefault();
+            }
+          }}
           onEscapeKeyDown={(e) => {
             e.preventDefault();
             discardEditor();
