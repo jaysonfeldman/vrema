@@ -31,6 +31,8 @@ export default function Categories() {
     managedProjects,
     addManagedProject,
     excludeProject,
+    excludedActivities,
+    addActivityType,
     removeActivityType,
   } = useSharedState();
   const { allProjects } = useProjectStats();
@@ -39,14 +41,22 @@ export default function Categories() {
 
   const [newProject, setNewProject] = useState('');
   const [addingProject, setAddingProject] = useState(false);
+  const [newActivity, setNewActivity] = useState('');
+  const [addingActivity, setAddingActivity] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState<string | null>(null);
   const [activityToDelete, setActivityToDelete] = useState<string | null>(null);
+
+  const excludedActivitySet = useMemo(
+    () => new Set(excludedActivities.map((a) => a.toLowerCase())),
+    [excludedActivities]
+  );
 
   const categories = useMemo(() => {
     const map = new Map<string, { type: string; hours: number }>();
     allProjects.forEach((project) => {
       project.activities.forEach((activity) => {
         const key = activity.type.toLowerCase();
+        if (excludedActivitySet.has(key)) return;
         const entry = map.get(key) ?? { type: activity.type, hours: 0 };
         entry.hours += activity.hours;
         map.set(key, entry);
@@ -54,13 +64,13 @@ export default function Categories() {
     });
 
     activityColors.forEach((ac) => {
-      if (!map.has(ac.type.toLowerCase())) {
-        map.set(ac.type.toLowerCase(), { type: ac.type, hours: 0 });
-      }
+      const key = ac.type.toLowerCase();
+      if (excludedActivitySet.has(key) || map.has(key)) return;
+      map.set(key, { type: ac.type, hours: 0 });
     });
 
     return Array.from(map.values()).sort((a, b) => b.hours - a.hours || a.type.localeCompare(b.type));
-  }, [allProjects, activityColors]);
+  }, [allProjects, activityColors, excludedActivitySet]);
 
   const projects = useMemo(() => {
     const map = new Map<string, { name: string; hours: number }>();
@@ -93,6 +103,18 @@ export default function Categories() {
     addManagedProject(name);
     setNewProject('');
     setAddingProject(false);
+    sound.success();
+  };
+
+  const commitNewActivity = () => {
+    const name = newActivity.trim().replace(/^#/, '');
+    if (!name) {
+      setAddingActivity(false);
+      return;
+    }
+    addActivityType(name);
+    setNewActivity('');
+    setAddingActivity(false);
     sound.success();
   };
 
@@ -218,10 +240,53 @@ export default function Categories() {
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-base font-medium">Activities</h2>
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-base font-medium">Activities</h2>
+          {!addingActivity && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-8 gap-1 rounded-lg text-muted-foreground"
+              onClick={() => {
+                sound.click();
+                setAddingActivity(true);
+              }}
+            >
+              <Plus className="size-3.5" />
+              Add
+            </Button>
+          )}
+        </div>
+
+        {addingActivity && (
+          <div className="flex gap-2">
+            <Input
+              autoFocus
+              value={newActivity}
+              onChange={(e) => setNewActivity(e.target.value)}
+              placeholder="Activity name (e.g. design)"
+              className="h-9 rounded-xl border-transparent bg-[#f6f6f6] shadow-none focus-visible:ring-1 focus-visible:ring-foreground/15 dark:bg-white/[0.06]"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  commitNewActivity();
+                }
+                if (e.key === 'Escape') {
+                  setAddingActivity(false);
+                  setNewActivity('');
+                }
+              }}
+            />
+            <Button type="button" size="sm" className="h-9 rounded-xl" onClick={commitNewActivity}>
+              Add
+            </Button>
+          </div>
+        )}
+
         {categories.length === 0 ? (
           <p className="rounded-xl bg-[#f6f6f6] px-4 py-8 text-center text-sm text-muted-foreground dark:bg-white/[0.04]">
-            Sync calendar events or log time to see activities here.
+            No activities yet. Add one here, or sync calendar events that use #activity.
           </p>
         ) : (
           <ul className="divide-y divide-[#ebebeb] overflow-hidden rounded-xl bg-[#f6f6f6] dark:divide-white/[0.06] dark:bg-white/[0.04]">
@@ -338,7 +403,8 @@ export default function Categories() {
           <AlertDialogHeader>
             <AlertDialogTitle>Remove #{activityToDelete}?</AlertDialogTitle>
             <AlertDialogDescription>
-              This activity will disappear from the calendar picker. Past events keep their label, but you won’t be able to select it for new ones until it’s used again.
+              This activity will be removed from Categories and the calendar picker. Past events keep
+              their labels and hours — add it again anytime to bring it back.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

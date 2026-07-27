@@ -84,6 +84,8 @@ interface SharedState {
   managedProjects: string[];
   /** Project names (lowercase) excluded from stats and pickers after deletion. */
   excludedProjects: string[];
+  /** Activity types (lowercase) removed from Categories / calendar picker. */
+  excludedActivities: string[];
   setEvents: (events: GoogleCalendarEvent[]) => void;
   setFilteredEvents: (events: GoogleCalendarEvent[]) => void;
   setCustomProjects: (projects: Project[]) => void;
@@ -97,6 +99,7 @@ interface SharedState {
   applyColorTemplate: (templateId: string, types?: string[]) => void;
   addManagedProject: (name: string) => void;
   excludeProject: (name: string) => void;
+  addActivityType: (type: string) => void;
   removeActivityType: (type: string) => void;
 }
 
@@ -132,6 +135,7 @@ export const useSharedState = create<SharedState>()(
       activityColors: defaultActivityColors,
       managedProjects: [],
       excludedProjects: [],
+      excludedActivities: [],
       setEvents: (events) => set({ events }),
       setFilteredEvents: (filteredEvents) => set({ filteredEvents }),
       setCustomProjects: (customProjects) => set({ customProjects }),
@@ -174,22 +178,25 @@ export const useSharedState = create<SharedState>()(
           const exists = state.activityColors.some((ac) => ac.type.toLowerCase() === key);
           if (exists) {
             return {
+              excludedActivities: state.excludedActivities.filter((a) => a !== key),
               activityColors: state.activityColors.map((ac) =>
                 ac.type.toLowerCase() === key ? { ...ac, color } : ac
               ),
             };
           }
           return {
+            excludedActivities: state.excludedActivities.filter((a) => a !== key),
             activityColors: [...state.activityColors, { type: key, color }],
           };
         }),
       ensureActivityColors: (types) => {
         const state = get();
+        const excluded = new Set(state.excludedActivities.map((a) => a.toLowerCase()));
         const existing = new Set(state.activityColors.map((ac) => ac.type.toLowerCase()));
         const additions: ActivityColor[] = [];
         types.forEach((type) => {
           const key = type.trim().toLowerCase();
-          if (!key || existing.has(key)) return;
+          if (!key || existing.has(key) || excluded.has(key)) return;
           existing.add(key);
           additions.push({
             type: key,
@@ -258,7 +265,28 @@ export const useSharedState = create<SharedState>()(
         if (!key) return;
         set((state) => ({
           activityColors: state.activityColors.filter((ac) => ac.type.toLowerCase() !== key),
+          excludedActivities: state.excludedActivities.includes(key)
+            ? state.excludedActivities
+            : [...state.excludedActivities, key],
         }));
+      },
+      addActivityType: (type) => {
+        const trimmed = type.trim();
+        if (!trimmed) return;
+        const key = trimmed.toLowerCase();
+        set((state) => {
+          const withoutExcluded = state.excludedActivities.filter((a) => a !== key);
+          if (state.activityColors.some((ac) => ac.type.toLowerCase() === key)) {
+            return { excludedActivities: withoutExcluded };
+          }
+          return {
+            excludedActivities: withoutExcluded,
+            activityColors: [
+              ...state.activityColors,
+              { type: key, color: nextPaletteColor(state.activityColors.length) },
+            ],
+          };
+        });
       },
     }),
     {
@@ -267,6 +295,7 @@ export const useSharedState = create<SharedState>()(
         activityColors: state.activityColors,
         managedProjects: state.managedProjects,
         excludedProjects: state.excludedProjects,
+        excludedActivities: state.excludedActivities,
         projectSettings: state.projectSettings,
         customProjects: settingsToProjects(state.projectSettings),
       }),
