@@ -13,11 +13,12 @@ import {
   SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { CalendarDays, Users } from 'lucide-react';
 import { HomeIcon } from '@/components/icons/home';
 import { LayoutGridIcon } from '@/components/icons/layout-grid';
 import { BookTextIcon } from '@/components/icons/book-text';
 import { MessageSquareIcon } from '@/components/icons/message-square';
+import { CalendarDaysIcon } from '@/components/icons/calendar-days';
+import { UsersIcon } from '@/components/icons/users';
 import { useGoogleAuth } from '@/providers/GoogleAuthProvider';
 import { sound } from '@/lib/sounds';
 import { useAppPath } from '@/lib/app-paths';
@@ -42,9 +43,9 @@ const navItems: {
   group: 'general' | 'other';
 }[] = [
   { title: 'Dashboard', url: '/app', icon: HomeIcon, end: true, group: 'general' },
-  { title: 'Calendar', url: '/calendar', icon: CalendarDays, group: 'general' },
+  { title: 'Calendar', url: '/calendar', icon: CalendarDaysIcon, group: 'general' },
   { title: 'Categories', url: '/categories', icon: LayoutGridIcon, group: 'general' },
-  { title: 'Team members', url: '/team', icon: Users, group: 'general' },
+  { title: 'Team members', url: '/team', icon: UsersIcon, group: 'general' },
   { title: 'Guide', url: '/guide', icon: BookTextIcon, group: 'other' },
   { title: 'Feedback', url: '/feedback', icon: MessageSquareIcon, group: 'other' },
 ];
