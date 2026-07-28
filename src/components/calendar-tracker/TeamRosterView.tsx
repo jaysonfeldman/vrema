@@ -323,7 +323,7 @@ export function TeamRosterView({ weekAnchor, onWeekChange }: Props) {
                   <span
                     className={cn(
                       'inline-flex items-center justify-center rounded-md px-2 py-0.5 text-xs font-medium tabular-nums',
-                      isToday(day) ? 'bg-foreground text-background' : 'text-foreground'
+                      isToday(day) ? 'bg-blue-500 text-white' : 'text-foreground'
                     )}
                   >
                     {format(day, 'd')}
@@ -400,8 +400,8 @@ export function TeamRosterView({ weekAnchor, onWeekChange }: Props) {
                                 backgroundColor: `${ghostColor}18`,
                               }}
                             >
-                              {format(new Date(draft.startTime), 'H:mm')} –{' '}
-                              {format(new Date(draft.endTime), 'H:mm')}
+                              {format(new Date(draft.startTime), 'HH:mm')}–
+                              {format(new Date(draft.endTime), 'HH:mm')}
                             </div>
                           )}
                         </div>
@@ -473,23 +473,35 @@ export function TeamRosterView({ weekAnchor, onWeekChange }: Props) {
         </PopoverAnchor>
         <PopoverContent
           className="w-auto overflow-hidden rounded-xl border border-[#ebebeb] bg-white p-3.5 shadow-elevated dark:border-white/10 dark:bg-elevated"
-          side="top"
+          side="bottom"
           align="center"
-          sideOffset={10}
+          sideOffset={8}
           collisionPadding={16}
           onOpenAutoFocus={(e) => e.preventDefault()}
           onPointerDownOutside={(e) => {
             if (performance.now() < ignoreDismissUntilRef.current) {
+              e.preventDefault();
+              return;
+            }
+            if ((e.target as HTMLElement | null)?.closest?.('[data-entry-picker]')) {
               e.preventDefault();
             }
           }}
           onInteractOutside={(e) => {
             if (performance.now() < ignoreDismissUntilRef.current) {
               e.preventDefault();
+              return;
+            }
+            if ((e.target as HTMLElement | null)?.closest?.('[data-entry-picker]')) {
+              e.preventDefault();
             }
           }}
           onFocusOutside={(e) => {
             if (performance.now() < ignoreDismissUntilRef.current) {
+              e.preventDefault();
+              return;
+            }
+            if ((e.target as HTMLElement | null)?.closest?.('[data-entry-picker]')) {
               e.preventDefault();
             }
           }}
@@ -569,8 +581,11 @@ function RosterBlock({
         boxShadow: isDraft ? undefined : `inset 2px 0 0 ${color}`,
       }}
     >
-      <span className="block truncate tabular-nums text-foreground">
-        {format(start, 'H:mm')} – {format(end, 'H:mm')}
+      <span className="block truncate text-foreground">
+        {entry.title || 'Untitled'}
+      </span>
+      <span className="block truncate tabular-nums text-foreground/60">
+        {format(start, 'HH:mm')}–{format(end, 'HH:mm')}
       </span>
     </button>
   );

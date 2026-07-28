@@ -269,19 +269,25 @@ export function WeekCalendar({ weekAnchor, onWeekChange }: Props) {
 
   const openEditor = (
     next: TimeEntryDraft,
-    clientX: number,
-    _clientY: number,
-    selectionTop?: number
+    anchor: { x: number; y: number }
   ) => {
     // Prevent the opening pointer/click from immediately closing the popover.
     ignoreDismissUntilRef.current = performance.now() + 400;
     setShowRequiredErrors(false);
-    const y = selectionTop ?? _clientY;
     setAnchorPos({
-      x: Math.min(Math.max(clientX, 160), window.innerWidth - 160),
-      y: Math.max(72, y - 6),
+      x: Math.min(Math.max(anchor.x, 160), window.innerWidth - 160),
+      y: Math.min(Math.max(anchor.y, 48), window.innerHeight - 48),
     });
     setDraft(next);
+  };
+
+  const anchorFromEntry = (entryId: string, fallbackX: number, fallbackY: number) => {
+    const el = document.querySelector(`[data-cal-event="${CSS.escape(entryId)}"]`);
+    if (el instanceof HTMLElement) {
+      const rect = el.getBoundingClientRect();
+      return { x: rect.left + rect.width / 2, y: rect.top };
+    }
+    return { x: fallbackX, y: fallbackY };
   };
 
   const minutesFromColumnEvent = (e: React.PointerEvent, el: HTMLElement) => {
@@ -353,7 +359,10 @@ export function WeekCalendar({ weekAnchor, onWeekChange }: Props) {
         window.removeEventListener('pointerup', onUp);
         window.removeEventListener('mouseup', onUp);
         entryListenersCleanupRef.current = null;
-        openEditor(entryToDraft(entry), ev.clientX || originX, ev.clientY || originY, ev.clientY || originY);
+        openEditor(
+          entryToDraft(entry),
+          anchorFromEntry(entry.id, ev.clientX || originX, ev.clientY || originY)
+        );
       };
       window.addEventListener('pointerup', onUp);
       window.addEventListener('mouseup', onUp);
@@ -469,7 +478,10 @@ export function WeekCalendar({ weekAnchor, onWeekChange }: Props) {
       }
 
       if (draftRef.current && draftRef.current.id !== liveEntry.id) dismissEditor();
-      openEditor(entryToDraft(liveEntry), clientX, clientY, clientY);
+      openEditor(
+        entryToDraft(liveEntry),
+        anchorFromEntry(liveEntry.id, clientX, clientY)
+      );
     };
 
     const onMove = (ev: MouseEvent | PointerEvent) => {
@@ -553,7 +565,10 @@ export function WeekCalendar({ weekAnchor, onWeekChange }: Props) {
     const colRect = e.currentTarget.getBoundingClientRect();
     const selectionTop = colRect.top + minutesToHeight(startMin);
     setDragging(null);
-    openEditor(nextDraft, e.clientX, e.clientY, selectionTop);
+    openEditor(nextDraft, {
+      x: colRect.left + colRect.width / 2,
+      y: selectionTop,
+    });
   };
 
   const handleDelete = () => {
@@ -567,7 +582,7 @@ export function WeekCalendar({ weekAnchor, onWeekChange }: Props) {
 
   const nowMinutes = minutesFromMidnight(now);
   const showNowLine = days.some((d) => isToday(d));
-  const ghostColor = draft?.activityType ? getColor(draft.activityType) : '#F97316';
+  const ghostColor = draft?.activityType ? getColor(draft.activityType) : '#3B82F6';
 
   const previewForEntry = (entryId: string) =>
     entryDrag && entryDrag.entryId === entryId ? entryDrag : null;
@@ -635,7 +650,7 @@ export function WeekCalendar({ weekAnchor, onWeekChange }: Props) {
                   <span
                     className={cn(
                       'inline-flex items-center justify-center rounded-md px-2 py-0.5 text-xs font-medium tabular-nums',
-                      today ? 'bg-foreground text-background' : 'text-foreground'
+                      today ? 'bg-blue-500 text-white' : 'text-foreground'
                     )}
                   >
                     {format(day, 'd')}
@@ -661,12 +676,12 @@ export function WeekCalendar({ weekAnchor, onWeekChange }: Props) {
                   className="absolute right-2 -translate-y-1/2 text-[10px] tabular-nums text-muted-foreground/70"
                   style={{ top: (hour - DAY_START_HOUR) * HOUR_HEIGHT }}
                 >
-                  {hour === 0 ? '' : format(dateFromDayAndMinutes(new Date(), hour * 60), 'ha')}
+                  {hour === 0 ? '' : format(dateFromDayAndMinutes(new Date(), hour * 60), 'HH:mm')}
                 </div>
               ))}
               {showNowLine && (
                 <div
-                  className="absolute right-1 z-30 rounded-full bg-orange-500 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-white"
+                  className="absolute right-1 z-30 rounded-full bg-blue-500 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-white"
                   style={{ top: nowMinutes * (HOUR_HEIGHT / 60) - 9 }}
                 >
                   {format(now, 'HH:mm')}
@@ -716,10 +731,10 @@ export function WeekCalendar({ weekAnchor, onWeekChange }: Props) {
                 >
                   {showNowLine && isToday(day) && (
                     <div
-                      className="pointer-events-none absolute inset-x-0 z-20 border-t-2 border-orange-500"
+                      className="pointer-events-none absolute inset-x-0 z-20 border-t-2 border-blue-500"
                       style={{ top: nowMinutes * (HOUR_HEIGHT / 60) }}
                     >
-                      <span className="absolute -left-1 top-1/2 size-2 -translate-y-1/2 rounded-full bg-orange-500" />
+                      <span className="absolute -left-1 top-1/2 size-2 -translate-y-1/2 rounded-full bg-blue-500" />
                     </div>
                   )}
 
@@ -761,6 +776,20 @@ export function WeekCalendar({ weekAnchor, onWeekChange }: Props) {
                       <div className="truncate text-[11px] font-medium leading-tight">
                         {draft?.title || 'New event'}
                       </div>
+                      {ghost.endMinutes - ghost.startMinutes >= 30 && (
+                        <div className="truncate text-[10px] font-normal leading-tight tabular-nums opacity-80">
+                          {formatCompactTime(
+                            dateFromDayAndMinutes(new Date(2000, 0, 1), ghost.startMinutes)
+                          )}
+                          –
+                          {formatCompactTime(
+                            dateFromDayAndMinutes(
+                              new Date(2000, 0, 1),
+                              ghost.endMinutes >= 24 * 60 ? 24 * 60 - SNAP_MINUTES : ghost.endMinutes
+                            )
+                          )}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -787,23 +816,35 @@ export function WeekCalendar({ weekAnchor, onWeekChange }: Props) {
         </PopoverAnchor>
         <PopoverContent
           className="w-auto overflow-hidden rounded-xl border border-[#ebebeb] bg-white p-3.5 shadow-elevated dark:border-white/10 dark:bg-elevated"
-          side="top"
+          side="bottom"
           align="center"
-          sideOffset={10}
+          sideOffset={8}
           collisionPadding={16}
           onOpenAutoFocus={(e) => e.preventDefault()}
           onPointerDownOutside={(e) => {
             if (performance.now() < ignoreDismissUntilRef.current) {
+              e.preventDefault();
+              return;
+            }
+            if ((e.target as HTMLElement | null)?.closest?.('[data-entry-picker]')) {
               e.preventDefault();
             }
           }}
           onInteractOutside={(e) => {
             if (performance.now() < ignoreDismissUntilRef.current) {
               e.preventDefault();
+              return;
+            }
+            if ((e.target as HTMLElement | null)?.closest?.('[data-entry-picker]')) {
+              e.preventDefault();
             }
           }}
           onFocusOutside={(e) => {
             if (performance.now() < ignoreDismissUntilRef.current) {
+              e.preventDefault();
+              return;
+            }
+            if ((e.target as HTMLElement | null)?.closest?.('[data-entry-picker]')) {
               e.preventDefault();
             }
           }}
@@ -906,7 +947,6 @@ function EntryBlock({
   );
 
   const showTime = height > 28 && widthPct > 28;
-  const showActivity = height > 48 && widthPct > 40 && entry.activityType;
   const z = interacting ? 40 : selected ? 28 : 6 + column;
 
   return (
@@ -974,13 +1014,7 @@ function EntryBlock({
         </div>
         {showTime && (
           <div className="truncate text-[10px] leading-tight tabular-nums text-foreground/60">
-            {startLabel} – {endLabel}
-          </div>
-        )}
-        {showActivity && (
-          <div className="mt-0.5 truncate text-[10px] capitalize leading-tight text-foreground/50">
-            <span className="mr-1">•</span>
-            {entry.activityType}
+            {startLabel}–{endLabel}
           </div>
         )}
       </div>

@@ -60,11 +60,30 @@ export function entryDurationHours(entry: Pick<TimeEntry, 'startTime' | 'endTime
 }
 
 export function formatTimeRange(start: Date, end: Date): string {
-  return `${format(start, 'h:mm a')} → ${format(end, 'h:mm a')}`;
+  return `${format(start, 'HH:mm')} → ${format(end, 'HH:mm')}`;
 }
 
 export function formatCompactTime(date: Date): string {
-  return format(date, 'h:mm a');
+  return format(date, 'HH:mm');
+}
+
+/** Compact duration like "2h", "45m", or "1h 30m". */
+export function formatCompactDuration(start: Date, end: Date): string {
+  const minutes = Math.max(0, differenceInMinutes(end, start));
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  if (hours === 0) return `${mins}m`;
+  if (mins === 0) return `${hours}h`;
+  return `${hours}h ${mins}m`;
+}
+
+export function formatCompactDurationFromMinutes(totalMinutes: number): string {
+  const minutes = Math.max(0, Math.round(totalMinutes));
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  if (hours === 0) return `${mins}m`;
+  if (mins === 0) return `${hours}h`;
+  return `${hours}h ${mins}m`;
 }
 
 export function minutesFromMidnight(date: Date): number {

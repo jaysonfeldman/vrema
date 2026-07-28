@@ -1,13 +1,23 @@
-import { useEffect, useMemo, useState } from 'react';
-import { format } from 'date-fns';
-import { Plus, Trash2 } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { addMinutes, differenceInMinutes, format } from 'date-fns';
+import { Clock, Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Calendar } from '@/components/ui/calendar';
 import { Input } from '@/components/ui/input';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { useSharedState } from '@/hooks/useSharedState';
 import { useProjectStats } from '@/hooks/useProjectStats';
 import { useActivityColor } from '@/components/ActivityBar';
 import { cn } from '@/lib/utils';
-import { formatCompactTime } from '@/lib/timeEntryUtils';
+import {
+  SNAP_MINUTES,
+  dateFromDayAndMinutes,
+  formatCompactDuration,
+  formatCompactDurationFromMinutes,
+  formatCompactTime,
+  minutesFromMidnight,
+} from '@/lib/timeEntryUtils';
 import type { TimeEntry } from '@/lib/types';
 
 export type TimeEntryDraft = {
@@ -34,8 +44,180 @@ type Props = {
   showRequiredErrors?: boolean;
 };
 
+const TIME_SLOTS = Array.from({ length: (24 * 60) / SNAP_MINUTES }, (_, i) => i * SNAP_MINUTES);
+
+const PICKER_ATTR = { 'data-entry-picker': '' } as const;
+
 export function isDraftComplete(draft: Pick<TimeEntryDraft, 'projectName' | 'activityType'>) {
   return Boolean(draft.projectName.trim() && draft.activityType.trim());
+}
+
+function applyMinutesOnDay(day: Date, minutes: number) {
+  return dateFromDayAndMinutes(day, Math.max(0, Math.min(24 * 60 - SNAP_MINUTES, minutes)));
+}
+
+type PickerField = 'start' | 'end' | 'date';
+
+function TimeSlotPicker({
+  field,
+  valueMinutes,
+  startMinutes,
+  open,
+  onOpenChange,
+  onSelect,
+  disabled,
+  children,
+}: {
+  field: 'start' | 'end';
+  valueMinutes: number;
+  startMinutes: number;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSelect: (minutes: number) => void;
+  disabled?: boolean;
+  children: ReactNode;
+}) {
+  const selectedRef = useRef<HTMLButtonElement | null>(null);
+  const showDuration = field === 'end';
+
+  useEffect(() => {
+    if (!open) return;
+    const id = requestAnimationFrame(() => {
+      selectedRef.current?.scrollIntoView({ block: 'center' });
+    });
+    return () => cancelAnimationFrame(id);
+  }, [open, valueMinutes]);
+
+  return (
+    <Popover open={open} onOpenChange={onOpenChange} modal={false}>
+      <PopoverTrigger asChild disabled={disabled}>
+        {children}
+      </PopoverTrigger>
+      <PopoverContent
+        {...PICKER_ATTR}
+        side="left"
+        align="start"
+        sideOffset={10}
+        collisionPadding={12}
+        className={cn(
+          'w-auto overflow-hidden rounded-xl border border-[#2a2a2a] bg-[#1c1c1c] p-1.5 text-white shadow-elevated',
+          showDuration ? 'min-w-[8.75rem]' : 'min-w-[6.5rem]'
+        )}
+        onOpenAutoFocus={(e) => e.preventDefault()}
+        onCloseAutoFocus={(e) => e.preventDefault()}
+      >
+        <ScrollArea className={cn('h-[min(18rem,50vh)]', showDuration ? 'w-[8.25rem]' : 'w-[6rem]')}>
+          <div className="flex flex-col gap-0.5 pr-2">
+            {TIME_SLOTS.map((minutes) => {
+              const active = minutes === valueMinutes;
+              const durationMins = minutes - startMinutes;
+              const durationLabel =
+                showDuration && durationMins > 0
+                  ? formatCompactDurationFromMinutes(durationMins)
+                  : null;
+
+              return (
+                <button
+                  key={minutes}
+                  ref={active ? selectedRef : undefined}
+                  type="button"
+                  {...PICKER_ATTR}
+                  onClick={() => {
+                    onSelect(minutes);
+                    onOpenChange(false);
+                  }}
+                  className={cn(
+                    'flex w-full items-center justify-between gap-2 rounded-md px-2 py-1.5 text-left text-[13px] tabular-nums transition-colors',
+                    active
+                      ? 'bg-white/15 font-medium text-white'
+                      : 'text-white/80 hover:bg-white/10 hover:text-white'
+                  )}
+                >
+                  <span>{formatCompactTime(dateFromDayAndMinutes(new Date(2000, 0, 1), minutes))}</span>
+                  {durationLabel && (
+                    <span className="text-[11px] text-white/45">{durationLabel}</span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </ScrollArea>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+function DateDayPicker({
+  value,
+  open,
+  onOpenChange,
+  onSelect,
+  disabled,
+  children,
+}: {
+  value: Date;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSelect: (day: Date) => void;
+  disabled?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <Popover open={open} onOpenChange={onOpenChange} modal={false}>
+      <PopoverTrigger asChild disabled={disabled}>
+        {children}
+      </PopoverTrigger>
+      <PopoverContent
+        {...PICKER_ATTR}
+        side="left"
+        align="start"
+        sideOffset={10}
+        collisionPadding={12}
+        className="w-auto overflow-hidden rounded-xl border border-[#2a2a2a] bg-[#1c1c1c] p-2 text-white shadow-elevated"
+        onOpenAutoFocus={(e) => e.preventDefault()}
+        onCloseAutoFocus={(e) => e.preventDefault()}
+      >
+        <div {...PICKER_ATTR}>
+          <Calendar
+            mode="single"
+            selected={value}
+            defaultMonth={value}
+            onSelect={(day) => {
+              if (!day) return;
+              onSelect(day);
+              onOpenChange(false);
+            }}
+            weekStartsOn={1}
+            showOutsideDays
+            className="bg-transparent p-1 text-white"
+            classNames={{
+              months: 'flex flex-col space-y-2',
+              month: 'space-y-2',
+              caption: 'flex justify-between items-center relative px-1 pt-0.5',
+              caption_label: 'text-[13px] font-medium text-white',
+              nav: 'flex items-center gap-1',
+              nav_button:
+                'inline-flex size-7 items-center justify-center rounded-md border-0 bg-transparent p-0 text-white/60 opacity-100 hover:bg-white/10 hover:text-white',
+              nav_button_previous: 'static',
+              nav_button_next: 'static',
+              table: 'w-full border-collapse',
+              head_row: 'flex',
+              head_cell: 'w-8 rounded-md text-[10px] font-medium text-white/40',
+              row: 'mt-1 flex w-full',
+              cell: 'relative h-8 w-8 p-0 text-center text-sm focus-within:relative focus-within:z-20',
+              day: 'inline-flex size-8 items-center justify-center rounded-md p-0 text-[12px] font-normal text-white/85 hover:bg-white/10 hover:text-white aria-selected:opacity-100',
+              day_selected:
+                'bg-white/15 text-white hover:bg-white/20 hover:text-white focus:bg-white/15 focus:text-white',
+              day_today: 'bg-blue-500 text-white hover:bg-blue-500 hover:text-white',
+              day_outside: 'text-white/30 opacity-100 aria-selected:bg-white/10 aria-selected:text-white/70',
+              day_disabled: 'text-white/25 opacity-50',
+              day_hidden: 'invisible',
+            }}
+          />
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
 }
 
 export function TimeEntryEditor({
@@ -53,6 +235,7 @@ export function TimeEntryEditor({
   const getColor = useActivityColor();
   const [addingProject, setAddingProject] = useState(false);
   const [newProject, setNewProject] = useState('');
+  const [openField, setOpenField] = useState<PickerField | null>(null);
 
   const projectNames = useMemo(() => {
     const names = new Map<string, string>();
@@ -79,6 +262,8 @@ export function TimeEntryEditor({
 
   const start = new Date(draft.startTime);
   const end = new Date(draft.endTime);
+  const startMinutes = minutesFromMidnight(start);
+  const endMinutes = minutesFromMidnight(end);
   const eventColor = draft.activityType ? getColor(draft.activityType) : '#94A3B8';
   const missingProject = !draft.projectName.trim();
   const missingActivity = !draft.activityType.trim();
@@ -98,29 +283,51 @@ export function TimeEntryEditor({
     setAddingProject(false);
   };
 
+  const setStartMinutes = (minutes: number) => {
+    const duration = Math.max(SNAP_MINUTES, differenceInMinutes(end, start));
+    const nextStart = applyMinutesOnDay(start, minutes);
+    let nextEnd = addMinutes(nextStart, duration);
+    if (minutesFromMidnight(nextEnd) <= minutesFromMidnight(nextStart) || nextEnd.getDate() !== nextStart.getDate()) {
+      nextEnd = applyMinutesOnDay(nextStart, Math.min(24 * 60 - SNAP_MINUTES, minutes + SNAP_MINUTES));
+      if (minutesFromMidnight(nextEnd) <= minutesFromMidnight(nextStart)) {
+        nextEnd = addMinutes(nextStart, SNAP_MINUTES);
+      }
+    }
+    onChange({ startTime: nextStart.toISOString(), endTime: nextEnd.toISOString() });
+  };
+
+  const setEndMinutes = (minutes: number) => {
+    const clamped = Math.max(startMinutes + SNAP_MINUTES, minutes);
+    const nextEnd = applyMinutesOnDay(start, Math.min(24 * 60, clamped));
+    if (minutesFromMidnight(nextEnd) <= startMinutes) {
+      onChange({ endTime: addMinutes(start, SNAP_MINUTES).toISOString() });
+      return;
+    }
+    onChange({ endTime: nextEnd.toISOString() });
+  };
+
+  const setDay = (day: Date) => {
+    const duration = Math.max(SNAP_MINUTES, differenceInMinutes(end, start));
+    const nextStart = applyMinutesOnDay(day, startMinutes);
+    const nextEnd = addMinutes(nextStart, duration);
+    onChange({ startTime: nextStart.toISOString(), endTime: nextEnd.toISOString() });
+  };
+
   return (
     <div
       className={cn(
-        'w-[min(100vw-2rem,19.5rem)] space-y-4',
+        'w-[min(100vw-2rem,20.5rem)] space-y-4',
         showRequiredErrors && !canSave && 'animate-shake'
       )}
     >
-      <div className="space-y-1.5">
-        <p className="text-[11px] tabular-nums text-muted-foreground">
-          {formatCompactTime(start)} – {formatCompactTime(end)}
-          <span className="mx-1 text-foreground/15">·</span>
-          {format(start, 'EEE d MMM')}
-        </p>
-        {readOnly && (
-          <p className="text-[11px] text-muted-foreground">From Google Calendar · sync to update</p>
-        )}
+      <div className="space-y-2">
         <div className="flex items-center gap-2">
           <input
             autoFocus={!readOnly}
             readOnly={readOnly}
             value={draft.title}
             onChange={(e) => onChange({ title: e.target.value })}
-            placeholder="Event title (optional)"
+            placeholder="Title"
             className={cn(
               'h-9 min-w-0 w-full rounded-lg border-0 bg-[#f6f6f6] px-2.5 text-sm font-normal text-foreground/80 outline-none placeholder:text-muted-foreground/60 dark:bg-white/[0.06]',
               readOnly ? 'cursor-default' : 'focus:bg-[#f0f0f0] dark:focus:bg-white/[0.09]'
@@ -136,6 +343,87 @@ export function TimeEntryEditor({
             }}
           />
         </div>
+
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-1.5 text-[13px] tabular-nums text-foreground">
+            <Clock className="size-3.5 shrink-0 text-muted-foreground/70" />
+            <TimeSlotPicker
+              field="start"
+              valueMinutes={startMinutes}
+              startMinutes={startMinutes}
+              open={!readOnly && openField === 'start'}
+              onOpenChange={(open) => setOpenField(open ? 'start' : null)}
+              onSelect={setStartMinutes}
+              disabled={readOnly}
+            >
+              <button
+                type="button"
+                disabled={readOnly}
+                className={cn(
+                  'rounded-md px-1.5 py-0.5 font-medium transition-colors',
+                  readOnly
+                    ? 'cursor-default'
+                    : 'hover:bg-[#f0f0f0] dark:hover:bg-white/[0.08]',
+                  openField === 'start' && 'bg-blue-500/15 text-blue-700 dark:text-blue-300'
+                )}
+              >
+                {formatCompactTime(start)}
+              </button>
+            </TimeSlotPicker>
+            <span className="text-muted-foreground/40">→</span>
+            <TimeSlotPicker
+              field="end"
+              valueMinutes={endMinutes}
+              startMinutes={startMinutes}
+              open={!readOnly && openField === 'end'}
+              onOpenChange={(open) => setOpenField(open ? 'end' : null)}
+              onSelect={setEndMinutes}
+              disabled={readOnly}
+            >
+              <button
+                type="button"
+                disabled={readOnly}
+                className={cn(
+                  'rounded-md px-1.5 py-0.5 font-medium transition-colors',
+                  readOnly
+                    ? 'cursor-default'
+                    : 'hover:bg-[#f0f0f0] dark:hover:bg-white/[0.08]',
+                  openField === 'end' && 'bg-blue-500/15 text-blue-700 dark:text-blue-300'
+                )}
+              >
+                {formatCompactTime(end)}
+              </button>
+            </TimeSlotPicker>
+            <span className="ml-0.5 text-[12px] text-muted-foreground/70">
+              {formatCompactDuration(start, end)}
+            </span>
+          </div>
+          <DateDayPicker
+            value={start}
+            open={!readOnly && openField === 'date'}
+            onOpenChange={(open) => setOpenField(open ? 'date' : null)}
+            onSelect={setDay}
+            disabled={readOnly}
+          >
+            <button
+              type="button"
+              disabled={readOnly}
+              className={cn(
+                'shrink-0 rounded-md px-1.5 py-0.5 text-[12px] text-muted-foreground transition-colors',
+                readOnly
+                  ? 'cursor-default'
+                  : 'hover:bg-[#f0f0f0] hover:text-foreground dark:hover:bg-white/[0.08]',
+                openField === 'date' && 'bg-blue-500/15 text-blue-700 dark:text-blue-300'
+              )}
+            >
+              {format(start, 'EEE MMM d')}
+            </button>
+          </DateDayPicker>
+        </div>
+
+        {readOnly && (
+          <p className="text-[11px] text-muted-foreground">From Google Calendar · sync to update</p>
+        )}
       </div>
 
       <div className="space-y-2">

@@ -1,12 +1,68 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
-import { CalendarDays, Users } from 'lucide-react';
 import { WeekCalendar } from '@/components/calendar-tracker/WeekCalendar';
 import { TeamRosterView } from '@/components/calendar-tracker/TeamRosterView';
+import { CalendarDaysIcon, type CalendarDaysIconHandle } from '@/components/icons/calendar-days';
+import { UsersIcon, type UsersIconHandle } from '@/components/icons/users';
 import { useTeamStore } from '@/hooks/useTeamStore';
 import { useGoogleAuth } from '@/providers/GoogleAuthProvider';
 import { cn } from '@/lib/utils';
 import { sound } from '@/lib/sounds';
+
+type ViewTab = {
+  id: 'personal' | 'team';
+  label: string;
+};
+
+const VIEW_TABS: ViewTab[] = [
+  { id: 'personal', label: 'My week' },
+  { id: 'team', label: 'Team' },
+];
+
+function CalendarViewTab({
+  id,
+  label,
+  active,
+  onSelect,
+}: ViewTab & { active: boolean; onSelect: () => void }) {
+  const calendarIconRef = useRef<CalendarDaysIconHandle>(null);
+  const usersIconRef = useRef<UsersIconHandle>(null);
+
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      onMouseEnter={() => {
+        if (id === 'personal') calendarIconRef.current?.startAnimation();
+        else usersIconRef.current?.startAnimation();
+      }}
+      onMouseLeave={() => {
+        if (id === 'personal') calendarIconRef.current?.stopAnimation();
+        else usersIconRef.current?.stopAnimation();
+      }}
+      className={cn(
+        'relative inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors',
+        active ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
+      )}
+    >
+      {active && (
+        <motion.span
+          layoutId="calendar-view-pill"
+          className="absolute inset-0 rounded-lg bg-white shadow-sm dark:bg-elevated"
+          transition={{ type: 'spring', stiffness: 420, damping: 32 }}
+        />
+      )}
+      <span className="relative z-10 inline-flex items-center gap-1.5">
+        {id === 'personal' ? (
+          <CalendarDaysIcon ref={calendarIconRef} size={14} className="size-3.5 shrink-0" />
+        ) : (
+          <UsersIcon ref={usersIconRef} size={14} className="size-3.5 shrink-0" />
+        )}
+        {label}
+      </span>
+    </button>
+  );
+}
 
 export default function CalendarPage() {
   const { authState, isDemoMode } = useGoogleAuth();
@@ -40,40 +96,18 @@ export default function CalendarPage() {
         </header>
 
         <div className="inline-flex rounded-xl bg-[#f6f6f6] p-1 dark:bg-white/[0.06]">
-          {(
-            [
-              { id: 'personal' as const, label: 'My week', icon: CalendarDays },
-              { id: 'team' as const, label: 'Team', icon: Users },
-            ] as const
-          ).map(({ id, label, icon: Icon }) => {
-            const active = calendarView === id;
-            return (
-              <button
-                key={id}
-                type="button"
-                onClick={() => {
-                  sound.toggle(id === 'team');
-                  setCalendarView(id);
-                }}
-                className={cn(
-                  'relative inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors',
-                  active ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
-                )}
-              >
-                {active && (
-                  <motion.span
-                    layoutId="calendar-view-pill"
-                    className="absolute inset-0 rounded-lg bg-white shadow-sm dark:bg-elevated"
-                    transition={{ type: 'spring', stiffness: 420, damping: 32 }}
-                  />
-                )}
-                <span className="relative z-10 inline-flex items-center gap-1.5">
-                  <Icon className="size-3.5" />
-                  {label}
-                </span>
-              </button>
-            );
-          })}
+          {VIEW_TABS.map(({ id, label }) => (
+            <CalendarViewTab
+              key={id}
+              id={id}
+              label={label}
+              active={calendarView === id}
+              onSelect={() => {
+                sound.toggle(id === 'team');
+                setCalendarView(id);
+              }}
+            />
+          ))}
         </div>
       </div>
 
