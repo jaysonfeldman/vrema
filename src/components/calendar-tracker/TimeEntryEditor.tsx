@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from 'react';
+import { createPortal } from 'react-dom';
 import { addMinutes, differenceInMinutes, format } from 'date-fns';
 import { Clock, Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Input } from '@/components/ui/input';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useSharedState } from '@/hooks/useSharedState';
 import { useProjectStats } from '@/hooks/useProjectStats';
@@ -58,27 +58,88 @@ function applyMinutesOnDay(day: Date, minutes: number) {
 
 type PickerField = 'start' | 'end' | 'date';
 
+function useAnchoredPanel(
+  open: boolean,
+  triggerRef: RefObject<HTMLElement | null>,
+  panelWidth: number,
+  panelHeight: number
+) {
+  const [coords, setCoords] = useState<{ top: number; left: number } | null>(null);
+
+  useLayoutEffect(() => {
+    if (!open || !triggerRef.current) {
+      setCoords(null);
+      return;
+    }
+
+    const place = () => {
+      const rect = triggerRef.current!.getBoundingClientRect();
+      const gap = 8;
+      let left = rect.left - panelWidth - gap;
+      if (left < 8) left = Math.min(rect.right + gap, window.innerWidth - panelWidth - 8);
+      let top = rect.top;
+      if (top + panelHeight > window.innerHeight - 8) {
+        top = Math.max(8, window.innerHeight - panelHeight - 8);
+      }
+      if (top < 8) top = 8;
+      setCoords({ top, left });
+    };
+
+    place();
+    window.addEventListener('resize', place);
+    window.addEventListener('scroll', place, true);
+    return () => {
+      window.removeEventListener('resize', place);
+      window.removeEventListener('scroll', place, true);
+    };
+  }, [open, triggerRef, panelWidth, panelHeight]);
+
+  return coords;
+}
+
 function TimeSlotPicker({
   field,
+  label,
   valueMinutes,
   startMinutes,
   open,
   onOpenChange,
   onSelect,
   disabled,
-  children,
 }: {
   field: 'start' | 'end';
+  label: string;
   valueMinutes: number;
   startMinutes: number;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSelect: (minutes: number) => void;
   disabled?: boolean;
-  children: ReactNode;
 }) {
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const selectedRef = useRef<HTMLButtonElement | null>(null);
   const showDuration = field === 'end';
+  const panelWidth = showDuration ? 140 : 104;
+  const panelHeight = Math.min(288, typeof window !== 'undefined' ? window.innerHeight * 0.5 : 288);
+  const coords = useAnchoredPanel(open, triggerRef, panelWidth, panelHeight);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onOpenChange(false);
+    };
+    const onPointer = (e: MouseEvent | PointerEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target?.closest?.('[data-entry-picker]') || triggerRef.current?.contains(target)) return;
+      onOpenChange(false);
+    };
+    window.addEventListener('keydown', onKey);
+    window.addEventListener('pointerdown', onPointer, true);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      window.removeEventListener('pointerdown', onPointer, true);
+    };
+  }, [open, onOpenChange]);
 
   useEffect(() => {
     if (!open) return;
@@ -89,134 +150,201 @@ function TimeSlotPicker({
   }, [open, valueMinutes]);
 
   return (
-    <Popover open={open} onOpenChange={onOpenChange} modal={false}>
-      <PopoverTrigger asChild disabled={disabled}>
-        {children}
-      </PopoverTrigger>
-      <PopoverContent
-        {...PICKER_ATTR}
-        side="left"
-        align="start"
-        sideOffset={10}
-        collisionPadding={12}
+    <>
+      <button
+        ref={triggerRef}
+        type="button"
+        disabled={disabled}
+        aria-expanded={open}
+        aria-haspopup="listbox"
+        onClick={(e) => {
+          e.stopPropagation();
+          if (disabled) return;
+          onOpenChange(!open);
+        }}
         className={cn(
-          'w-auto overflow-hidden rounded-xl border border-[#2a2a2a] bg-[#1c1c1c] p-1.5 text-white shadow-elevated',
-          showDuration ? 'min-w-[8.75rem]' : 'min-w-[6.5rem]'
+          'rounded-md border border-transparent px-1.5 py-0.5 font-medium tabular-nums transition-colors',
+          disabled
+            ? 'cursor-default'
+            : 'hover:border-[#e5e5e5] hover:bg-[#f6f6f6] dark:hover:border-white/10 dark:hover:bg-white/[0.08]',
+          open && 'border-blue-500/30 bg-blue-500/15 text-blue-700 dark:text-blue-300'
         )}
-        onOpenAutoFocus={(e) => e.preventDefault()}
-        onCloseAutoFocus={(e) => e.preventDefault()}
       >
-        <ScrollArea className={cn('h-[min(18rem,50vh)]', showDuration ? 'w-[8.25rem]' : 'w-[6rem]')}>
-          <div className="flex flex-col gap-0.5 pr-2">
-            {TIME_SLOTS.map((minutes) => {
-              const active = minutes === valueMinutes;
-              const durationMins = minutes - startMinutes;
-              const durationLabel =
-                showDuration && durationMins > 0
-                  ? formatCompactDurationFromMinutes(durationMins)
-                  : null;
+        {label}
+      </button>
+      {open &&
+        coords &&
+        createPortal(
+          <div
+            {...PICKER_ATTR}
+            role="listbox"
+            className={cn(
+              'fixed z-[200] overflow-hidden rounded-xl border border-[#2a2a2a] bg-[#1c1c1c] p-1.5 text-white shadow-elevated',
+              showDuration ? 'w-[8.75rem]' : 'w-[6.5rem]'
+            )}
+            style={{ top: coords.top, left: coords.left }}
+            onPointerDown={(e) => e.stopPropagation()}
+          >
+            <ScrollArea className={cn('h-[min(18rem,50vh)]', showDuration ? 'w-[8.25rem]' : 'w-[6rem]')}>
+              <div className="flex flex-col gap-0.5 pr-2">
+                {TIME_SLOTS.map((minutes) => {
+                  const active = minutes === valueMinutes;
+                  const durationMins = minutes - startMinutes;
+                  const durationLabel =
+                    showDuration && durationMins > 0
+                      ? formatCompactDurationFromMinutes(durationMins)
+                      : null;
 
-              return (
-                <button
-                  key={minutes}
-                  ref={active ? selectedRef : undefined}
-                  type="button"
-                  {...PICKER_ATTR}
-                  onClick={() => {
-                    onSelect(minutes);
-                    onOpenChange(false);
-                  }}
-                  className={cn(
-                    'flex w-full items-center justify-between gap-2 rounded-md px-2 py-1.5 text-left text-[13px] tabular-nums transition-colors',
-                    active
-                      ? 'bg-white/15 font-medium text-white'
-                      : 'text-white/80 hover:bg-white/10 hover:text-white'
-                  )}
-                >
-                  <span>{formatCompactTime(dateFromDayAndMinutes(new Date(2000, 0, 1), minutes))}</span>
-                  {durationLabel && (
-                    <span className="text-[11px] text-white/45">{durationLabel}</span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </ScrollArea>
-      </PopoverContent>
-    </Popover>
+                  return (
+                    <button
+                      key={minutes}
+                      ref={active ? selectedRef : undefined}
+                      type="button"
+                      role="option"
+                      aria-selected={active}
+                      {...PICKER_ATTR}
+                      onClick={() => {
+                        onSelect(minutes);
+                        onOpenChange(false);
+                      }}
+                      className={cn(
+                        'flex w-full items-center justify-between gap-2 rounded-md px-2 py-1.5 text-left text-[13px] tabular-nums transition-colors',
+                        active
+                          ? 'bg-white/15 font-medium text-white'
+                          : 'text-white/80 hover:bg-white/10 hover:text-white'
+                      )}
+                    >
+                      <span>
+                        {formatCompactTime(dateFromDayAndMinutes(new Date(2000, 0, 1), minutes))}
+                      </span>
+                      {durationLabel && (
+                        <span className="text-[11px] text-white/45">{durationLabel}</span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </ScrollArea>
+          </div>,
+          document.body
+        )}
+    </>
   );
 }
 
 function DateDayPicker({
+  label,
   value,
   open,
   onOpenChange,
   onSelect,
   disabled,
-  children,
 }: {
+  label: string;
   value: Date;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSelect: (day: Date) => void;
   disabled?: boolean;
-  children: ReactNode;
 }) {
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const panelWidth = 280;
+  const panelHeight = 320;
+  const coords = useAnchoredPanel(open, triggerRef, panelWidth, panelHeight);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onOpenChange(false);
+    };
+    const onPointer = (e: MouseEvent | PointerEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target?.closest?.('[data-entry-picker]') || triggerRef.current?.contains(target)) return;
+      onOpenChange(false);
+    };
+    window.addEventListener('keydown', onKey);
+    window.addEventListener('pointerdown', onPointer, true);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      window.removeEventListener('pointerdown', onPointer, true);
+    };
+  }, [open, onOpenChange]);
+
   return (
-    <Popover open={open} onOpenChange={onOpenChange} modal={false}>
-      <PopoverTrigger asChild disabled={disabled}>
-        {children}
-      </PopoverTrigger>
-      <PopoverContent
-        {...PICKER_ATTR}
-        side="left"
-        align="start"
-        sideOffset={10}
-        collisionPadding={12}
-        className="w-auto overflow-hidden rounded-xl border border-[#2a2a2a] bg-[#1c1c1c] p-2 text-white shadow-elevated"
-        onOpenAutoFocus={(e) => e.preventDefault()}
-        onCloseAutoFocus={(e) => e.preventDefault()}
+    <>
+      <button
+        ref={triggerRef}
+        type="button"
+        disabled={disabled}
+        aria-expanded={open}
+        aria-haspopup="dialog"
+        onClick={(e) => {
+          e.stopPropagation();
+          if (disabled) return;
+          onOpenChange(!open);
+        }}
+        className={cn(
+          'shrink-0 rounded-md border border-transparent px-1.5 py-0.5 text-[12px] text-muted-foreground transition-colors',
+          disabled
+            ? 'cursor-default'
+            : 'hover:border-[#e5e5e5] hover:bg-[#f6f6f6] hover:text-foreground dark:hover:border-white/10 dark:hover:bg-white/[0.08]',
+          open && 'border-blue-500/30 bg-blue-500/15 text-blue-700 dark:text-blue-300'
+        )}
       >
-        <div {...PICKER_ATTR}>
-          <Calendar
-            mode="single"
-            selected={value}
-            defaultMonth={value}
-            onSelect={(day) => {
-              if (!day) return;
-              onSelect(day);
-              onOpenChange(false);
-            }}
-            weekStartsOn={1}
-            showOutsideDays
-            className="bg-transparent p-1 text-white"
-            classNames={{
-              months: 'flex flex-col space-y-2',
-              month: 'space-y-2',
-              caption: 'flex justify-between items-center relative px-1 pt-0.5',
-              caption_label: 'text-[13px] font-medium text-white',
-              nav: 'flex items-center gap-1',
-              nav_button:
-                'inline-flex size-7 items-center justify-center rounded-md border-0 bg-transparent p-0 text-white/60 opacity-100 hover:bg-white/10 hover:text-white',
-              nav_button_previous: 'static',
-              nav_button_next: 'static',
-              table: 'w-full border-collapse',
-              head_row: 'flex',
-              head_cell: 'w-8 rounded-md text-[10px] font-medium text-white/40',
-              row: 'mt-1 flex w-full',
-              cell: 'relative h-8 w-8 p-0 text-center text-sm focus-within:relative focus-within:z-20',
-              day: 'inline-flex size-8 items-center justify-center rounded-md p-0 text-[12px] font-normal text-white/85 hover:bg-white/10 hover:text-white aria-selected:opacity-100',
-              day_selected:
-                'bg-white/15 text-white hover:bg-white/20 hover:text-white focus:bg-white/15 focus:text-white',
-              day_today: 'bg-blue-500 text-white hover:bg-blue-500 hover:text-white',
-              day_outside: 'text-white/30 opacity-100 aria-selected:bg-white/10 aria-selected:text-white/70',
-              day_disabled: 'text-white/25 opacity-50',
-              day_hidden: 'invisible',
-            }}
-          />
-        </div>
-      </PopoverContent>
-    </Popover>
+        {label}
+      </button>
+      {open &&
+        coords &&
+        createPortal(
+          <div
+            {...PICKER_ATTR}
+            role="dialog"
+            aria-label="Choose date"
+            className="fixed z-[200] w-[17.5rem] overflow-hidden rounded-xl border border-[#2a2a2a] bg-[#1c1c1c] p-2 text-white shadow-elevated"
+            style={{ top: coords.top, left: coords.left }}
+            onPointerDown={(e) => e.stopPropagation()}
+          >
+            <Calendar
+              mode="single"
+              selected={value}
+              defaultMonth={value}
+              onSelect={(day) => {
+                if (!day) return;
+                onSelect(day);
+                onOpenChange(false);
+              }}
+              weekStartsOn={1}
+              showOutsideDays
+              className="bg-transparent p-1 text-white"
+              classNames={{
+                months: 'flex flex-col space-y-2',
+                month: 'space-y-2',
+                caption: 'flex justify-between items-center relative px-1 pt-0.5',
+                caption_label: 'text-[13px] font-medium text-white',
+                nav: 'flex items-center gap-1',
+                nav_button:
+                  'inline-flex size-7 items-center justify-center rounded-md border-0 bg-transparent p-0 text-white/60 opacity-100 hover:bg-white/10 hover:text-white',
+                nav_button_previous: 'static',
+                nav_button_next: 'static',
+                table: 'w-full border-collapse',
+                head_row: 'flex',
+                head_cell: 'w-8 rounded-md text-[10px] font-medium text-white/40',
+                row: 'mt-1 flex w-full',
+                cell: 'relative h-8 w-8 p-0 text-center text-sm focus-within:relative focus-within:z-20',
+                day: 'inline-flex size-8 items-center justify-center rounded-md p-0 text-[12px] font-normal text-white/85 hover:bg-white/10 hover:text-white aria-selected:opacity-100',
+                day_selected:
+                  'bg-white/15 text-white hover:bg-white/20 hover:text-white focus:bg-white/15 focus:text-white',
+                day_today: 'bg-blue-500 text-white hover:bg-blue-500 hover:text-white',
+                day_outside:
+                  'text-white/30 opacity-100 aria-selected:bg-white/10 aria-selected:text-white/70',
+                day_disabled: 'text-white/25 opacity-50',
+                day_hidden: 'invisible',
+              }}
+            />
+          </div>,
+          document.body
+        )}
+    </>
   );
 }
 
@@ -287,7 +415,10 @@ export function TimeEntryEditor({
     const duration = Math.max(SNAP_MINUTES, differenceInMinutes(end, start));
     const nextStart = applyMinutesOnDay(start, minutes);
     let nextEnd = addMinutes(nextStart, duration);
-    if (minutesFromMidnight(nextEnd) <= minutesFromMidnight(nextStart) || nextEnd.getDate() !== nextStart.getDate()) {
+    if (
+      minutesFromMidnight(nextEnd) <= minutesFromMidnight(nextStart) ||
+      nextEnd.getDate() !== nextStart.getDate()
+    ) {
       nextEnd = applyMinutesOnDay(nextStart, Math.min(24 * 60 - SNAP_MINUTES, minutes + SNAP_MINUTES));
       if (minutesFromMidnight(nextEnd) <= minutesFromMidnight(nextStart)) {
         nextEnd = addMinutes(nextStart, SNAP_MINUTES);
@@ -349,76 +480,37 @@ export function TimeEntryEditor({
             <Clock className="size-3.5 shrink-0 text-muted-foreground/70" />
             <TimeSlotPicker
               field="start"
+              label={formatCompactTime(start)}
               valueMinutes={startMinutes}
               startMinutes={startMinutes}
               open={!readOnly && openField === 'start'}
               onOpenChange={(open) => setOpenField(open ? 'start' : null)}
               onSelect={setStartMinutes}
               disabled={readOnly}
-            >
-              <button
-                type="button"
-                disabled={readOnly}
-                className={cn(
-                  'rounded-md px-1.5 py-0.5 font-medium transition-colors',
-                  readOnly
-                    ? 'cursor-default'
-                    : 'hover:bg-[#f0f0f0] dark:hover:bg-white/[0.08]',
-                  openField === 'start' && 'bg-blue-500/15 text-blue-700 dark:text-blue-300'
-                )}
-              >
-                {formatCompactTime(start)}
-              </button>
-            </TimeSlotPicker>
+            />
             <span className="text-muted-foreground/40">→</span>
             <TimeSlotPicker
               field="end"
+              label={formatCompactTime(end)}
               valueMinutes={endMinutes}
               startMinutes={startMinutes}
               open={!readOnly && openField === 'end'}
               onOpenChange={(open) => setOpenField(open ? 'end' : null)}
               onSelect={setEndMinutes}
               disabled={readOnly}
-            >
-              <button
-                type="button"
-                disabled={readOnly}
-                className={cn(
-                  'rounded-md px-1.5 py-0.5 font-medium transition-colors',
-                  readOnly
-                    ? 'cursor-default'
-                    : 'hover:bg-[#f0f0f0] dark:hover:bg-white/[0.08]',
-                  openField === 'end' && 'bg-blue-500/15 text-blue-700 dark:text-blue-300'
-                )}
-              >
-                {formatCompactTime(end)}
-              </button>
-            </TimeSlotPicker>
+            />
             <span className="ml-0.5 text-[12px] text-muted-foreground/70">
               {formatCompactDuration(start, end)}
             </span>
           </div>
           <DateDayPicker
+            label={format(start, 'EEE MMM d')}
             value={start}
             open={!readOnly && openField === 'date'}
             onOpenChange={(open) => setOpenField(open ? 'date' : null)}
             onSelect={setDay}
             disabled={readOnly}
-          >
-            <button
-              type="button"
-              disabled={readOnly}
-              className={cn(
-                'shrink-0 rounded-md px-1.5 py-0.5 text-[12px] text-muted-foreground transition-colors',
-                readOnly
-                  ? 'cursor-default'
-                  : 'hover:bg-[#f0f0f0] hover:text-foreground dark:hover:bg-white/[0.08]',
-                openField === 'date' && 'bg-blue-500/15 text-blue-700 dark:text-blue-300'
-              )}
-            >
-              {format(start, 'EEE MMM d')}
-            </button>
-          </DateDayPicker>
+          />
         </div>
 
         {readOnly && (
@@ -443,7 +535,8 @@ export function TimeEntryEditor({
         <div
           className={cn(
             'flex flex-wrap gap-1.5 rounded-lg transition-shadow',
-            showProjectError && 'ring-2 ring-destructive/35 ring-offset-2 ring-offset-white dark:ring-offset-elevated'
+            showProjectError &&
+              'ring-2 ring-destructive/35 ring-offset-2 ring-offset-white dark:ring-offset-elevated'
           )}
         >
           {projectNames.map((name) => {
@@ -523,7 +616,8 @@ export function TimeEntryEditor({
         <div
           className={cn(
             'flex flex-wrap gap-1.5 rounded-lg transition-shadow',
-            showActivityError && 'ring-2 ring-destructive/35 ring-offset-2 ring-offset-white dark:ring-offset-elevated'
+            showActivityError &&
+              'ring-2 ring-destructive/35 ring-offset-2 ring-offset-white dark:ring-offset-elevated'
           )}
         >
           {activities.map((type) => {
