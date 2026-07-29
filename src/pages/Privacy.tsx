@@ -1,6 +1,6 @@
 import { LegalPage } from '@/components/LegalPage';
 
-const EFFECTIVE_DATE = '19 July 2026';
+const EFFECTIVE_DATE = '29 July 2026';
 
 export default function Privacy() {
   return (
@@ -282,10 +282,63 @@ export default function Privacy() {
       <section className="space-y-3">
         <h2>13. Security</h2>
         <p>
-          We take reasonable technical and organizational measures to protect personal data,
-          including using HTTPS and limiting Google Calendar access to read-only scopes. No method
-          of transmission or storage is completely secure, and we cannot guarantee absolute
-          security.
+          Security procedures are in place to protect the confidentiality, integrity, and
+          availability of Google user data and other personal data we process. We use encryption
+          and related controls to protect your information in transit and at rest where applicable.
+        </p>
+        <p>In particular, we protect sensitive Google user data with these mechanisms:</p>
+        <ul>
+          <li>
+            <strong>Encryption in transit.</strong> The Service is served over HTTPS/TLS so data
+            exchanged between your browser, Vrema, Google APIs, and our processors is encrypted in
+            transit.
+          </li>
+          <li>
+            <strong>Encryption at rest.</strong> Application data stored with our infrastructure
+            providers (including Vercel and Supabase) is protected with those providers’ encryption
+            at rest and access controls.
+          </li>
+          <li>
+            <strong>OAuth token handling.</strong> Google OAuth access tokens are stored only in
+            your browser (local storage) for the duration of your session and are not written to our
+            own application servers for long-term retention. Tokens expire; signing out clears the
+            local auth session.
+          </li>
+          <li>
+            <strong>Least-privilege access.</strong> We request only the minimum Google scopes
+            needed for time tracking, currently including read-only calendar events access
+            (<code>https://www.googleapis.com/auth/calendar.events.readonly</code>). Vrema does not
+            create, edit, or delete Google Calendar events.
+          </li>
+          <li>
+            <strong>Limited use and no sale.</strong> Google user data is used only to provide and
+            improve user-facing features of Vrema. We do not sell Google user data, do not use it
+            for advertising, and do not transfer it to third parties except as needed to operate the
+            Service through our listed processors.
+          </li>
+          <li>
+            <strong>Access control.</strong> Access to systems that process user data is limited to
+            what is needed to operate and secure the Service. We rely on our hosting and database
+            providers’ authentication, network, and monitoring controls.
+          </li>
+          <li>
+            <strong>User controls.</strong> You can revoke Vrema’s Google access at any time at{' '}
+            <a
+              href="https://myaccount.google.com/permissions"
+              className="underline underline-offset-2 hover:text-neutral-950"
+              target="_blank"
+              rel="noreferrer"
+            >
+              https://myaccount.google.com/permissions
+            </a>
+            , sign out of Vrema, clear browser storage for vrema.dev, or contact us to request
+            deletion of data we control.
+          </li>
+        </ul>
+        <p>
+          No method of transmission or storage is completely secure, and we cannot guarantee
+          absolute security. If you believe your account or data has been compromised, contact us at
+          jaysonfeldman@gmail.com.
         </p>
       </section>
 
