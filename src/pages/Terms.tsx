@@ -47,7 +47,7 @@ export default function Terms() {
         <h2>3. Accounts and Google access</h2>
         <p>
           To use Vrema, you must sign in with a Google account and grant the permissions we request,
-          including read-only access to Google Calendar data needed for time tracking.
+          including read-only access to your Google Calendar events needed for time tracking.
         </p>
         <p>You are responsible for:</p>
         <ul>

@@ -112,8 +112,8 @@ export default function About() {
           </h2>
           <div className="space-y-3 text-[15px] leading-relaxed text-neutral-600">
             <p>
-              Vrema asks for access to your Google account profile and Google Calendar so it can
-              provide its core time tracking features. Specifically:
+              Vrema asks for access to your Google account profile and Google Calendar events so it
+              can provide its core time tracking features. Specifically:
             </p>
             <ul className="list-disc space-y-2 pl-5">
               <li>
@@ -122,7 +122,7 @@ export default function About() {
               </li>
               <li>
                 <strong className="font-medium text-neutral-900">
-                  Read-only Google Calendar and calendar events access
+                  Read-only Google Calendar events access
                 </strong>{' '}
                 is used to fetch event titles and times, then calculate projects, activities, and
                 hours.

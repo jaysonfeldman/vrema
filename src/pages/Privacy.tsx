@@ -50,8 +50,10 @@ export default function Privacy() {
 
         <p>
           <strong>Google Calendar data.</strong> With your consent, Vrema requests read-only access
-          to your Google Calendar and calendar events. We may process event titles, start and end
-          times, and related calendar metadata needed to calculate projects, activities, and hours.
+          to your Google Calendar events
+          (<code>https://www.googleapis.com/auth/calendar.events.readonly</code>). We may process
+          event titles, start and end times, and related event metadata needed to calculate
+          projects, activities, and hours.
           Vrema is intended to work with event titles that follow a project and activity format.
         </p>
 
