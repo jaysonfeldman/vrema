@@ -11,7 +11,6 @@ export const fetchCalendarEvents = async (token: string, days = 30): Promise<Goo
     const timeMin = encodeURIComponent(startDate.toISOString());
     const timeMax = encodeURIComponent(today.toISOString());
     
-    console.log(`Fetching calendar events from ${startDate.toISOString()} to ${today.toISOString()}`);
     const response = await fetch(
       `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${timeMin}&timeMax=${timeMax}&singleEvents=true&orderBy=startTime&maxResults=2500`,
       {
@@ -35,7 +34,6 @@ export const fetchCalendarEvents = async (token: string, days = 30): Promise<Goo
     }
 
     const data = await response.json();
-    console.log(`Received ${data.items?.length || 0} events from Google Calendar API`);
     
     if (!data.items || !Array.isArray(data.items)) {
       console.error('Invalid response format from Google Calendar API');
@@ -65,7 +63,6 @@ export const fetchCalendarEvents = async (token: string, days = 30): Promise<Goo
         htmlLink: event.htmlLink
       }));
       
-    console.log(`Transformed ${events.length} valid events with start/end times`);
     return events;
   } catch (error) {
     console.error('Error fetching calendar events:', error);
@@ -121,11 +118,8 @@ export const convertEventsToActivities = (events: GoogleCalendarEvent[]): {
   const projectMap: Record<string, number> = {};
   const activityMap: Record<string, { type: string, hours: number }[]> = {};
   
-  let totalValidEvents = 0;
-  
   events.forEach(event => {
     if (!event.start?.dateTime || !event.end?.dateTime) {
-      console.log(`Skipping event without start/end time: ${event.summary}`);
       return;
     }
 
@@ -133,22 +127,17 @@ export const convertEventsToActivities = (events: GoogleCalendarEvent[]): {
     const endTime = new Date(event.end.dateTime);
     
     if (isNaN(startTime.getTime()) || isNaN(endTime.getTime())) {
-      console.log(`Skipping event with invalid date: ${event.summary}`);
       return;
     }
     
     const durationHours = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
     
     if (durationHours <= 0) {
-      console.log(`Skipping event with non-positive duration: ${event.summary}`);
       return;
     }
     
-    totalValidEvents++;
-    
     const { projectName, activityType } = parseEventTitle(event.summary);
     
-    console.log(`Event: "${event.summary}" -> Project: "${projectName}", Activity: "${activityType}", Duration: ${durationHours.toFixed(2)}h`);
     
     // Store project name in original case for display
     // Use lowercase for case-insensitive matching in maps
@@ -177,8 +166,6 @@ export const convertEventsToActivities = (events: GoogleCalendarEvent[]): {
     }
   });
   
-  console.log(`Processed ${totalValidEvents} valid events into ${Object.keys(projectMap).length} projects`);
-  console.log('Project hours:', projectMap);
   
   return { projectMap, activityMap };
 };

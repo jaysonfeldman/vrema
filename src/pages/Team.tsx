@@ -19,10 +19,10 @@ import { sound } from '@/lib/sounds';
 import { cn } from '@/lib/utils';
 
 export default function TeamPage() {
-  const { authState, isDemoMode } = useGoogleAuth();
+  const { authState, isDemoMode, getAccessToken } = useGoogleAuth();
   const members = useTeamStore((s) => s.members);
   const invites = useTeamStore((s) => s.invites);
-  const ensureOwner = useTeamStore((s) => s.ensureOwner);
+  const bootstrap = useTeamStore((s) => s.bootstrap);
   const seedDemoTeam = useTeamStore((s) => s.seedDemoTeam);
   const removeMember = useTeamStore((s) => s.removeMember);
   const revokeInvite = useTeamStore((s) => s.revokeInvite);
@@ -32,19 +32,24 @@ export default function TeamPage() {
   const [inviteOpen, setInviteOpen] = useState(false);
 
   useEffect(() => {
-    if (authState.user) {
-      ensureOwner({
-        id: authState.user.id,
-        name: authState.user.name,
-        email: authState.user.email,
-        imageUrl: authState.user.imageUrl,
-      });
+    if (isDemoMode) {
+      seedDemoTeam();
+      return;
     }
-  }, [authState.user, ensureOwner]);
-
-  useEffect(() => {
-    if (isDemoMode) seedDemoTeam();
-  }, [isDemoMode, seedDemoTeam]);
+    if (!authState.isAuthenticated) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const token = await getAccessToken();
+        if (!cancelled) await bootstrap(token);
+      } catch {
+        // ignore — store keeps lastError
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [authState.isAuthenticated, bootstrap, getAccessToken, isDemoMode, seedDemoTeam]);
 
   const { startDate, endDate } = useMemo(() => getDateRange(filters.dateRange), [filters.dateRange]);
 
@@ -65,7 +70,7 @@ export default function TeamPage() {
           <p className="text-base font-semibold tracking-tight text-foreground/30">Team</p>
           <h1 className="text-2xl font-semibold tracking-tight md:text-[1.75rem]">Members</h1>
           <p className="text-sm text-muted-foreground">
-            Invite people to log hours on your team calendar.
+            Invite teammates to share hours. Each person syncs their own Google Calendar.
           </p>
         </div>
         <Button
@@ -171,9 +176,18 @@ export default function TeamPage() {
                                 Copy invite link
                               </DropdownMenuItem>
                               <DropdownMenuItem
-                                onClick={() => {
-                                  revokeInvite(pendingInvite.id);
-                                  toast({ title: 'Invite revoked' });
+                                onClick={async () => {
+                                  try {
+                                    const token = await getAccessToken();
+                                    await revokeInvite(token, pendingInvite.id);
+                                    toast({ title: 'Invite revoked' });
+                                  } catch (err) {
+                                    toast({
+                                      title: 'Could not revoke',
+                                      description: err instanceof Error ? err.message : undefined,
+                                      variant: 'destructive',
+                                    });
+                                  }
                                 }}
                               >
                                 Revoke invite
@@ -183,10 +197,19 @@ export default function TeamPage() {
                           {member.status === 'active' && (
                             <DropdownMenuItem
                               className="text-destructive focus:text-destructive"
-                              onClick={() => {
-                                removeMember(member.id);
-                                toast({ title: 'Member removed' });
-                                sound.pop();
+                              onClick={async () => {
+                                try {
+                                  const token = await getAccessToken();
+                                  await removeMember(token, member.id);
+                                  toast({ title: 'Member removed' });
+                                  sound.pop();
+                                } catch (err) {
+                                  toast({
+                                    title: 'Could not remove',
+                                    description: err instanceof Error ? err.message : undefined,
+                                    variant: 'destructive',
+                                  });
+                                }
                               }}
                             >
                               Remove from team

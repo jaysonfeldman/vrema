@@ -1,6 +1,28 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { Resend } from 'resend';
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+const ALLOWED_INVITE_ORIGINS = new Set([
+  'https://vrema.dev',
+  'https://www.vrema.dev',
+  'https://vrema.vercel.app',
+  'http://localhost:5173',
+  'http://localhost:3000',
+]);
+
+function isAllowedInviteUrl(raw: string): boolean {
+  try {
+    const url = new URL(raw);
+    if (!ALLOWED_INVITE_ORIGINS.has(url.origin)) return false;
+    if (!url.pathname.startsWith('/invite/')) return false;
+    if (url.username || url.password) return false;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
@@ -23,6 +45,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ error: 'Name, email, and inviteUrl are required' });
   }
 
+  if (!EMAIL_RE.test(trimmedEmail) || trimmedEmail.length > 254) {
+    return res.status(400).json({ error: 'Invalid email' });
+  }
+
+  if (!isAllowedInviteUrl(trimmedUrl)) {
+    return res.status(400).json({ error: 'Invalid invite URL' });
+  }
+
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
     // Local / unconfigured: client still has a copyable invite link.
@@ -43,7 +73,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       '',
       `Accept the invite: ${trimmedUrl}`,
       '',
-      'Once you join, you can log hours on the shared team calendar.',
+      'Once you join, you can track time alongside your teammates.',
     ].join('\n'),
   });
 

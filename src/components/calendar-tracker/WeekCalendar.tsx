@@ -72,7 +72,7 @@ type Props = {
 };
 
 export function WeekCalendar({ weekAnchor, onWeekChange }: Props) {
-  const { authState } = useGoogleAuth();
+  const { authState, getAccessToken, isDemoMode } = useGoogleAuth();
   const timeEntries = useTeamStore((s) => s.timeEntries);
   const addTimeEntry = useTeamStore((s) => s.addTimeEntry);
   const updateTimeEntry = useTeamStore((s) => s.updateTimeEntry);
@@ -176,16 +176,17 @@ export function WeekCalendar({ weekAnchor, onWeekChange }: Props) {
   }, []);
 
   const saveDraft = useCallback(
-    (current: TimeEntryDraft) => {
+    async (current: TimeEntryDraft) => {
       const projectName = current.projectName.trim();
       const activityType = current.activityType.trim();
       if (!projectName || !activityType) return false;
 
       const title = current.title.trim() || `${projectName} · ${activityType}`;
       addManagedProject(projectName);
+      const accessToken = isDemoMode ? null : await getAccessToken().catch(() => null);
 
       if (current.id) {
-        updateTimeEntry(current.id, {
+        await updateTimeEntry(accessToken, current.id, {
           title,
           projectName,
           projectId: projectName.toLowerCase(),
@@ -196,7 +197,7 @@ export function WeekCalendar({ weekAnchor, onWeekChange }: Props) {
           status: 'confirmed',
         });
       } else {
-        addTimeEntry({
+        await addTimeEntry(accessToken, {
           title,
           projectName,
           projectId: projectName.toLowerCase(),
@@ -207,10 +208,9 @@ export function WeekCalendar({ weekAnchor, onWeekChange }: Props) {
           status: 'confirmed',
         });
       }
-      sound.success();
       return true;
     },
-    [addManagedProject, addTimeEntry, updateTimeEntry]
+    [addManagedProject, addTimeEntry, getAccessToken, isDemoMode, updateTimeEntry]
   );
 
   const requestSaveOrWarn = useCallback(() => {
@@ -225,7 +225,9 @@ export function WeekCalendar({ weekAnchor, onWeekChange }: Props) {
       return false;
     }
     draftRef.current = null;
-    saveDraft(current);
+    void saveDraft(current).then((ok) => {
+      if (ok) sound.success();
+    });
     closeEditor();
     return true;
   }, [closeEditor, saveDraft]);
@@ -470,10 +472,13 @@ export function WeekCalendar({ weekAnchor, onWeekChange }: Props) {
           dateFromDayAndMinutes(day, current.startMinutes),
           dateFromDayAndMinutes(day, current.endMinutes)
         );
-        updateTimeEntry(liveEntry.id, {
-          startTime: start.toISOString(),
-          endTime: end.toISOString(),
-        });
+        void (async () => {
+          const accessToken = isDemoMode ? null : await getAccessToken().catch(() => null);
+          await updateTimeEntry(accessToken, liveEntry.id, {
+            startTime: start.toISOString(),
+            endTime: end.toISOString(),
+          });
+        })();
         return;
       }
 
@@ -571,9 +576,10 @@ export function WeekCalendar({ weekAnchor, onWeekChange }: Props) {
     });
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (draft?.id && !draft.id.startsWith('google-')) {
-      deleteTimeEntry(draft.id);
+      const accessToken = isDemoMode ? null : await getAccessToken().catch(() => null);
+      await deleteTimeEntry(accessToken, draft.id);
     }
     closeEditor();
   };

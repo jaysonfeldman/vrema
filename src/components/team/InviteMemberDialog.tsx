@@ -26,7 +26,7 @@ type Props = {
 };
 
 export function InviteMemberDialog({ open, onOpenChange }: Props) {
-  const { authState } = useGoogleAuth();
+  const { authState, getAccessToken } = useGoogleAuth();
   const inviteMember = useTeamStore((s) => s.inviteMember);
   const { toast } = useToast();
   const [name, setName] = useState('');
@@ -50,12 +50,8 @@ export function InviteMemberDialog({ open, onOpenChange }: Props) {
     if (!authState.user) return;
     setBusy(true);
     try {
-      const invite = inviteMember({
-        name,
-        email,
-        invitedById: authState.user.id,
-        invitedByName: authState.user.name,
-      });
+      const accessToken = await getAccessToken();
+      const invite = await inviteMember(accessToken, { name, email });
       setCreated(invite);
       sound.success();
 

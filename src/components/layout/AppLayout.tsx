@@ -36,28 +36,33 @@ function getPageTitle(pathname: string): string {
 export default function AppLayout() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { authState, signOut, isDemoMode } = useGoogleAuth();
+  const { authState, signOut, isDemoMode, getAccessToken } = useGoogleAuth();
   const { syncCalendar, lastSynced } = useCalendarSync();
   const { isLoading } = useSharedState();
-  const ensureOwner = useTeamStore((s) => s.ensureOwner);
+  const bootstrap = useTeamStore((s) => s.bootstrap);
   const seedDemoTeam = useTeamStore((s) => s.seedDemoTeam);
   const syncIconRef = useRef<RefreshCWIconHandle>(null);
   const logoutIconRef = useRef<LogoutIconHandle>(null);
 
   useEffect(() => {
-    if (authState.user) {
-      ensureOwner({
-        id: authState.user.id,
-        name: authState.user.name,
-        email: authState.user.email,
-        imageUrl: authState.user.imageUrl,
-      });
+    if (isDemoMode) {
+      seedDemoTeam();
+      return;
     }
-  }, [authState.user, ensureOwner]);
-
-  useEffect(() => {
-    if (isDemoMode) seedDemoTeam();
-  }, [isDemoMode, seedDemoTeam]);
+    if (!authState.isAuthenticated) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const token = await getAccessToken();
+        if (!cancelled) await bootstrap(token);
+      } catch {
+        // bootstrap errors are stored on the team store
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [authState.isAuthenticated, bootstrap, getAccessToken, isDemoMode, seedDemoTeam]);
 
   const path = stripDemoPrefix(location.pathname);
   const isDashboard = path === '/app';

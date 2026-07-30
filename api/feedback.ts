@@ -33,8 +33,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ error: 'Title and message are required' });
   }
 
+  if (trimmedTitle.length > 200 || trimmedMessage.length > 5000) {
+    return res.status(400).json({ error: 'Message is too long' });
+  }
+
+  if (trimmedEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+    return res.status(400).json({ error: 'Invalid email' });
+  }
+
   const typeLabel = TYPE_LABELS[type ?? ''] ?? type ?? 'Feedback';
-  const to = process.env.FEEDBACK_TO_EMAIL || 'jaysonfeldman@gmail.com';
+  const to = process.env.FEEDBACK_TO_EMAIL || 'you@example.com';
   const from = process.env.FEEDBACK_FROM_EMAIL || 'Vrema <onboarding@resend.dev>';
 
   const resend = new Resend(apiKey);

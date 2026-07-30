@@ -65,23 +65,11 @@ function CalendarViewTab({
 }
 
 export default function CalendarPage() {
-  const { authState, isDemoMode } = useGoogleAuth();
+  const { isDemoMode } = useGoogleAuth();
   const calendarView = useTeamStore((s) => s.calendarView);
   const setCalendarView = useTeamStore((s) => s.setCalendarView);
-  const ensureOwner = useTeamStore((s) => s.ensureOwner);
   const seedDemoTeam = useTeamStore((s) => s.seedDemoTeam);
   const [weekAnchor, setWeekAnchor] = useState(() => new Date());
-
-  useEffect(() => {
-    if (authState.user) {
-      ensureOwner({
-        id: authState.user.id,
-        name: authState.user.name,
-        email: authState.user.email,
-        imageUrl: authState.user.imageUrl,
-      });
-    }
-  }, [authState.user, ensureOwner]);
 
   useEffect(() => {
     if (isDemoMode) seedDemoTeam();

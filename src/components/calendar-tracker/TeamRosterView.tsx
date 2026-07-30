@@ -32,7 +32,7 @@ type Props = {
 };
 
 export function TeamRosterView({ weekAnchor, onWeekChange }: Props) {
-  const { authState } = useGoogleAuth();
+  const { authState, getAccessToken, isDemoMode } = useGoogleAuth();
   const members = useTeamStore((s) => s.members);
   const timeEntries = useTeamStore((s) => s.timeEntries);
   const addTimeEntry = useTeamStore((s) => s.addTimeEntry);
@@ -111,15 +111,16 @@ export function TeamRosterView({ weekAnchor, onWeekChange }: Props) {
   }, []);
 
   const saveDraft = useCallback(
-    (current: TimeEntryDraft) => {
+    async (current: TimeEntryDraft) => {
       const projectName = current.projectName.trim();
       const activityType = current.activityType.trim();
       if (!projectName || !activityType) return false;
       const title = current.title.trim() || `${projectName} · ${activityType}`;
       addManagedProject(projectName);
+      const accessToken = isDemoMode ? null : await getAccessToken().catch(() => null);
 
       if (current.id) {
-        updateTimeEntry(current.id, {
+        await updateTimeEntry(accessToken, current.id, {
           title,
           projectName,
           projectId: projectName.toLowerCase(),
@@ -130,7 +131,7 @@ export function TeamRosterView({ weekAnchor, onWeekChange }: Props) {
           status: 'confirmed',
         });
       } else {
-        addTimeEntry({
+        await addTimeEntry(accessToken, {
           title,
           projectName,
           projectId: projectName.toLowerCase(),
@@ -144,7 +145,7 @@ export function TeamRosterView({ weekAnchor, onWeekChange }: Props) {
       sound.success();
       return true;
     },
-    [addManagedProject, addTimeEntry, updateTimeEntry]
+    [addManagedProject, addTimeEntry, getAccessToken, isDemoMode, updateTimeEntry]
   );
 
   const requestSaveOrWarn = useCallback(() => {
@@ -536,8 +537,13 @@ export function TeamRosterView({ weekAnchor, onWeekChange }: Props) {
                   onDelete={
                     draft.id && !draft.id.startsWith('google-')
                       ? () => {
-                          deleteTimeEntry(draft.id!);
-                          closeEditor();
+                          void (async () => {
+                            const accessToken = isDemoMode
+                              ? null
+                              : await getAccessToken().catch(() => null);
+                            await deleteTimeEntry(accessToken, draft.id!);
+                            closeEditor();
+                          })();
                         }
                       : undefined
                   }
