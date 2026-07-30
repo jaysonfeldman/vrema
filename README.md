@@ -62,8 +62,6 @@ Never put `SUPABASE_SERVICE_ROLE_KEY` or database passwords in `VITE_*` variable
 Team data is stored in Supabase. The browser never receives the service role key — the `team` Edge Function verifies the Google access token and writes with the service role.
 
 ## Security notes
-
-- Legacy Lovable Supabase tables (if any) should stay RLS-enabled with no anon grants.
 - New Vrema project tables (`profiles`, `workspaces`, `workspace_members`, `workspace_invites`, `time_entries`) have RLS on and **no** anon/authenticated table grants.
 - `/api/invite` allowlists invite URL origins and validates email.
 - OAuth access tokens are kept in browser storage for the session — treat XSS as a critical boundary (CSP recommended before wide open-source launch).
