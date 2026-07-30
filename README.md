@@ -2,7 +2,10 @@
 
 Time tracking from Google Calendar. Title events as `project#activity description`, sync, and get projects, hours, and team visibility without timers.
 
-**Live app:** [https://vrema.dev](https://vrema.dev)
+**Live app:** [https://vrema.dev](https://vrema.dev) 
+<img width="1502" height="858" alt="image" src="https://github.com/user-attachments/assets/19a321e7-6a0c-4dfe-a20f-3ae394074657" />
+
+
 
 ## Features
 
