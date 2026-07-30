@@ -7,7 +7,6 @@ Time tracking from Google Calendar. Title events as `project#activity descriptio
 <img width="1502" height="858" alt="image" src="https://github.com/user-attachments/assets/19a321e7-6a0c-4dfe-a20f-3ae394074657" />
 
 
-
 ## Features
 
 - Google OAuth sign-in (read-only calendar events)
@@ -51,21 +50,6 @@ npm run dev
 
 Never put `SUPABASE_SERVICE_ROLE_KEY` or database passwords in `VITE_*` variables.
 
-## Team how it works
-
-1. Owner signs in → a workspace is created automatically.
-2. Owner invites a teammate (email + secure invite token).
-3. Teammate opens `/invite/:token`, signs in with the **invited Google account**, accepts.
-4. Each member syncs their own Google Calendar; `#project#activity` events are stored on the shared workspace.
-5. Team calendar / hours scope shows everyone’s entries.
-
-Team data is stored in Supabase. The browser never receives the service role key — the `team` Edge Function verifies the Google access token and writes with the service role.
-
-## Security notes
-- New Vrema project tables (`profiles`, `workspaces`, `workspace_members`, `workspace_invites`, `time_entries`) have RLS on and **no** anon/authenticated table grants.
-- `/api/invite` allowlists invite URL origins and validates email.
-- OAuth access tokens are kept in browser storage for the session — treat XSS as a critical boundary (CSP recommended before wide open-source launch).
-
 ## Scripts
 
 ```bash
@@ -73,14 +57,3 @@ npm run dev      # local Vite
 npm run build    # production build
 npm run lint     # ESLint
 ```
-
-## Google Cloud
-
-1. Create an OAuth client (Web) with authorized origins for `http://localhost:5173` and `https://vrema.dev`.
-2. Enable Google Calendar API.
-3. Request scope: `https://www.googleapis.com/auth/calendar.events.readonly` (plus OpenID profile/email).
-4. Until verification is approved, add testers under OAuth consent screen → Test users.
-
-## License
-
-Private for now. Intended to be open-sourced after a cleanup pass — contributions welcome once the repo is public.
