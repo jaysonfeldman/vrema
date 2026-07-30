@@ -61,7 +61,9 @@ export const useCalendarSync = () => {
 
       setEvents(calendarEvents);
       setLastSynced(new Date());
+      setIsLoading(false);
 
+      // Team workspace sync runs in the background so the UI isn't blocked.
       if (!isDemoMode && accessToken !== DEMO_ACCESS_TOKEN && accessToken !== DEV_ACCESS_TOKEN) {
         const hashed = calendarEvents
           .filter(
@@ -82,14 +84,13 @@ export const useCalendarSync = () => {
             };
           });
         if (hashed.length) {
-          await syncGoogleEntries(accessToken, hashed).catch((err) => {
+          void syncGoogleEntries(accessToken, hashed).catch((err) => {
             console.error('Failed to sync calendar entries to team workspace:', err);
           });
         }
       }
     } catch (error) {
       console.error('Error syncing calendar:', error);
-    } finally {
       setIsLoading(false);
     }
   }, [
