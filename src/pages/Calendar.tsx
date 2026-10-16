@@ -1,11 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import { WeekCalendar } from '@/components/calendar-tracker/WeekCalendar';
 import { TeamRosterView } from '@/components/calendar-tracker/TeamRosterView';
 import { CalendarDaysIcon, type CalendarDaysIconHandle } from '@/components/icons/calendar-days';
 import { UsersIcon, type UsersIconHandle } from '@/components/icons/users';
 import { useTeamStore } from '@/hooks/useTeamStore';
-import { useGoogleAuth } from '@/providers/GoogleAuthProvider';
 import { cn } from '@/lib/utils';
 import { sound } from '@/lib/sounds';
 
@@ -65,15 +64,9 @@ function CalendarViewTab({
 }
 
 export default function CalendarPage() {
-  const { isDemoMode } = useGoogleAuth();
   const calendarView = useTeamStore((s) => s.calendarView);
   const setCalendarView = useTeamStore((s) => s.setCalendarView);
-  const seedDemoTeam = useTeamStore((s) => s.seedDemoTeam);
   const [weekAnchor, setWeekAnchor] = useState(() => new Date());
-
-  useEffect(() => {
-    if (isDemoMode) seedDemoTeam();
-  }, [isDemoMode, seedDemoTeam]);
 
   return (
     <div className="flex h-full min-h-0 flex-col px-4 pb-4 pt-6 md:px-8 md:pb-6 md:pt-8">

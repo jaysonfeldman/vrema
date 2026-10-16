@@ -2,7 +2,6 @@ import React from 'react';
 import { motion } from 'motion/react';
 import { useGoogleAuth } from '@/providers/GoogleAuthProvider';
 import { useSharedState } from '@/hooks/useSharedState';
-import { useCalendarSync } from '@/hooks/useCalendarSync';
 import { useProjectStats } from '@/hooks/useProjectStats';
 import { formatHours } from '@/lib/eventStats';
 import { Activity } from '@/lib/types';
@@ -29,8 +28,7 @@ const cardClass =
 
 export default function Dashboard() {
   const { authState, isDemoMode } = useGoogleAuth();
-  const { syncCalendar } = useCalendarSync();
-  const { lastSynced, filters, ensureActivityColors } = useSharedState();
+  const { filters, ensureActivityColors } = useSharedState();
   const { filteredProjects } = useProjectStats();
   const hoursScope = useTeamStore((s) => s.hoursScope);
   const appPath = useAppPath();
@@ -58,11 +56,7 @@ export default function Dashboard() {
 
   const activeHeight = showInvoice ? faceHeights.back : faceHeights.front;
 
-  React.useEffect(() => {
-    if (authState.isAuthenticated && !lastSynced) {
-      syncCalendar();
-    }
-  }, [authState.isAuthenticated, lastSynced, syncCalendar]);
+
 
   const totalHours = filteredProjects.reduce((sum, p) => sum + p.totalHours, 0);
 

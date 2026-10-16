@@ -1,73 +1,55 @@
 
-import { GoogleCalendarEvent } from '@/lib/types';
+import type { GoogleCalendarEvent } from '@/lib/types';
 import { addDays, format, parseISO } from 'date-fns';
 
-export const fetchCalendarEvents = async (token: string, days = 30): Promise<GoogleCalendarEvent[]> => {
-  try {
-    const today = new Date();
-    const startDate = new Date(today);
-    startDate.setDate(startDate.getDate() - days);
-    
-    const timeMin = encodeURIComponent(startDate.toISOString());
-    const timeMax = encodeURIComponent(today.toISOString());
-    
+export const fetchCalendarEvents = async (
+  token: string,
+  range: number | { timeMin: Date; timeMax: Date } = 30
+): Promise<GoogleCalendarEvent[]> => {
+  const today = new Date();
+  const { timeMin, timeMax } = typeof range === 'number'
+    ? { timeMin: addDays(today, -range), timeMax: today }
+    : range;
+  const events: GoogleCalendarEvent[] = [];
+  let pageToken: string | undefined;
+
+  do {
+    const params = new URLSearchParams({
+      timeMin: timeMin.toISOString(),
+      timeMax: timeMax.toISOString(),
+      singleEvents: 'true',
+      orderBy: 'startTime',
+      maxResults: '2500',
+    });
+    if (pageToken) params.set('pageToken', pageToken);
     const response = await fetch(
-      `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${timeMin}&timeMax=${timeMax}&singleEvents=true&orderBy=startTime&maxResults=2500`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
+      `https://www.googleapis.com/calendar/v3/calendars/primary/events?${params}`,
+      { headers: { Authorization: `Bearer ${token}` } }
     );
-
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Google Calendar API error:', errorText);
-      
       if (response.status === 401) {
-        throw new Error('Authentication failed - please reconnect your Google Calendar');
-      } else if (response.status === 403) {
-        throw new Error('Permission denied - check Google Calendar access permissions');
-      } else {
-        throw new Error(`Failed to fetch calendar events: ${response.status} ${response.statusText}`);
+        throw new Error('Your Google session expired. Sign out and reconnect Google Calendar.');
       }
+      if (response.status === 403) {
+        throw new Error('Google Calendar access was denied. Check that Calendar API is enabled and reconnect with calendar read permission.');
+      }
+      throw new Error(`Google Calendar sync failed (${response.status}). Please try again.`);
     }
+    const data = await response.json() as {
+      items?: GoogleCalendarEvent[];
+      nextPageToken?: string;
+    };
+    if (data.items !== undefined && !Array.isArray(data.items)) {
+      throw new Error('Google Calendar returned an invalid event list. Please try again.');
+    }
+    // All-day and cancelled events have no tracked duration.
+    events.push(...(data.items ?? []).filter(
+      (event) => event.start?.dateTime && event.end?.dateTime
+    ));
+    pageToken = data.nextPageToken;
+  } while (pageToken);
 
-    const data = await response.json();
-    
-    if (!data.items || !Array.isArray(data.items)) {
-      console.error('Invalid response format from Google Calendar API');
-      return [];
-    }
-    
-    const events = data.items
-      .filter((event: any) => event.start?.dateTime && event.end?.dateTime)
-      .map((event: any): GoogleCalendarEvent => ({
-        id: event.id,
-        summary: event.summary || 'Untitled Event',
-        description: event.description || '',
-        location: event.location || '',
-        start: {
-          dateTime: event.start.dateTime,
-          timeZone: event.start.timeZone || 'UTC'
-        },
-        end: {
-          dateTime: event.end.dateTime,
-          timeZone: event.end.timeZone || 'UTC'
-        },
-        attendees: event.attendees || [],
-        organizer: event.organizer || {},
-        created: event.created,
-        updated: event.updated,
-        status: event.status,
-        htmlLink: event.htmlLink
-      }));
-      
-    return events;
-  } catch (error) {
-    console.error('Error fetching calendar events:', error);
-    throw error;
-  }
+  return events;
 };
 
 export const parseEventTitle = (title: string): { 

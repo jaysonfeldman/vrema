@@ -32,9 +32,10 @@ type Props = {
 };
 
 export function TeamRosterView({ weekAnchor, onWeekChange }: Props) {
-  const { authState, getAccessToken, isDemoMode } = useGoogleAuth();
+  const { authState, getAccessToken, isDemoMode, isDevAuthBypass } = useGoogleAuth();
   const members = useTeamStore((s) => s.members);
   const timeEntries = useTeamStore((s) => s.timeEntries);
+  const localTimeEntries = useTeamStore((s) => s.localTimeEntries);
   const addTimeEntry = useTeamStore((s) => s.addTimeEntry);
   const updateTimeEntry = useTeamStore((s) => s.updateTimeEntry);
   const deleteTimeEntry = useTeamStore((s) => s.deleteTimeEntry);
@@ -43,6 +44,8 @@ export function TeamRosterView({ weekAnchor, onWeekChange }: Props) {
   const excludedProjects = useSharedState((s) => s.excludedProjects);
   const getColor = useActivityColor();
 
+  const savingRef = useRef(false);
+  const [isSaving, setIsSaving] = useState(false);
   const draftRef = useRef<TimeEntryDraft | null>(null);
   const [draft, setDraft] = useState<TimeEntryDraft | null>(null);
   const [anchorPos, setAnchorPos] = useState<{ x: number; y: number } | null>(null);
@@ -61,7 +64,7 @@ export function TeamRosterView({ weekAnchor, onWeekChange }: Props) {
     [excludedProjects]
   );
 
-  /** Local entries + Google `#` events attributed to the signed-in owner. */
+  /** Saved entries + timed Google events attributed to the signed-in owner. */
   const allEntries = useMemo(() => {
     const local = timeEntries.filter((e) => e.status === 'confirmed');
     const fromGoogle = googleEventsToTimeEntries(googleEvents, ownerId, excludedSet);
@@ -115,40 +118,50 @@ export function TeamRosterView({ weekAnchor, onWeekChange }: Props) {
       const projectName = current.projectName.trim();
       const activityType = current.activityType.trim();
       if (!projectName || !activityType) return false;
-      const title = current.title.trim() || `${projectName} · ${activityType}`;
-      addManagedProject(projectName);
-      const accessToken = isDemoMode ? null : await getAccessToken().catch(() => null);
 
-      if (current.id) {
-        await updateTimeEntry(accessToken, current.id, {
-          title,
-          projectName,
-          projectId: projectName.toLowerCase(),
-          activityType,
-          color: undefined,
-          startTime: current.startTime,
-          endTime: current.endTime,
-          status: 'confirmed',
+      const title = current.title.trim() || `${projectName} · ${activityType}`;
+      try {
+        const accessToken = !current.id || localTimeEntries.some((entry) => entry.id === current.id) || isDemoMode || isDevAuthBypass ? null : await getAccessToken();
+
+        if (current.id) {
+          await updateTimeEntry(accessToken, current.id, {
+            title,
+            projectName,
+            projectId: projectName.toLowerCase(),
+            activityType,
+            color: undefined,
+            startTime: current.startTime,
+            endTime: current.endTime,
+            status: 'confirmed',
+          });
+        } else {
+          await addTimeEntry(accessToken, {
+            title,
+            projectName,
+            projectId: projectName.toLowerCase(),
+            activityType,
+            startTime: current.startTime,
+            endTime: current.endTime,
+            memberId: current.memberId,
+            status: 'confirmed',
+          });
+        }
+        addManagedProject(projectName);
+      } catch (error) {
+        toast({
+          title: 'Time entry was not saved',
+          description: error instanceof Error ? error.message : 'Please try again.',
+          variant: 'destructive',
         });
-      } else {
-        await addTimeEntry(accessToken, {
-          title,
-          projectName,
-          projectId: projectName.toLowerCase(),
-          activityType,
-          startTime: current.startTime,
-          endTime: current.endTime,
-          memberId: current.memberId,
-          status: 'confirmed',
-        });
+        return false;
       }
-      sound.success();
       return true;
     },
-    [addManagedProject, addTimeEntry, getAccessToken, isDemoMode, updateTimeEntry]
+    [addManagedProject, addTimeEntry, getAccessToken, isDemoMode, isDevAuthBypass, localTimeEntries, updateTimeEntry]
   );
 
-  const requestSaveOrWarn = useCallback(() => {
+  const requestSaveOrWarn = useCallback(async () => {
+    if (savingRef.current) return false;
     const current = draftRef.current;
     if (!current) return false;
     if (current.id?.startsWith('google-')) {
@@ -159,17 +172,27 @@ export function TeamRosterView({ weekAnchor, onWeekChange }: Props) {
       setShowRequiredErrors(true);
       return false;
     }
-    draftRef.current = null;
-    saveDraft(current);
-    closeEditor();
-    return true;
-  }, [closeEditor, saveDraft]);
+    savingRef.current = true;
+    setIsSaving(true);
+    try {
+      const saved = await saveDraft(current);
+      if (saved) {
+        draftRef.current = null;
+        sound.success();
+        toast({ title: 'Time saved', description: !current.id || localTimeEntries.some((entry) => entry.id === current.id) ? 'Saved on this device.' : 'Time entry updated.' });
+        closeEditor();
+      }
+      return saved;
+    } finally {
+      savingRef.current = false;
+      setIsSaving(false);
+    }
+  }, [closeEditor, localTimeEntries, saveDraft]);
 
   /** Click-away: save when complete, otherwise discard (never trap the user). */
   const dismissEditor = useCallback(() => {
     const current = draftRef.current;
-    if (!current) return;
-    draftRef.current = null;
+    if (!current || savingRef.current) return;
 
     if (current.id?.startsWith('google-')) {
       closeEditor();
@@ -177,12 +200,12 @@ export function TeamRosterView({ weekAnchor, onWeekChange }: Props) {
     }
 
     if (isDraftComplete(current)) {
-      saveDraft(current);
-      closeEditor();
+      void requestSaveOrWarn();
       return;
     }
 
     closeEditor();
+    // Only nudge if they started filling something in — empty cancel stays quiet.
     const touched =
       Boolean(current.title.trim()) ||
       Boolean(current.projectName.trim()) ||
@@ -193,9 +216,11 @@ export function TeamRosterView({ weekAnchor, onWeekChange }: Props) {
         description: 'Choose a project and activity to save time entries.',
       });
     }
-  }, [closeEditor, saveDraft]);
+  }, [closeEditor, requestSaveOrWarn]);
 
+  /** Escape / Discard: always cancel without saving. */
   const discardEditor = useCallback(() => {
+    if (savingRef.current) return;
     draftRef.current = null;
     closeEditor();
   }, [closeEditor]);
@@ -239,8 +264,8 @@ export function TeamRosterView({ weekAnchor, onWeekChange }: Props) {
     openEditor(
       {
         title: '',
-        projectName: '',
-        activityType: '',
+        projectName: 'Personal',
+        activityType: 'other',
         startTime: start.toISOString(),
         endTime: end.toISOString(),
         memberId,
@@ -250,6 +275,24 @@ export function TeamRosterView({ weekAnchor, onWeekChange }: Props) {
     );
   };
 
+  const handleDelete = async () => {
+    if (savingRef.current) return;
+    savingRef.current = true;
+    setIsSaving(true);
+    try {
+      if (draft?.id && !draft.id.startsWith('google-')) {
+        const accessToken = localTimeEntries.some((entry) => entry.id === draft.id) || isDemoMode || isDevAuthBypass ? null : await getAccessToken();
+        await deleteTimeEntry(accessToken, draft.id);
+      }
+      closeEditor();
+    } catch (error) {
+      toast({ title: 'Time entry was not deleted', description: error instanceof Error ? error.message : 'Please try again.', variant: 'destructive' });
+    } finally {
+      savingRef.current = false;
+      setIsSaving(false);
+    }
+  };
+
   const ghostCell =
     draft && !draft.id
       ? { memberId: draft.memberId, day: new Date(draft.startTime) }
@@ -257,6 +300,7 @@ export function TeamRosterView({ weekAnchor, onWeekChange }: Props) {
 
   return (
     <div className="flex w-full flex-col">
+      <p className="pb-3 text-xs text-muted-foreground">Manual entries save on this device.</p>
       <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 px-1 pb-4">
         <div className="flex items-center gap-2">
           <h2 className="text-base font-semibold tracking-tight">Team</h2>
@@ -522,6 +566,7 @@ export function TeamRosterView({ weekAnchor, onWeekChange }: Props) {
                 <TimeEntryEditor
                   draft={draft}
                   isEditing={Boolean(draft.id)}
+                  isSaving={isSaving}
                   readOnly={Boolean(draft.id?.startsWith('google-'))}
                   showRequiredErrors={showRequiredErrors}
                   onChange={(patch) => {
@@ -536,15 +581,7 @@ export function TeamRosterView({ weekAnchor, onWeekChange }: Props) {
                   onDiscard={draft.id?.startsWith('google-') ? undefined : discardEditor}
                   onDelete={
                     draft.id && !draft.id.startsWith('google-')
-                      ? () => {
-                          void (async () => {
-                            const accessToken = isDemoMode
-                              ? null
-                              : await getAccessToken().catch(() => null);
-                            await deleteTimeEntry(accessToken, draft.id!);
-                            closeEditor();
-                          })();
-                        }
+                      ? handleDelete
                       : undefined
                   }
                 />

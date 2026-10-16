@@ -38,6 +38,7 @@ type Props = {
   onSave?: () => void;
   onDiscard?: () => void;
   isEditing?: boolean;
+  isSaving?: boolean;
   /** Google-synced events are view-only in the calendar. */
   readOnly?: boolean;
   /** Highlight missing required fields after an explicit Save attempt. */
@@ -355,6 +356,7 @@ export function TimeEntryEditor({
   onSave,
   onDiscard,
   isEditing,
+  isSaving = false,
   readOnly,
   showRequiredErrors,
 }: Props) {
@@ -445,7 +447,7 @@ export function TimeEntryEditor({
   };
 
   return (
-    <div
+    <fieldset disabled={isSaving}
       className={cn(
         'w-[min(100vw-2rem,20.5rem)] space-y-4',
         showRequiredErrors && !canSave && 'animate-shake'
@@ -671,6 +673,7 @@ export function TimeEntryEditor({
                 variant="ghost"
                 size="sm"
                 className="h-8 gap-1.5 px-2 text-muted-foreground hover:text-destructive"
+                disabled={isSaving}
                 onClick={onDelete}
               >
                 <Trash2 className="size-3.5" />
@@ -682,6 +685,7 @@ export function TimeEntryEditor({
                 variant="ghost"
                 size="sm"
                 className="h-8 px-2 text-muted-foreground"
+                disabled={isSaving}
                 onClick={onDiscard}
               >
                 Discard
@@ -690,14 +694,14 @@ export function TimeEntryEditor({
               <span />
             )}
             {onSave && (
-              <Button type="button" size="sm" className="h-8 px-3" onClick={() => onSave()}>
-                Save
+              <Button type="button" size="sm" className="h-8 px-3" disabled={isSaving} onClick={() => onSave()}>
+                {isSaving ? 'Saving…' : 'Save'}
               </Button>
             )}
           </div>
         </div>
       )}
-    </div>
+    </fieldset>
   );
 }
 

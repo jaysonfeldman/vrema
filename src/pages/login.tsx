@@ -32,6 +32,8 @@ export default function Login() {
     return <Navigate to="/app" replace />;
   }
 
+  const googleConfigured = Boolean(import.meta.env.VITE_GOOGLE_CLIENT_ID);
+
   const authenticateGoogle = () => {
     if (isDevAuthBypass) signInDev();
     else signIn();
@@ -60,15 +62,19 @@ export default function Login() {
             type="button"
             variant="outline"
             onClick={authenticateGoogle}
+            disabled={!isDevAuthBypass && !googleConfigured}
             className="h-11 w-full rounded-xl border-neutral-200 bg-white text-sm font-medium text-neutral-950 shadow-sm hover:bg-neutral-50 hover:text-neutral-950"
           >
-            <GoogleIcon className="mr-2 h-4 w-4" />
-            Continue with Google
+            {!isDevAuthBypass && <GoogleIcon className="mr-2 h-4 w-4" />}
+            {isDevAuthBypass ? 'Continue in local development' : 'Continue with Google'}
           </Button>
 
           <p className="mt-4 text-center text-xs text-neutral-400">
-            Google Calendar access is required to track your time.
+            {isDevAuthBypass ? 'Use sample data without connecting a Google account.' : googleConfigured ? 'Connect Google Calendar to sync your time.' : 'Google sign-in has not been configured yet.'}
           </p>
+          <Link to="/preview/app" className="mt-5 text-sm font-medium underline underline-offset-4">
+            Try the demo
+          </Link>
         </div>
       </div>
 

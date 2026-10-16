@@ -13,7 +13,7 @@ export type TeamSnapshot = {
   timeEntries: TimeEntry[];
 };
 
-async function teamRequest<T extends TeamSnapshot>(
+async function teamRequest<T = TeamSnapshot>(
   accessToken: string | null,
   body: Record<string, unknown>
 ): Promise<T> {

@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useContext, useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { useGoogleLogin } from '@react-oauth/google';
+import { useGoogleLogin, type TokenResponse } from '@react-oauth/google';
+import { toast } from '@/hooks/use-toast';
 import { DEV_ACCESS_TOKEN, isDevAuthBypass } from '@/lib/dev-auth';
 import { DEMO_ACCESS_TOKEN, demoUser } from '@/lib/demo-data';
 
@@ -51,6 +52,20 @@ const demoAuthState: AuthState = {
   expiresAt: null,
 };
 
+// Mount the Google hook only inside the configured OAuth provider. The public
+// demo and local development must also work without Google credentials.
+function GoogleSignIn({ onSuccess, children }: {
+  onSuccess: (response: TokenResponse) => Promise<void>;
+  children: (login: () => void) => React.ReactNode;
+}) {
+  const login = useGoogleLogin({
+    scope: SCOPES,
+    onSuccess,
+    onError: () => toast({ title: 'Google sign-in failed', description: 'Please try connecting again.', variant: 'destructive' }),
+  });
+  return <>{children(login)}</>;
+}
+
 export function GoogleAuthProvider({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -87,52 +102,47 @@ export function GoogleAuthProvider({ children }: { children: React.ReactNode }) 
     }
   }, [authState, isDemoMode]);
 
-  const handleSignOut = () => {
+  const handleSignOut = useCallback(() => {
     setAuthState(emptyState);
     localStorage.removeItem('googleAuth');
+  }, []);
+
+  const completeGoogleSignIn = async (tokenResponse: TokenResponse) => {
+    try {
+      const accessToken = tokenResponse.access_token;
+      const expiresAt = Date.now() + (tokenResponse.expires_in ?? 3600) * 1000;
+
+      const profileResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+
+      if (!profileResponse.ok) {
+        throw new Error('Failed to load Google profile');
+      }
+
+      const profile = await profileResponse.json();
+
+      const newAuthState: AuthState = {
+        isAuthenticated: true,
+        user: {
+          id: profile.sub,
+          name: profile.name ?? profile.email ?? 'User',
+          email: profile.email ?? '',
+          imageUrl: profile.picture ?? '',
+        },
+        accessToken,
+        expiresAt,
+      };
+
+      setAuthState(newAuthState);
+      navigate('/app', { replace: true });
+    } catch (error) {
+      console.error('Error completing Google sign-in:', error);
+      toast({ title: 'Google sign-in failed', description: 'Could not load your Google profile. Please try again.', variant: 'destructive' });
+    }
   };
 
-  const login = useGoogleLogin({
-    scope: SCOPES,
-    onSuccess: async (tokenResponse) => {
-      try {
-        const accessToken = tokenResponse.access_token;
-        const expiresAt = Date.now() + (tokenResponse.expires_in ?? 3600) * 1000;
-
-        const profileResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-          headers: { Authorization: `Bearer ${accessToken}` },
-        });
-
-        if (!profileResponse.ok) {
-          throw new Error('Failed to load Google profile');
-        }
-
-        const profile = await profileResponse.json();
-
-        const newAuthState: AuthState = {
-          isAuthenticated: true,
-          user: {
-            id: profile.sub,
-            name: profile.name ?? profile.email ?? 'User',
-            email: profile.email ?? '',
-            imageUrl: profile.picture ?? '',
-          },
-          accessToken,
-          expiresAt,
-        };
-
-        setAuthState(newAuthState);
-        navigate('/app', { replace: true });
-      } catch (error) {
-        console.error('Error completing Google sign-in:', error);
-      }
-    },
-    onError: (error) => {
-      console.error('Google sign-in failed:', error);
-    },
-  });
-
-  const signInDev = () => {
+  const signInDev = useCallback(() => {
     setAuthState({
       isAuthenticated: true,
       user: {
@@ -145,23 +155,23 @@ export function GoogleAuthProvider({ children }: { children: React.ReactNode }) 
       expiresAt: null,
     });
     navigate('/app', { replace: true });
-  };
+  }, [navigate]);
 
-  const signIn = () => {
+  const signIn = useCallback(() => {
     if (isDevAuthBypass) {
       signInDev();
       return;
     }
 
-    login();
-  };
+    toast({ title: 'Google sign-in is not configured', description: 'Try the demo, or configure a Google OAuth client ID to connect your calendar.', variant: 'destructive' });
+  }, [signInDev]);
 
-  const signOut = () => {
+  const signOut = useCallback(() => {
     if (isDemoMode) return;
     handleSignOut();
-  };
+  }, [handleSignOut, isDemoMode]);
 
-  const getAccessToken = async (): Promise<string> => {
+  const getAccessToken = useCallback(async (): Promise<string> => {
     if (isDemoMode) return DEMO_ACCESS_TOKEN;
 
     if (authState.accessToken === DEV_ACCESS_TOKEN) {
@@ -178,7 +188,7 @@ export function GoogleAuthProvider({ children }: { children: React.ReactNode }) 
     }
 
     return authState.accessToken;
-  };
+  }, [authState.accessToken, authState.expiresAt, handleSignOut, isDemoMode]);
 
   const value = useMemo(
     () => ({
@@ -190,8 +200,20 @@ export function GoogleAuthProvider({ children }: { children: React.ReactNode }) 
       isDevAuthBypass,
       isDemoMode,
     }),
-    [authState, isDemoMode]
+    [authState, isDemoMode, getAccessToken, signIn, signInDev, signOut]
   );
+
+  if (import.meta.env.VITE_GOOGLE_CLIENT_ID && !isDevAuthBypass) {
+    return (
+      <GoogleSignIn onSuccess={completeGoogleSignIn}>
+        {(login) => (
+          <GoogleAuthContext.Provider value={{ ...value, signIn: login }}>
+            {children}
+          </GoogleAuthContext.Provider>
+        )}
+      </GoogleSignIn>
+    );
+  }
 
   return (
     <GoogleAuthContext.Provider value={value}>

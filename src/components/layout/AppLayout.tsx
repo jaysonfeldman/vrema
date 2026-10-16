@@ -13,6 +13,7 @@ import { useCalendarSync } from '@/hooks/useCalendarSync';
 import { useSharedState } from '@/hooks/useSharedState';
 import { useTeamStore } from '@/hooks/useTeamStore';
 import { WithTooltip } from '@/components/ui/tooltip';
+import { toast } from '@/hooks/use-toast';
 import { sound } from '@/lib/sounds';
 import { cn } from '@/lib/utils';
 import { stripDemoPrefix } from '@/lib/app-paths';
@@ -36,20 +37,28 @@ function getPageTitle(pathname: string): string {
 export default function AppLayout() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { authState, signOut, isDemoMode, getAccessToken } = useGoogleAuth();
+  const { authState, signOut, isDemoMode, isDevAuthBypass, getAccessToken } = useGoogleAuth();
   const { syncCalendar, lastSynced } = useCalendarSync();
   const { isLoading } = useSharedState();
+  const activateMember = useTeamStore((s) => s.activateMember);
   const bootstrap = useTeamStore((s) => s.bootstrap);
   const seedDemoTeam = useTeamStore((s) => s.seedDemoTeam);
   const syncIconRef = useRef<RefreshCWIconHandle>(null);
   const logoutIconRef = useRef<LogoutIconHandle>(null);
 
   useEffect(() => {
+    if (!authState.user) return;
+    try {
+      activateMember(authState.user.id);
+    } catch (error) {
+      toast({ title: 'Saved time could not be loaded', description: error instanceof Error ? error.message : 'Please try again.', variant: 'destructive' });
+      return;
+    }
     if (isDemoMode) {
       seedDemoTeam();
       return;
     }
-    if (!authState.isAuthenticated) return;
+    if (!authState.isAuthenticated || isDevAuthBypass) return;
     let cancelled = false;
     (async () => {
       try {
@@ -62,7 +71,11 @@ export default function AppLayout() {
     return () => {
       cancelled = true;
     };
-  }, [authState.isAuthenticated, bootstrap, getAccessToken, isDemoMode, seedDemoTeam]);
+  }, [authState.isAuthenticated, authState.user, activateMember, bootstrap, getAccessToken, isDemoMode, isDevAuthBypass, seedDemoTeam]);
+
+  useEffect(() => {
+    if (authState.isAuthenticated && !lastSynced) void syncCalendar();
+  }, [authState.isAuthenticated, lastSynced, syncCalendar]);
 
   const path = stripDemoPrefix(location.pathname);
   const isDashboard = path === '/app';
@@ -71,8 +84,9 @@ export default function AppLayout() {
   const handleSync = async () => {
     sound.click();
     try {
-      await syncCalendar();
-      sound.success();
+      const synced = await syncCalendar();
+      if (synced) sound.success();
+      else if (synced === false) sound.error();
     } catch {
       sound.error();
     }

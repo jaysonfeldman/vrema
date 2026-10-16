@@ -5,8 +5,9 @@ import { useTeamStore } from './useTeamStore';
 import { GoogleCalendarEvent } from '@/lib/types';
 import { DEV_ACCESS_TOKEN, devCalendarEvents } from '@/lib/dev-auth';
 import { DEMO_ACCESS_TOKEN, demoCalendarEvents } from '@/lib/demo-data';
-import { parseEventTitle } from '@/services/googleCalendarService';
+import { fetchCalendarEvents, parseEventTitle } from '@/services/googleCalendarService';
 import { getDateRange } from '@/lib/eventStats';
+import { toast } from '@/hooks/use-toast';
 
 export const useCalendarSync = () => {
   const { authState, getAccessToken, isDemoMode } = useGoogleAuth();
@@ -27,6 +28,7 @@ export const useCalendarSync = () => {
   const syncCalendar = useCallback(async () => {
     if (!authState.isAuthenticated) return;
 
+    if (useSharedState.getState().isLoading) return false;
     try {
       setIsLoading(true);
       const accessToken = await getAccessToken();
@@ -42,26 +44,11 @@ export const useCalendarSync = () => {
         const timeMax = new Date();
         timeMax.setDate(timeMax.getDate() + 30);
 
-        const response = await fetch(
-          `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${timeMin.toISOString()}&timeMax=${timeMax.toISOString()}&singleEvents=true&orderBy=startTime&maxResults=2500`,
-          {
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-            },
-          }
-        );
-
-        if (!response.ok) {
-          throw new Error('Failed to fetch calendar events');
-        }
-
-        const data = await response.json();
-        calendarEvents = data.items || [];
+        calendarEvents = await fetchCalendarEvents(accessToken, { timeMin, timeMax });
       }
 
       setEvents(calendarEvents);
       setLastSynced(new Date());
-      setIsLoading(false);
 
       // Team workspace sync runs in the background so the UI isn't blocked.
       if (!isDemoMode && accessToken !== DEMO_ACCESS_TOKEN && accessToken !== DEV_ACCESS_TOKEN) {
@@ -86,11 +73,19 @@ export const useCalendarSync = () => {
         if (hashed.length) {
           void syncGoogleEntries(accessToken, hashed).catch((err) => {
             console.error('Failed to sync calendar entries to team workspace:', err);
+            toast({ title: 'Team sync failed', description: 'Your Google events loaded, but could not be saved to the team workspace.', variant: 'destructive' });
           });
         }
       }
+      return true;
     } catch (error) {
-      console.error('Error syncing calendar:', error);
+      toast({
+        title: 'Calendar sync failed',
+        description: error instanceof Error ? error.message : 'Could not connect to Google Calendar. Please try again.',
+        variant: 'destructive',
+      });
+      return false;
+    } finally {
       setIsLoading(false);
     }
   }, [
@@ -132,12 +127,6 @@ export const useCalendarSync = () => {
 
     setFilteredEvents(filtered);
   }, [events, filters, customProjects, setFilteredEvents]);
-
-  useEffect(() => {
-    if (authState.isAuthenticated && !lastSynced) {
-      syncCalendar();
-    }
-  }, [authState.isAuthenticated, lastSynced, syncCalendar]);
 
   return {
     events,

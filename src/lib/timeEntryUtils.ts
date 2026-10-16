@@ -115,16 +115,19 @@ export function timeEntryToCalendarEvent(entry: TimeEntry): GoogleCalendarEvent 
   };
 }
 
-/** Convert a Google `#project#activity` event into a calendar TimeEntry for display. */
+/** Show timed Google events; only tagged events contribute to project tracking. */
 export function googleEventToTimeEntry(
   event: GoogleCalendarEvent,
   memberId: string
 ): TimeEntry | null {
-  if (!event.summary?.includes('#') || !event.start?.dateTime || !event.end?.dateTime) {
+  if (!event.start?.dateTime || !event.end?.dateTime) {
     return null;
   }
 
-  const { projectName, activityType, description } = parseEventTitle(event.summary);
+  const tagged = event.summary?.includes('#');
+  const { projectName, activityType, description } = tagged
+    ? parseEventTitle(event.summary)
+    : { projectName: 'Google Calendar', activityType: 'other', description: event.summary || 'Untitled event' };
   const startTime = event.start.dateTime;
   const endTime = event.end.dateTime;
   if (new Date(endTime).getTime() <= new Date(startTime).getTime()) return null;
@@ -133,7 +136,7 @@ export function googleEventToTimeEntry(
     id: `google-${event.id}`,
     title: description || `${projectName} · ${activityType}`,
     description: description || undefined,
-    projectId: projectName.toLowerCase(),
+    projectId: tagged ? projectName.toLowerCase() : null,
     projectName,
     activityType,
     startTime,
@@ -146,7 +149,7 @@ export function googleEventToTimeEntry(
   };
 }
 
-/** Map synced Google Calendar events (with `#`) into TimeEntries for the week calendar. */
+/** Map synced timed Google Calendar events into the week calendar. */
 export function googleEventsToTimeEntries(
   events: GoogleCalendarEvent[],
   memberId: string,

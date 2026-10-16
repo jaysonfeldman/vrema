@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { addWeeks, format, isSameDay, isToday, subWeeks } from 'date-fns';
 import { AnimatePresence, motion } from 'motion/react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { Popover, PopoverContent, PopoverAnchor } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { useTeamStore } from '@/hooks/useTeamStore';
@@ -72,8 +72,9 @@ type Props = {
 };
 
 export function WeekCalendar({ weekAnchor, onWeekChange }: Props) {
-  const { authState, getAccessToken, isDemoMode } = useGoogleAuth();
+  const { authState, getAccessToken, isDemoMode, isDevAuthBypass } = useGoogleAuth();
   const timeEntries = useTeamStore((s) => s.timeEntries);
+  const localTimeEntries = useTeamStore((s) => s.localTimeEntries);
   const addTimeEntry = useTeamStore((s) => s.addTimeEntry);
   const updateTimeEntry = useTeamStore((s) => s.updateTimeEntry);
   const deleteTimeEntry = useTeamStore((s) => s.deleteTimeEntry);
@@ -96,6 +97,8 @@ export function WeekCalendar({ weekAnchor, onWeekChange }: Props) {
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const dayColumnRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const savingRef = useRef(false);
+  const [isSaving, setIsSaving] = useState(false);
   const draftRef = useRef<TimeEntryDraft | null>(null);
   const interactionRef = useRef<EntryInteraction | null>(null);
   const createDragRef = useRef<DragCreate | null>(null);
@@ -182,38 +185,48 @@ export function WeekCalendar({ weekAnchor, onWeekChange }: Props) {
       if (!projectName || !activityType) return false;
 
       const title = current.title.trim() || `${projectName} · ${activityType}`;
-      addManagedProject(projectName);
-      const accessToken = isDemoMode ? null : await getAccessToken().catch(() => null);
+      try {
+        const accessToken = !current.id || localTimeEntries.some((entry) => entry.id === current.id) || isDemoMode || isDevAuthBypass ? null : await getAccessToken();
 
-      if (current.id) {
-        await updateTimeEntry(accessToken, current.id, {
-          title,
-          projectName,
-          projectId: projectName.toLowerCase(),
-          activityType,
-          color: undefined,
-          startTime: current.startTime,
-          endTime: current.endTime,
-          status: 'confirmed',
+        if (current.id) {
+          await updateTimeEntry(accessToken, current.id, {
+            title,
+            projectName,
+            projectId: projectName.toLowerCase(),
+            activityType,
+            color: undefined,
+            startTime: current.startTime,
+            endTime: current.endTime,
+            status: 'confirmed',
+          });
+        } else {
+          await addTimeEntry(accessToken, {
+            title,
+            projectName,
+            projectId: projectName.toLowerCase(),
+            activityType,
+            startTime: current.startTime,
+            endTime: current.endTime,
+            memberId: current.memberId,
+            status: 'confirmed',
+          });
+        }
+        addManagedProject(projectName);
+      } catch (error) {
+        toast({
+          title: 'Time entry was not saved',
+          description: error instanceof Error ? error.message : 'Please try again.',
+          variant: 'destructive',
         });
-      } else {
-        await addTimeEntry(accessToken, {
-          title,
-          projectName,
-          projectId: projectName.toLowerCase(),
-          activityType,
-          startTime: current.startTime,
-          endTime: current.endTime,
-          memberId: current.memberId,
-          status: 'confirmed',
-        });
+        return false;
       }
       return true;
     },
-    [addManagedProject, addTimeEntry, getAccessToken, isDemoMode, updateTimeEntry]
+    [addManagedProject, addTimeEntry, getAccessToken, isDemoMode, isDevAuthBypass, localTimeEntries, updateTimeEntry]
   );
 
-  const requestSaveOrWarn = useCallback(() => {
+  const requestSaveOrWarn = useCallback(async () => {
+    if (savingRef.current) return false;
     const current = draftRef.current;
     if (!current) return false;
     if (current.id?.startsWith('google-')) {
@@ -224,19 +237,27 @@ export function WeekCalendar({ weekAnchor, onWeekChange }: Props) {
       setShowRequiredErrors(true);
       return false;
     }
-    draftRef.current = null;
-    void saveDraft(current).then((ok) => {
-      if (ok) sound.success();
-    });
-    closeEditor();
-    return true;
-  }, [closeEditor, saveDraft]);
+    savingRef.current = true;
+    setIsSaving(true);
+    try {
+      const saved = await saveDraft(current);
+      if (saved) {
+        draftRef.current = null;
+        sound.success();
+        toast({ title: 'Time saved', description: !current.id || localTimeEntries.some((entry) => entry.id === current.id) ? 'Saved on this device.' : 'Time entry updated.' });
+        closeEditor();
+      }
+      return saved;
+    } finally {
+      savingRef.current = false;
+      setIsSaving(false);
+    }
+  }, [closeEditor, localTimeEntries, saveDraft]);
 
   /** Click-away: save when complete, otherwise discard (never trap the user). */
   const dismissEditor = useCallback(() => {
     const current = draftRef.current;
-    if (!current) return;
-    draftRef.current = null;
+    if (!current || savingRef.current) return;
 
     if (current.id?.startsWith('google-')) {
       closeEditor();
@@ -244,8 +265,7 @@ export function WeekCalendar({ weekAnchor, onWeekChange }: Props) {
     }
 
     if (isDraftComplete(current)) {
-      saveDraft(current);
-      closeEditor();
+      void requestSaveOrWarn();
       return;
     }
 
@@ -261,10 +281,11 @@ export function WeekCalendar({ weekAnchor, onWeekChange }: Props) {
         description: 'Choose a project and activity to save time entries.',
       });
     }
-  }, [closeEditor, saveDraft]);
+  }, [closeEditor, requestSaveOrWarn]);
 
   /** Escape / Discard: always cancel without saving. */
   const discardEditor = useCallback(() => {
+    if (savingRef.current) return;
     draftRef.current = null;
     closeEditor();
   }, [closeEditor]);
@@ -473,12 +494,14 @@ export function WeekCalendar({ weekAnchor, onWeekChange }: Props) {
           dateFromDayAndMinutes(day, current.endMinutes)
         );
         void (async () => {
-          const accessToken = isDemoMode ? null : await getAccessToken().catch(() => null);
+          const accessToken = localTimeEntries.some((entry) => entry.id === liveEntry.id) || isDemoMode || isDevAuthBypass ? null : await getAccessToken();
           await updateTimeEntry(accessToken, liveEntry.id, {
             startTime: start.toISOString(),
             endTime: end.toISOString(),
           });
-        })();
+        })().catch((error) => {
+          toast({ title: 'Time entry was not moved', description: error instanceof Error ? error.message : 'Please try again.', variant: 'destructive' });
+        });
         return;
       }
 
@@ -561,8 +584,8 @@ export function WeekCalendar({ weekAnchor, onWeekChange }: Props) {
     );
     const nextDraft: TimeEntryDraft = {
       title: '',
-      projectName: '',
-      activityType: '',
+      projectName: 'Personal',
+      activityType: 'other',
       startTime: start.toISOString(),
       endTime: end.toISOString(),
       memberId: create.memberId,
@@ -577,11 +600,21 @@ export function WeekCalendar({ weekAnchor, onWeekChange }: Props) {
   };
 
   const handleDelete = async () => {
-    if (draft?.id && !draft.id.startsWith('google-')) {
-      const accessToken = isDemoMode ? null : await getAccessToken().catch(() => null);
-      await deleteTimeEntry(accessToken, draft.id);
+    if (savingRef.current) return;
+    savingRef.current = true;
+    setIsSaving(true);
+    try {
+      if (draft?.id && !draft.id.startsWith('google-')) {
+        const accessToken = localTimeEntries.some((entry) => entry.id === draft.id) || isDemoMode || isDevAuthBypass ? null : await getAccessToken();
+        await deleteTimeEntry(accessToken, draft.id);
+      }
+      closeEditor();
+    } catch (error) {
+      toast({ title: 'Time entry was not deleted', description: error instanceof Error ? error.message : 'Please try again.', variant: 'destructive' });
+    } finally {
+      savingRef.current = false;
+      setIsSaving(false);
     }
-    closeEditor();
   };
 
   const draftIsGoogle = Boolean(draft?.id && draft.id.startsWith('google-'));
@@ -637,9 +670,26 @@ export function WeekCalendar({ weekAnchor, onWeekChange }: Props) {
             </Button>
           </div>
         </div>
-        <p className="text-xs text-muted-foreground">
-          Google # events + your entries · drag to create
-        </p>
+        <div className="flex flex-wrap items-center gap-3">
+          <p className="text-xs text-muted-foreground">Manual entries save on this device · drag to create</p>
+          <Button
+            type="button"
+            size="sm"
+            className="gap-1.5"
+            disabled={isSaving}
+            onClick={(event) => {
+              if (draftRef.current) return;
+              const day = days.find(isToday) ?? days[0];
+              const start = dateFromDayAndMinutes(day, 9 * 60);
+              const end = dateFromDayAndMinutes(day, 10 * 60);
+              const rect = event.currentTarget.getBoundingClientRect();
+              openEditor({ title: '', projectName: 'Personal', activityType: 'other', startTime: start.toISOString(), endTime: end.toISOString(), memberId: userId }, { x: rect.left, y: rect.bottom });
+            }}
+          >
+            <Plus className="size-3.5" />
+            Add time
+          </Button>
+        </div>
       </div>
 
       <div className={cn('relative min-h-0 flex-1 overflow-hidden rounded-lg border bg-white dark:bg-elevated', GRID_LINE)}>
@@ -707,7 +757,7 @@ export function WeekCalendar({ weekAnchor, onWeekChange }: Props) {
                   const preview = previewForEntry(entry.id);
                   const start = new Date(entry.startTime);
                   const end = new Date(entry.endTime);
-                  let startMinutes = preview?.startMinutes ?? minutesFromMidnight(start);
+                  const startMinutes = preview?.startMinutes ?? minutesFromMidnight(start);
                   let endMinutes = preview?.endMinutes ?? minutesFromMidnight(end);
                   if (!preview && (!isSameDay(start, end) || endMinutes <= startMinutes)) {
                     endMinutes = 24 * 60;
@@ -870,6 +920,7 @@ export function WeekCalendar({ weekAnchor, onWeekChange }: Props) {
                 <TimeEntryEditor
                   draft={draft}
                   isEditing={Boolean(draft.id)}
+                  isSaving={isSaving}
                   readOnly={draftIsGoogle}
                   showRequiredErrors={showRequiredErrors}
                   onChange={(patch) => {
